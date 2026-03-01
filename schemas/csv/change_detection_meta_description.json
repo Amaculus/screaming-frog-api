@@ -1,0 +1,54 @@
+{
+  "file": "change_detection_meta_description.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Current Meta Description",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Previous Meta Description",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Current Indexability",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Current Indexability Status",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Previous Indexability",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Previous Indexability Status",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Crawl Timestamp",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

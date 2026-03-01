@@ -1,0 +1,273 @@
+{
+  "file": "google_rich_results_features_report.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728"
+      ]
+    },
+    {
+      "name": "Google Aggregate Rating",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Article",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "detected",
+        "detected",
+        "detected"
+      ]
+    },
+    {
+      "name": "Google Breadcrumb",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "detected",
+        "detected",
+        "detected"
+      ]
+    },
+    {
+      "name": "Google Book",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Carousel",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Course Info",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Course List",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Dataset",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Educational Q&A",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Employer Aggregate Rating",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Estimated Salary",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Event",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "detected",
+        "detected",
+        "detected"
+      ]
+    },
+    {
+      "name": "Google Fact Check",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google FAQ",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "detected",
+        "detected",
+        "detected"
+      ]
+    },
+    {
+      "name": "Google Image Metadata",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Job Posting",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Learning Video",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Local Business Listing",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Math Solvers",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Merchant Return Policy",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Movie",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Organization",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "detected",
+        "detected",
+        "detected"
+      ]
+    },
+    {
+      "name": "Google Practice Problems",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Product Merchant Listings",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Product Snippet",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Product Variant",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Profile Page",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "detected",
+        "detected",
+        "detected"
+      ]
+    },
+    {
+      "name": "Google Q&A",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Recipe",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Review Snippet",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "detected",
+        "detected",
+        "detected"
+      ]
+    },
+    {
+      "name": "Google Software App",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "detected",
+        "detected",
+        "detected"
+      ]
+    },
+    {
+      "name": "Google Speakable",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Special Announcements",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Subscription and Paywalled Content",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "detected",
+        "detected"
+      ]
+    },
+    {
+      "name": "Google Vacation Rental",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Vehicle Listing",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Google Video",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

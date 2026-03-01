@@ -1,0 +1,18 @@
+{
+  "file": "pagespeed_properly_size_images.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Properly Size Images Savings (ms)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

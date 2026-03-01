@@ -1,0 +1,18 @@
+{
+  "file": "pagespeed_reduce_server_response_times_(ttfb).csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Server Response Times (TTFB) (ms)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "file": "meta_description_over_985_pixels.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/article/author/logan-martinez",
+        "https://www.actionnetwork.com/article/author/sean-koerner"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "Meta Description 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Don\u2019t miss any Eastern Michigan Eagles news with the Action Network. Find team information and game odds like Eastern Michigan spreads, moneylines, and betting analysis.",
+        "Logan Martinez is a South Florida resident and a native of North Carolina. He graduated from the University of North Carolina at Chapel Hill and has extensive print journalism and SEO experience.",
+        "Sean runs the predictive analytics at Action. From the in-game win probs in the app, to the DFS models on FantasyLabs, to the fantasy football rankings on TAN."
+      ]
+    },
+    {
+      "name": "Meta Description 1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "169",
+        "195",
+        "159"
+      ]
+    },
+    {
+      "name": "Meta Description 1 Pixel Width",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1106",
+        "1230",
+        "1010"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

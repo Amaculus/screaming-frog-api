@@ -1,0 +1,46 @@
+{
+  "file": "image_elements_do_not_have_explicit_width_&_height_report.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Source Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams"
+      ]
+    },
+    {
+      "name": "URL",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "https://assets.actionnetwork.com/70x70/484179_actionlogotn.webp",
+        "https://static.sprtactn.co/teamlogos/nfl/100/la.png",
+        "https://static.sprtactn.co/teamlogos/nfl/100/sea.png"
+      ]
+    },
+    {
+      "name": "Label",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "CTA Thumbnail Image",
+        "LA Team Abbreviation",
+        "SEA Team Abbreviation"
+      ]
+    },
+    {
+      "name": "Snippet",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "<img sizes=\"(max-width: 35px) 100vw, 35px\" class=\"cta-thumbnail__image\" alt=\"CTA Thumbnail Image\" fetchpriority=\"auto\" srcset=\"https://assets.actionnetwork.com/14x14/484179_actionlogotn.png 14w,https:/\u2026\" src=\"https://assets.actionnetwork.com/70x70/484179_actionlogotn.webp\">",
+        "<img class=\"game-pick-details__team-icon\" width=\"14\" alt=\"LA Team Abbreviation\" src=\"https://static.sprtactn.co/teamlogos/nfl/100/la.png\">",
+        "<img class=\"game-pick-details__team-icon\" width=\"14\" alt=\"SEA Team Abbreviation\" src=\"https://static.sprtactn.co/teamlogos/nfl/100/sea.png\">"
+      ]
+    }
+  ]
+}

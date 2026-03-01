@@ -1,0 +1,96 @@
+{
+  "file": "wcag_2_0_aaa_all_incomplete.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Issue",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Links With Same Accessible Name",
+        "Links With Same Accessible Name",
+        "Links With Same Accessible Name"
+      ]
+    },
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams"
+      ]
+    },
+    {
+      "name": "Location on Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "a[href$=\"ohio-bobcats\"]",
+        ".css-za5olx.e1hxo2y30:nth-child(1) > .news-card__image-container[aria-label=\"News Image\"]",
+        ".css-za5olx.e1hxo2y30:nth-child(1) > .news-card__image-container[aria-label=\"News Image\"]"
+      ]
+    },
+    {
+      "name": "Guidelines",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "WCAG 2.0 AAA",
+        "WCAG 2.0 AAA",
+        "WCAG 2.0 AAA"
+      ]
+    },
+    {
+      "name": "User Impact",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Minor",
+        "Minor",
+        "Minor"
+      ]
+    },
+    {
+      "name": "Priority",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Low",
+        "Low",
+        "Low"
+      ]
+    },
+    {
+      "name": "Issue Description",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Links with the same name must have a similar purpose.",
+        "Links with the same name must have a similar purpose.",
+        "Links with the same name must have a similar purpose."
+      ]
+    },
+    {
+      "name": "How To Fix",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Ensure that links with the same accessible name serve a similar purpose.",
+        "Ensure that links with the same accessible name serve a similar purpose.",
+        "Ensure that links with the same accessible name serve a similar purpose."
+      ]
+    },
+    {
+      "name": "Help URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://dequeuniversity.com/rules/axe/4.10/identical-links-same-purpose?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/identical-links-same-purpose?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/identical-links-same-purpose?application=axeAPI"
+      ]
+    }
+  ]
+}

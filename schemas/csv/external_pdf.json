@@ -1,0 +1,42 @@
+{
+  "file": "external_pdf.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Content Type",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Crawl Depth",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

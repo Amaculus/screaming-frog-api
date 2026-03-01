@@ -1,0 +1,18 @@
+{
+  "file": "pagespeed_serve_images_in_nextgen_formats.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Serve Images in Next-Gen Formats Savings (ms)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

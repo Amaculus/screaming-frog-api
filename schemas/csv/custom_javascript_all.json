@@ -1,0 +1,1042 @@
+{
+  "file": "custom_javascript_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Extractor 1 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 2 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 3 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 4 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 5 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 6 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 7 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 8 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 9 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 10 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 11 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 12 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 13 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 14 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 15 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 16 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 17 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 18 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 19 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 20 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 21 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 22 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 23 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 24 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 25 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 26 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 27 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 28 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 29 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 30 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 31 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 32 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 33 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 34 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 35 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 36 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 37 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 38 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 39 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 40 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 41 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 42 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 43 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 44 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 45 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 46 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 47 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 48 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 49 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 50 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 51 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 52 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 53 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 54 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 55 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 56 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 57 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 58 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 59 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 60 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 61 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 62 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 63 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 64 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 65 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 66 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 67 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 68 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 69 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 70 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 71 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 72 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 73 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 74 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 75 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 76 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 77 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 78 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 79 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 80 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 81 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 82 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 83 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 84 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 85 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 86 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 87 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 88 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 89 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 90 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 91 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 92 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 93 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 94 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 95 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 96 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 97 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 98 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 99 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    },
+    {
+      "name": "Extractor 100 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'",
+        "No data returned. Ensure you call 'return seoSpider.data(your_data)'"
+      ]
+    }
+  ]
+}

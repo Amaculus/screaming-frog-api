@@ -1,0 +1,68 @@
+{
+  "file": "javascript_h1_updated_by_javascript.csv",
+  "rows_sampled": 23,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/ncaab-game/st-bonaventure-saint-josephs-score-odds-january-14-2026/276126",
+        "https://www.actionnetwork.com/nhl-game/flyers-mammoth-score-odds-january-21-2026/260737"
+      ]
+    },
+    {
+      "name": "HTML H1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Sharks vs. Lightning Odds & Betting Predictions - January 21, 2026",
+        "St. Bonaventure vs. Saint Joe's Odds & Betting Predictions - January 15, 2026",
+        "Flyers vs. Utah Odds & Betting Predictions - January 22, 2026"
+      ]
+    },
+    {
+      "name": "Rendered HTML H1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Sharks vs. Lightning Odds & Betting Predictions - January 20, 2026",
+        "St. Bonaventure vs. Saint Joe's Odds & Betting Predictions - January 14, 2026",
+        "Flyers vs. Utah Odds & Betting Predictions - January 21, 2026"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

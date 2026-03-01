@@ -1,0 +1,100 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "INVALID_ELEMENTS_IN_HEAD",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "HEAD_NOT_FIRST_ELEMENT",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "MISSING_HEAD",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "MULTIPLE_HEADS",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "MISSING_BODY",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "MULTIPLE_BODIES",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "BODY_ELEMENT_PRECEDING_HTML",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "TITLE_OUTSIDE_HEAD",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "META_DESCRIPTION_OUTSIDE_HEAD",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "META_ROBOTS_OUTSIDE_HEAD",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CANONICAL_OUTSIDE_HEAD",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "HREFLANG_OUTSIDE_HEAD",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CONTAINS_UNSUPPORTED_PLUGIN",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CANONICAL_CONTAINS_INVALID_ATTRIBUTE",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CANONICAL_CONTAINS_FRAGMENT_URL",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    }
+  ]
+}

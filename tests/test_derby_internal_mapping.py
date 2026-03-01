@@ -1,0 +1,238 @@
+from __future__ import annotations
+
+from screamingfrog.backends.derby_backend import (
+    _build_supplementary_map,
+    _resolve_tab_entries,
+    _resolve_internal_alias_map,
+    _resolve_internal_expression_selects,
+    _resolve_internal_header_extract_map,
+)
+
+
+def test_resolve_internal_alias_map_uses_first_direct_mapping_per_csv_column() -> None:
+    mapping = {
+        "internal_all.csv": [
+            {
+                "csv_column": "Address",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+            },
+            {
+                "csv_column": "Status Code",
+                "db_column": "RESPONSE_CODE",
+                "db_table": "APP.URLS",
+            },
+            {
+                # Expression columns are intentionally ignored for aliasing.
+                "csv_column": "Indexability",
+                "db_expression": "CASE WHEN 1=1 THEN 'Indexable' END",
+                "db_table": "APP.URLS",
+            },
+            {
+                # Duplicate CSV mapping should not override the first one.
+                "csv_column": "Status Code",
+                "db_column": "STATUS_CODE_ALT",
+                "db_table": "APP.URLS",
+            },
+            {
+                # Different table should be ignored.
+                "csv_column": "Status Code",
+                "db_column": "STATUS_CODE_OTHER",
+                "db_table": "APP.OTHER",
+            },
+            {
+                # Header-derived entries should not be direct aliases.
+                "csv_column": 'HTTP rel="next" 1',
+                "db_column": "HTTP_RESPONSE_HEADER_COLLECTION",
+                "db_table": "APP.URLS",
+                "header_extract": {"type": "link_rel", "rel": "next"},
+            },
+        ]
+    }
+
+    aliases = _resolve_internal_alias_map(
+        mapping, "APP.URLS", ["ENCODED_URL", "RESPONSE_CODE"]
+    )
+
+    assert aliases == {
+        "Address": "ENCODED_URL",
+        "Status Code": "RESPONSE_CODE",
+    }
+
+
+def test_resolve_internal_header_extract_map_returns_header_entries() -> None:
+    mapping = {
+        "internal_all.csv": [
+            {
+                "csv_column": 'HTTP rel="next" 1',
+                "db_column": "HTTP_RESPONSE_HEADER_COLLECTION",
+                "db_table": "APP.URLS",
+                "header_extract": {"type": "link_rel", "rel": "next"},
+            },
+            {
+                # Duplicate key should keep first mapping.
+                "csv_column": 'HTTP rel="next" 1',
+                "db_column": "HTTP_RESPONSE_HEADER_COLLECTION",
+                "db_table": "APP.URLS",
+                "header_extract": {"type": "link_rel", "rel": "prev"},
+            },
+            {
+                "csv_column": "Status Code",
+                "db_column": "RESPONSE_CODE",
+                "db_table": "APP.URLS",
+            },
+        ]
+    }
+
+    extracts = _resolve_internal_header_extract_map(mapping, "APP.URLS")
+
+    assert extracts == {'HTTP rel="next" 1': {"type": "link_rel", "rel": "next"}}
+
+
+def test_resolve_internal_expression_selects_returns_deduped_expr_aliases() -> None:
+    mapping = {
+        "internal_all.csv": [
+            {
+                "csv_column": "Indexability",
+                "db_expression": "CASE WHEN 1=1 THEN 'Indexable' ELSE 'Non-Indexable' END",
+                "db_table": "APP.URLS",
+            },
+            {
+                # Duplicate CSV mapping should not override the first one.
+                "csv_column": "Indexability",
+                "db_expression": "CASE WHEN 1=1 THEN 'X' END",
+                "db_table": "APP.URLS",
+            },
+            {
+                "csv_column": "Indexability Status",
+                "db_expression": "CASE WHEN 1=1 THEN 'ok' END",
+                "db_table": "APP.URLS",
+            },
+            {
+                # Different table should be ignored.
+                "csv_column": "Indexability",
+                "db_expression": "CASE WHEN 1=1 THEN 'other' END",
+                "db_table": "APP.OTHER",
+            },
+        ]
+    }
+
+    selects = _resolve_internal_expression_selects(mapping, "APP.URLS")
+
+    assert selects == [
+        (
+            "SF_EXPR_0",
+            "Indexability",
+            "CASE WHEN 1=1 THEN 'Indexable' ELSE 'Non-Indexable' END",
+        ),
+        ("SF_EXPR_1", "Indexability Status", "CASE WHEN 1=1 THEN 'ok' END"),
+    ]
+
+
+def test_resolve_tab_entries_includes_supplementary_encoded_url_columns() -> None:
+    mapping = {
+        "internal_all.csv": [
+            {
+                "csv_column": "Address",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+            },
+            {
+                "csv_column": "Status Code",
+                "db_column": "RESPONSE_CODE",
+                "db_table": "APP.URLS",
+            },
+            {
+                "csv_column": "Performance Score",
+                "db_column": "PERFORMANCE_SCORE",
+                "db_table": "APP.PAGE_SPEED_API",
+            },
+            {
+                "csv_column": "Spelling Errors",
+                "db_column": "SPELLING_ERRORS",
+                "db_table": "APP.LANGUAGE_ERROR",
+            },
+        ]
+    }
+
+    table, entries, gui_defs, supplementary = _resolve_tab_entries(
+        mapping, "internal_all", None
+    )
+
+    assert table == "APP.URLS"
+    assert gui_defs == []
+    assert [entry["csv_column"] for entry in entries] == ["Address", "Status Code"]
+    assert [entry["csv_column"] for entry in supplementary] == [
+        "Performance Score",
+        "Spelling Errors",
+    ]
+
+
+def test_resolve_tab_entries_skips_non_lookup_tables_for_supplementary() -> None:
+    mapping = {
+        "spelling_and_grammar_errors.csv": [
+            {
+                "csv_column": "Spelling Errors",
+                "db_column": "SPELLING_ERRORS",
+                "db_table": "APP.LANGUAGE_ERROR",
+            },
+            {
+                "csv_column": "Grammar Errors",
+                "db_column": "GRAMMAR_ERRORS",
+                "db_table": "APP.LANGUAGE_ERROR",
+            },
+            {
+                # APP.LANGUAGE_ERROR_COUNTS has no ENCODED_URL lookup key.
+                "csv_column": "Error Count",
+                "db_column": "ERROR_COUNT",
+                "db_table": "APP.LANGUAGE_ERROR_COUNTS",
+            },
+        ]
+    }
+
+    table, entries, gui_defs, supplementary = _resolve_tab_entries(
+        mapping, "spelling_and_grammar_errors", None
+    )
+
+    assert table == "APP.LANGUAGE_ERROR"
+    assert gui_defs == []
+    assert [entry["csv_column"] for entry in entries] == [
+        "Spelling Errors",
+        "Grammar Errors",
+    ]
+    assert supplementary == []
+
+
+def test_build_supplementary_map_groups_by_table_and_keeps_first_csv_mapping() -> None:
+    supplementary = [
+        {
+            "csv_column": "Performance Score",
+            "db_column": "PERFORMANCE_SCORE",
+            "db_table": "APP.PAGE_SPEED_API",
+        },
+        {
+            "csv_column": "Total Requests",
+            "db_column": "TOTAL_REQUESTS",
+            "db_table": "APP.PAGE_SPEED_API",
+        },
+        {
+            "csv_column": "Performance Score",
+            "db_column": "OTHER_COL",
+            "db_table": "APP.PAGE_SPEED_API",
+        },
+        {
+            "csv_column": "Spelling Errors",
+            "db_column": "SPELLING_ERRORS",
+            "db_table": "APP.LANGUAGE_ERROR",
+        },
+    ]
+
+    mapped = _build_supplementary_map(supplementary)
+
+    assert mapped == {
+        "APP.PAGE_SPEED_API": {
+            "Performance Score": "PERFORMANCE_SCORE",
+            "Total Requests": "TOTAL_REQUESTS",
+        },
+        "APP.LANGUAGE_ERROR": {"Spelling Errors": "SPELLING_ERRORS"},
+    }

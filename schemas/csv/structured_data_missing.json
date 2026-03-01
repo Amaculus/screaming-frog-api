@@ -1,0 +1,114 @@
+{
+  "file": "structured_data_missing.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/memphis-tigers",
+        "https://www.actionnetwork.com/pro-systems/system/1424912"
+      ]
+    },
+    {
+      "name": "Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Warnings",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Rich Result Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Rich Result Warnings",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Rich Result Features",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Feature-1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Total Types",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Unique Types",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Type-1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

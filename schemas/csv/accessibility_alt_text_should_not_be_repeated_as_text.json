@@ -1,0 +1,81 @@
+{
+  "file": "accessibility_alt_text_should_not_be_repeated_as_text.csv",
+  "rows_sampled": 2,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/picks/game",
+        "https://www.actionnetwork.com/ncaab/education"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "All Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "7",
+        "9"
+      ]
+    },
+    {
+      "name": "Best Practice Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "PSI Request Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Success",
+        "Success"
+      ]
+    }
+  ]
+}

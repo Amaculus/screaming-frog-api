@@ -1,0 +1,68 @@
+{
+  "file": "meta_description_missing.csv",
+  "rows_sampled": 18,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/pro-systems/system/1424912",
+        "https://www.actionnetwork.com/pro-systems/system/1336600",
+        "https://www.actionnetwork.com/article/author/pwinograd"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Meta Description 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Meta Description 1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Meta Description 1 Pixel Width",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

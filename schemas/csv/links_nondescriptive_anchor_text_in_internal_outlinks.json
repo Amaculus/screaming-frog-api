@@ -1,0 +1,148 @@
+{
+  "file": "links_nondescriptive_anchor_text_in_internal_outlinks.csv",
+  "rows_sampled": 14,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/georgia",
+        "https://www.actionnetwork.com/online-sports-betting/colorado",
+        "https://www.actionnetwork.com/terms"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Crawl Depth",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "Link Score",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1260",
+        "2594",
+        "1179"
+      ]
+    },
+    {
+      "name": "Unique Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1175",
+        "1177",
+        "1177"
+      ]
+    },
+    {
+      "name": "Unique JS Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "% of Total",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "99.750",
+        "99.920",
+        "99.920"
+      ]
+    },
+    {
+      "name": "Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "317",
+        "335",
+        "239"
+      ]
+    },
+    {
+      "name": "Unique Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "197",
+        "202",
+        "165"
+      ]
+    },
+    {
+      "name": "Unique JS Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "External Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "117",
+        "55",
+        "25"
+      ]
+    },
+    {
+      "name": "Unique External Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "76",
+        "45",
+        "23"
+      ]
+    },
+    {
+      "name": "Unique External JS Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "29",
+        "1",
+        "1"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "file": "internal_redirection_(3xx)_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Hyperlink",
+        "Hyperlink"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/georgia",
+        "https://www.actionnetwork.com/online-sports-betting/texas",
+        "https://www.actionnetwork.com/playbook/bot"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/2021-college-football-returning-production-transfer-grades",
+        "https://www.actionnetwork.com/ncaaf/2021-college-football-returning-production-transfer-grades",
+        "https://www.actionnetwork.com/playbook"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "35",
+        "35",
+        "13"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "College Football Returning Production & Transfer Grades",
+        "College Football Returning Production & Transfer Grades",
+        "Playbook by Action"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "308",
+        "308",
+        "307"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Permanent Redirect",
+        "Permanent Redirect",
+        "Temporary Redirect"
+      ]
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "_blank",
+        "_blank",
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Absolute",
+        "Absolute",
+        "Absolute"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[3]/div[2]/ul[5]/li[2]/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[4]/div[2]/ul[7]/li[1]/a",
+        "//body/div[@id='__next']/div[2]/div[2]/div[3]/div[2]/div/p[@class='content__paragraph'][1]/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Content"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML"
+      ]
+    }
+  ]
+}

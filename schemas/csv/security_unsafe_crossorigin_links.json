@@ -1,0 +1,207 @@
+{
+  "file": "security_unsafe_crossorigin_links.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "HTTP Version",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "2.0",
+        "2.0",
+        "2.0"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noindex",
+        "Canonicalised"
+      ]
+    },
+    {
+      "name": "Canonical Link Element 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8"
+      ]
+    },
+    {
+      "name": "Meta Robots 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "max-image-preview:large",
+        "max-image-preview:large",
+        "max-image-preview:large"
+      ]
+    },
+    {
+      "name": "X-Robots-Tag 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Response Header: age",
+      "dtype": "integer",
+      "nullable": true,
+      "sample_values": [
+        "7476",
+        "485546",
+        "147"
+      ]
+    },
+    {
+      "name": "Response Header: cache-control",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "s-maxage=60, stale-while-revalidate=31535940",
+        "max-age=300, must-revalidate, public",
+        "max-age=300, must-revalidate, public"
+      ]
+    },
+    {
+      "name": "Response Header: content-encoding",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "gzip",
+        "gzip",
+        "gzip"
+      ]
+    },
+    {
+      "name": "Response Header: date",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Fri, 23 Jan 2026 18:54:41 GMT",
+        "Fri, 23 Jan 2026 20:31:47 GMT",
+        "Fri, 23 Jan 2026 20:38:50 GMT"
+      ]
+    },
+    {
+      "name": "Response Header: etag",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "W/\"10l3w3kqi0geab1\"",
+        "W/\"a96d7xz6wk10cyr\"",
+        "W/\"c2i7eoih4863cr\""
+      ]
+    },
+    {
+      "name": "Response Header: vary",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Accept-Encoding",
+        "Accept-Encoding",
+        "Accept-Encoding"
+      ]
+    },
+    {
+      "name": "Response Header: via",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "1.1 7a1a22438cd1a2a169a97235366bc326.cloudfront.net (CloudFront)",
+        "1.1 d31121675203e55f502584ea86567648.cloudfront.net (CloudFront)",
+        "1.1 d31121675203e55f502584ea86567648.cloudfront.net (CloudFront)"
+      ]
+    },
+    {
+      "name": "Response Header: x-amz-cf-id",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "U5mdjGZyaPowU7GOX8FmerugrpzOu04Sl2KZOT8fvs2C32Ey9atW1Q==",
+        "xawkGWLRlhdAnvLTGXi-9McfufcSbdlZaS2DRyKKFmmtQbX0JBA7dg==",
+        "8iZ1jSJ-HvR0ABUOZ5LtZ_ut-KDWlBFnhpWvP46d1jtGDRYAe1AyTw=="
+      ]
+    },
+    {
+      "name": "Response Header: x-amz-cf-pop",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "EZE50-P7",
+        "EZE50-P7",
+        "EZE50-P7"
+      ]
+    },
+    {
+      "name": "Response Header: x-cache",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hit from cloudfront",
+        "Miss from cloudfront",
+        "Miss from cloudfront"
+      ]
+    },
+    {
+      "name": "Response Header: x-nextjs-cache",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "STALE",
+        "STALE",
+        "HIT"
+      ]
+    }
+  ]
+}

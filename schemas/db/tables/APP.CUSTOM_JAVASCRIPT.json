@@ -1,0 +1,22 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EXTRACTOR_IDX",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "MATCHED",
+      "type": "CLOB",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

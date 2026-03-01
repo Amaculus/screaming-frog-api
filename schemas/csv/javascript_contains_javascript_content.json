@@ -1,0 +1,92 @@
+{
+  "file": "javascript_contains_javascript_content.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "HTML Word Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1470",
+        "3747",
+        "1793"
+      ]
+    },
+    {
+      "name": "Rendered HTML Word Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2020",
+        "4297",
+        "2343"
+      ]
+    },
+    {
+      "name": "Word Count Change",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "550",
+        "550",
+        "550"
+      ]
+    },
+    {
+      "name": "JS Word Count %",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "27.228",
+        "12.800",
+        "23.474"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noindex",
+        "noindex",
+        "noindex"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

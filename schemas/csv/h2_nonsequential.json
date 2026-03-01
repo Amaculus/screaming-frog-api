@@ -1,0 +1,82 @@
+{
+  "file": "h2_nonsequential.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/article/author/logan-martinez",
+        "https://www.actionnetwork.com/pro-systems/system/1424912",
+        "https://www.actionnetwork.com/mlb/odds"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "H2-1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "We value your privacy",
+        "We value your privacy",
+        "Offers"
+      ]
+    },
+    {
+      "name": "H2-1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "21",
+        "21",
+        "6"
+      ]
+    },
+    {
+      "name": "H2-2",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Privacy Preference Center",
+        "Privacy Preference Center",
+        "MLB Odds Table Example"
+      ]
+    },
+    {
+      "name": "H2-2 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "25",
+        "25",
+        "22"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

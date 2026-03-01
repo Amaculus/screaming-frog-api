@@ -1,0 +1,82 @@
+{
+  "file": "h2_duplicate.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/boston-college-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "H2-1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Eagles Injuries",
+        "Eagles Injuries",
+        "Next Rams Game"
+      ]
+    },
+    {
+      "name": "H2-1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "15",
+        "15",
+        "14"
+      ]
+    },
+    {
+      "name": "H2-2",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Eagles 2026 Schedule & Betting Odds",
+        "Eagles 2026 Schedule & Betting Odds",
+        "Rams Injuries"
+      ]
+    },
+    {
+      "name": "H2-2 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "35",
+        "35",
+        "13"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

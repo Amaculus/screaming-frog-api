@@ -1,0 +1,56 @@
+{
+  "file": "images_with_alt_text_over_x_characters.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Image",
+        "Image",
+        "Image"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/article/author/pwinograd",
+        "https://www.actionnetwork.com/tennis/frances-tiafoe-vs-francisco-comesana-prediction-pick-odds-australian-open-second-round"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://images.actionnetwork.com/blog/2026/01/FeatureImage_Starter-54.jpg",
+        "https://images.actionnetwork.com/blog/2026/01/FeatureImage_Starter-54.jpg",
+        "https://images.actionnetwork.com/blog/2026/01/FeatureImage_Starter-54.jpg"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Ben Shelton vs Valentin Vacherot Prediction, Pick, Odds for Australian Open Third Round article feature image",
+        "Ben Shelton vs Valentin Vacherot: Target Total Now Image",
+        "Ben Shelton vs Valentin Vacherot Prediction, Pick, Odds for Australian Open Third Round"
+      ]
+    },
+    {
+      "name": "Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "109",
+        "56",
+        "87"
+      ]
+    }
+  ]
+}

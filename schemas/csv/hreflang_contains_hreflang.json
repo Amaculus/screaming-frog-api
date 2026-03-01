@@ -1,0 +1,106 @@
+{
+  "file": "hreflang_contains_hreflang.csv",
+  "rows_sampled": 2,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/",
+        "https://www.actionnetwork.com/casino"
+      ]
+    },
+    {
+      "name": "Title 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Action Network: Sports Betting Odds, News, Insights, & Analysis",
+        "Best US Online Casinos in January 2026"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "1"
+      ]
+    },
+    {
+      "name": "HTML hreflang 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "en-CA",
+        "x-default"
+      ]
+    },
+    {
+      "name": "HTML hreflang 1 URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ca",
+        "https://www.actionnetwork.com/casino"
+      ]
+    },
+    {
+      "name": "HTTP hreflang 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "HTTP hreflang 1 URL",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Sitemap hreflang 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Sitemap hreflang 1 URL",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "HTML hreflang 2",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "x-default"
+      ]
+    },
+    {
+      "name": "HTML hreflang 2 URL",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "https://www.actionnetwork.com/"
+      ]
+    }
+  ]
+}

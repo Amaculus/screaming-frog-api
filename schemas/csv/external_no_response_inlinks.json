@@ -1,0 +1,152 @@
+{
+  "file": "external_no_response_inlinks.csv",
+  "rows_sampled": 6,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Hyperlink",
+        "Hyperlink"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/illinois",
+        "https://www.actionnetwork.com/casino/fanduel/legal-states",
+        "https://www.actionnetwork.com/online-sports-betting/ohio"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.paradicecasino.com/",
+        "https://www.paradicecasino.com/",
+        "https://www.belterrapark.com/"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.paradicecasino.com/",
+        "Par-A-Dice Website",
+        "https://www.belterrapark.com/"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "DNS lookup failed",
+        "DNS lookup failed",
+        "DNS lookup failed"
+      ]
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "_blank",
+        "_blank",
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noopener",
+        "noopener",
+        "noopener"
+      ]
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Absolute",
+        "Absolute",
+        "Absolute"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[6]/div[2]/div/div[9]/div[@class='location-card__link-wrapper'][1]/a",
+        "//body/div[@id='__next']/div/main/div/div[2]/div[6]/div[2]/div/div[1]/div/table/tbody/tr[3]/td[3]/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[5]/div[2]/div/div[5]/div[@class='location-card__link-wrapper'][1]/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Content"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML"
+      ]
+    }
+  ]
+}

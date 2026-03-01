@@ -1,0 +1,24 @@
+{
+  "file": "mixed_content.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Source",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Destination",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

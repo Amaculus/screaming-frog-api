@@ -1,0 +1,30 @@
+{
+  "file": "serve_static_assets_with_an_efficient_cache_policy_report.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Source Page",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "URL",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Cache TTL (ms)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

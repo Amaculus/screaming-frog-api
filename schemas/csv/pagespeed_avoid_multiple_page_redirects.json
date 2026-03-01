@@ -1,0 +1,18 @@
+{
+  "file": "pagespeed_avoid_multiple_page_redirects.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Multiple Redirects Savings (ms)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

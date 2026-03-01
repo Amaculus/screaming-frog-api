@@ -1,0 +1,86 @@
+{
+  "file": "issues_overview_report.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Issue Name",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Accessibility: Landmarks Require Unique Role Or Accessible Name",
+        "H2: Multiple",
+        "Meta Description: Duplicate"
+      ]
+    },
+    {
+      "name": "Issue Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Warning",
+        "Warning",
+        "Opportunity"
+      ]
+    },
+    {
+      "name": "Issue Priority",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Medium",
+        "Low",
+        "Low"
+      ]
+    },
+    {
+      "name": "URLs",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "6",
+        "1134",
+        "14"
+      ]
+    },
+    {
+      "name": "% of Total",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "0.510",
+        "96.260",
+        "1.190"
+      ]
+    },
+    {
+      "name": "Description",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination.",
+        "Pages which have multiple <h2>s. This is not an issue as HTML standards allow multiple <h2>'s when used in a logical hierarchical heading structure. However, this filter can help you quickly scan to review if they are used appropriately.",
+        "Pages which have duplicate meta descriptions. It's really important to have distinct and unique meta descriptions that communicate the benefits and purpose of each page. If they are duplicate or irrelevant, then they will be ignored by search engines in their snippets."
+      ]
+    },
+    {
+      "name": "How To Fix",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Ensure landmarks are unique.",
+        "Ensure <h2>s are used in a logical hierarchical heading structure, and update where appropriate utilising the full heading rank between (h3 - h6) for additional headings.",
+        "Update duplicate meta descriptions as necessary, so important pages contain a unique and descriptive title for users and search engines. If these are duplicate pages, then fix the duplicated pages by linking to a single version, and redirect or use canonicals where appropriate."
+      ]
+    },
+    {
+      "name": "Help URL",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "https://dequeuniversity.com/rules/axe/4.10/landmark-unique?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/image-alt?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/document-title?application=axeAPI"
+      ]
+    }
+  ]
+}

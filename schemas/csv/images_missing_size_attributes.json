@@ -1,0 +1,72 @@
+{
+  "file": "images_missing_size_attributes.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/750619_general-responsible-gambling-logo.png",
+        "https://assets.actionnetwork.com/257013_age-requirement-logo.png",
+        "https://cdn.cookielaw.org/logos/d677b408-9f50-4910-8d46-b4b404bfcbe8/0196fd06-d46d-73f0-bbfb-e4016a4b06d7/c328d828-8ba1-49ba-91d9-a92acf41a4ad/252389_action-logo-check.png"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "image/png",
+        "image/png",
+        "image/png"
+      ]
+    },
+    {
+      "name": "Size (bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "66673",
+        "574",
+        "2449"
+      ]
+    },
+    {
+      "name": "IMG Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1177",
+        "1177",
+        "1178"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Dimensions",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "72x72",
+        "72x72",
+        "136x16"
+      ]
+    }
+  ]
+}

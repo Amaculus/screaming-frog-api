@@ -1,0 +1,82 @@
+{
+  "file": "response_codes_server_error_(5xx).csv",
+  "rows_sampled": 1,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://x.com/The_Oddsmaker"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html;charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "503"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Service Unavailable"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Non-Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Server Error"
+      ]
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "3"
+      ]
+    },
+    {
+      "name": "Response Time",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "0.308"
+      ]
+    },
+    {
+      "name": "Redirect URL",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

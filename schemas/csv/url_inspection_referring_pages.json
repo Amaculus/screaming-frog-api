@@ -1,0 +1,18 @@
+{
+  "file": "url_inspection_referring_pages.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Referring Page",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Inspected URL",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

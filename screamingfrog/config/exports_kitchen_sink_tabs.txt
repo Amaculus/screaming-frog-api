@@ -1,0 +1,448 @@
+AI:All
+AMP:All
+AMP:Non-200 Response
+AMP:Missing Non-AMP Return Link
+AMP:Missing Canonical to Non-AMP
+AMP:Non-Indexable Canonical
+AMP:Indexable
+AMP:Non-Indexable
+AMP:Missing <html amp> Tag
+AMP:Missing/Invalid <!doctype html> Tag
+AMP:Missing <head> Tag
+AMP:Missing <body> Tag
+AMP:Missing Canonical
+AMP:Missing/Invalid <meta charset> Tag
+AMP:Missing/Invalid <meta viewport> Tag
+AMP:Missing/Invalid AMP Script
+AMP:Missing/Invalid AMP Boilerplate
+AMP:Contains Disallowed HTML
+AMP:Other Validation Errors
+Accessibility:All
+Accessibility:Accessibility Score Poor
+Accessibility:Accessibility Score Needs Improvement
+Accessibility:Accessibility Score Good
+Accessibility:Best Practice Violation
+Accessibility:WCAG 2.0 A Violation
+Accessibility:WCAG 2.0 AA Violation
+Accessibility:WCAG 2.0 AAA Violation
+Accessibility:WCAG 2.1 AA Violation
+Accessibility:WCAG 2.2 AA Violation
+Accessibility:Accesskey Attribute Value Must Be Unique
+Accessibility:Ensure Elements Marked Presentational Are Ignored
+Accessibility:Elements Must Not Have Tabindex Greater Than Zero
+Accessibility:Scrollable Region Requires Keyboard Access
+Accessibility:Skip-link Target Should Exist & Be Focusable
+Accessibility:Required ARIA Attributes Must Be Provided
+Accessibility:Role=text Should Have No Focusable Descendants
+Accessibility:ARIA Attribute Must Be Used As Specified For Role
+Accessibility:ARIA Attributes Require Valid Values
+Accessibility:ARIA Attributes Require Valid Names
+Accessibility:ARIA Commands Require Accessible Name
+Accessibility:ARIA Dialog & Alertdialog Require Accessible Name
+Accessibility:ARIA Input Fields Require Accessible Name
+Accessibility:ARIA Meter Nodes Require Accessible Name
+Accessibility:ARIA Progressbar Nodes Require Accessible Name
+Accessibility:ARIA Role Should Be Appropriate For Element
+Accessibility:ARIA Roles Must Be Contained By Required Parent
+Accessibility:ARIA Roles Require Valid Values
+Accessibility:ARIA Toggle Fields Require Accessible Name
+Accessibility:ARIA Tooltip Nodes Require Accessible Name
+Accessibility:ARIA Treeitem Nodes Require Accessible Name
+Accessibility:Certain ARIA Roles Must Contain Specific Children
+Accessibility:Deprecated ARIA Roles Must Not Be Used
+Accessibility:Aria-braille Require Non-braille Equivalent
+Accessibility:Aria-hidden Elements Contains Focusable Elements
+Accessibility:Aria-hidden=true Must Not Be Used In <body>
+Accessibility:Elements Must Only Use Permitted ARIA Attributes
+Accessibility:Elements Must Use Allowed ARIA Attributes
+Accessibility:IDs Used In ARIA & Labels Must Be Unique
+Accessibility:Page Requires Means To Bypass Repeated Blocks
+Accessibility:All Page Content Must Be Contained By Landmarks
+Accessibility:Page Requires One Main Landmark
+Accessibility:Page Must Not Have More Than One Banner Landmark
+Accessibility:Banner Landmark Must Not Be In Another Landmark
+Accessibility:Page Must Not Have Multiple Contentinfo Landmarks
+Accessibility:Page Requires At Most One Main Landmark
+Accessibility:Complementary Landmarks & Asides Must Be Top Level
+Accessibility:Contentinfo Landmark Must Be Top Level Landmark
+Accessibility:Main Landmark Must Not Be In Another Landmark
+Accessibility:Landmarks Require Unique Role Or Accessible Name
+Accessibility:Form <input> Elements Require Labels
+Accessibility:Form Elements Should Have Visible Label
+Accessibility:Form Field Must Not Have Multiple Label Elements
+Accessibility:Autocomplete Attribute Must Be Used Correctly
+Accessibility:Frames Require Title Attribute
+Accessibility:Frames Require Unique Title Attribute
+Accessibility:Frames Should Be Tested With axe-core
+Accessibility:Frames With Focusable Content Must Not Use tabindex=-1
+Accessibility:Page Must Contain <title>
+Accessibility:Page Must Contain <h1>
+Accessibility:Heading Levels Should Only Increase By One
+Accessibility:Headings Should Not Be Empty
+Accessibility:Meta Viewport Should Allow Zoom & Scale Up to 500%
+Accessibility:Meta Viewport Zoom & Scaling Disabled
+Accessibility:HTML Element Lang Attribute Value Must Be Valid
+Accessibility:HTML Element Requires Lang Attribute
+Accessibility:HTML Lang & XML Lang Value Should Match
+Accessibility:Lang Attribute Requires Valid Value
+Accessibility:Delayed Meta Refresh Must Not Be Used
+Accessibility:Timed Meta Refresh Must Not Exist
+Accessibility:Image Button Requires Alternate Text
+Accessibility:Images Require Alternate Text
+Accessibility:<object> Elements Require Alternate Text
+Accessibility:Active <area> Elements Require Alternate Text
+Accessibility:Alt Text Should Not Be Repeated As Text
+Accessibility:Elements Marked role=img Require Alternate Text
+Accessibility:SVG Images & Graphics Require Accessible Text
+Accessibility:Server-Side Image Maps Must Not Be Used
+Accessibility:<video> Elements Require <track> For Captions
+Accessibility:<video> or <audio> Elements Must Not Auto-play
+Accessibility:Buttons Require Discernible Text
+Accessibility:Inline Text Spacing Must Be Adjustable
+Accessibility:Input Buttons Require Discernible Text
+Accessibility:Links Must Be Distinguishable
+Accessibility:Links Require Discernible Text
+Accessibility:Links With Same Accessible Name
+Accessibility:Select Element Requires Accessible Name
+Accessibility:Summary Elements Require Discernible Text
+Accessibility:Deprecated <marquee> Element Must Not Be Used
+Accessibility:<blink> Elements Deprecated & Must Not Be Used
+Accessibility:Text Requires Higher Color Contrast Ratio
+Accessibility:Text Requires Higher Color Contrast to Background
+Accessibility:Touch Targets Require Sufficient Size & Spacing
+Accessibility:Interactive Controls Must Not Be Nested
+Accessibility:List Items Must Be Contained In List Elements
+Accessibility:Lists Must Only Contain <li> Content Elements
+Accessibility:<dl> Must Only Have Ordered <dt> & <dd> Groups
+Accessibility:<dt> & <dd> Elements Must Be Contained by <dl>
+Accessibility:<th> Element Requires Associated Data Cells
+Accessibility:Table Header Attr Must Refer To Cell In Same Table
+Accessibility:Table Headers Require Discernible Text
+Accessibility:Table With Identical Summary & Caption Text
+Accessibility:Scope Attribute Should Be Used Correctly On Tables
+Analytics:All
+Analytics:Sessions Above 0
+Analytics:Bounce Rate Above 70%
+Analytics:No GA Data
+Analytics:Non-Indexable with GA Data
+Analytics:Orphan URLs
+Canonicals:All
+Canonicals:Contains Canonical
+Canonicals:Self Referencing
+Canonicals:Canonicalised
+Canonicals:Missing
+Canonicals:Multiple
+Canonicals:Non-Indexable Canonical
+Canonicals:Multiple Conflicting
+Canonicals:Canonical Is Relative
+Canonicals:Unlinked
+Canonicals:Invalid Attribute In Annotation
+Canonicals:Contains Fragment URL
+Canonicals:Outside <head>
+Change Detection:All
+Change Detection:Word Count
+Change Detection:Crawl Depth
+Change Detection:Indexability
+Change Detection:Page Titles
+Change Detection:H1
+Change Detection:Meta Description
+Change Detection:Inlinks
+Change Detection:Unique Inlinks
+Change Detection:Internal Outlinks
+Change Detection:Unique Internal Outlinks
+Change Detection:External Outlinks
+Change Detection:Unique External Outlinks
+Change Detection:Structured Data Unique Types
+Change Detection:Content
+Content:All
+Content:Spelling Errors
+Content:Grammar Errors
+Content:Near Duplicates
+Content:Semantically Similar
+Content:Low Relevance Content
+Content:Exact Duplicates
+Content:Low Content Pages
+Content:Readability Difficult
+Content:Readability Very Difficult
+Content:Lorem Ipsum Placeholder
+Content:Soft 404 Pages
+Custom Extraction:All
+Custom JavaScript:All
+Custom Search:All
+Directives:All
+Directives:Index
+Directives:Noindex
+Directives:Follow
+Directives:Nofollow
+Directives:None
+Directives:NoArchive
+Directives:NoSnippet
+Directives:Max-Snippet
+Directives:Max-Image-Preview
+Directives:Max-Video-Preview
+Directives:NoODP
+Directives:NoYDIR
+Directives:NoImageIndex
+Directives:NoTranslate
+Directives:Unavailable_After
+Directives:Refresh
+Directives:Outside <head>
+External:All
+External:HTML
+External:JavaScript
+External:CSS
+External:Images
+External:Plugins
+External:Media
+External:Fonts
+External:XML
+External:PDF
+External:Other
+External:Unknown
+H1:All
+H1:Missing
+H1:Duplicate
+H1:Over X Characters
+H1:Multiple
+H1:Alt Text in H1
+H1:Non-Sequential
+H2:All
+H2:Missing
+H2:Duplicate
+H2:Over X Characters
+H2:Multiple
+H2:Non-Sequential
+Hreflang:All
+Hreflang:Contains hreflang
+Hreflang:Non-200 hreflang URLs
+Hreflang:Unlinked hreflang URLs
+Hreflang:Missing Return Links
+Hreflang:Inconsistent Language & Region Return Links
+Hreflang:Non-Canonical Return Links
+Hreflang:Noindex Return Links
+Hreflang:Incorrect Language & Region Codes
+Hreflang:Multiple Entries
+Hreflang:Missing Self Reference
+Hreflang:Not Using Canonical
+Hreflang:Missing X-Default
+Hreflang:Missing
+Hreflang:Outside <head>
+Images:All
+Images:Over X KB
+Images:Missing Alt Text
+Images:Missing Alt Attribute
+Images:Alt Text Over X Characters
+Images:Background Images
+Images:Incorrectly Sized Images
+Images:Missing Size Attributes
+Internal:All
+Internal:HTML
+Internal:JavaScript
+Internal:CSS
+Internal:Images
+Internal:Plugins
+Internal:Media
+Internal:Fonts
+Internal:XML
+Internal:PDF
+Internal:Other
+Internal:Unknown
+JavaScript:All
+JavaScript:Uses Old AJAX Crawling Scheme URLs
+JavaScript:Uses Old AJAX Crawling Scheme Meta Fragment Tag
+JavaScript:Page Title Only in Rendered HTML
+JavaScript:Page Title Updated by JavaScript
+JavaScript:H1 Only in Rendered HTML
+JavaScript:H1 Updated by JavaScript
+JavaScript:Meta Description Only in Rendered HTML
+JavaScript:Meta Description Updated by JavaScript
+JavaScript:Canonical Only in Rendered HTML
+JavaScript:Canonical Mismatch
+JavaScript:Noindex Only in Original HTML
+JavaScript:Nofollow Only in Original HTML
+JavaScript:Contains JavaScript Links
+JavaScript:Contains JavaScript Content
+JavaScript:Pages with Blocked Resources
+JavaScript:Pages with JavaScript Errors
+JavaScript:Pages with JavaScript Warnings
+JavaScript:Pages with Chrome Issues
+Link Metrics:All
+Links:All
+Links:Pages Without Internal Outlinks
+Links:Internal Nofollow Outlinks
+Links:Internal Outlinks With No Anchor Text
+Links:Non-Descriptive Anchor Text In Internal Outlinks
+Links:Pages With High External Outlinks
+Links:Pages With High Internal Outlinks
+Links:Follow & Nofollow Internal Inlinks To Page
+Links:Internal Nofollow Inlinks Only
+Links:Pages With High Crawl Depth
+Links:Outlinks To Localhost
+Links:Non-Indexable Page Inlinks Only
+Meta Description:All
+Meta Description:Missing
+Meta Description:Duplicate
+Meta Description:Over X Characters
+Meta Description:Below X Characters
+Meta Description:Over X Pixels
+Meta Description:Below X Pixels
+Meta Description:Multiple
+Meta Description:Outside <head>
+Meta Keywords:All
+Meta Keywords:Missing
+Meta Keywords:Duplicate
+Meta Keywords:Multiple
+Mobile:All
+Mobile:Viewport Not Set
+Mobile:Target Size
+Mobile:Content Not Sized Correctly
+Mobile:Illegible Font Size
+Mobile:Contains Unsupported Plugins
+Mobile:Mobile Alternate Link
+Page Titles:All
+Page Titles:Missing
+Page Titles:Duplicate
+Page Titles:Over X Characters
+Page Titles:Below X Characters
+Page Titles:Over X Pixels
+Page Titles:Below X Pixels
+Page Titles:Same as H1
+Page Titles:Multiple
+Page Titles:Outside <head>
+PageSpeed:All
+PageSpeed:Eliminate Render-Blocking Resources
+PageSpeed:Defer Offscreen Images
+PageSpeed:Efficiently Encode Images
+PageSpeed:Properly Size Images
+PageSpeed:Minify CSS
+PageSpeed:Minify JavaScript
+PageSpeed:Reduce Unused CSS
+PageSpeed:Reduce Unused JavaScript
+PageSpeed:Serve Images in Next-Gen Formats
+PageSpeed:Enable Text Compression
+PageSpeed:Preconnect to Required Origins
+PageSpeed:Reduce Server Response Times (TTFB)
+PageSpeed:Avoid Multiple Page Redirects
+PageSpeed:Preload Key Requests
+PageSpeed:Use Video Formats for Animated Content
+PageSpeed:Avoid Excessive DOM Size
+PageSpeed:Reduce JavaScript Execution Time
+PageSpeed:Serve Static Assets with an Efficient Cache Policy
+PageSpeed:Minimize Main-Thread Work
+PageSpeed:Ensure Text Remains Visible During Webfont Load
+PageSpeed:Image Elements Do Not Have Explicit Width & Height
+PageSpeed:Avoid Large Layout Shifts
+PageSpeed:Avoid Serving Legacy JavaScript to Modern Browsers
+PageSpeed:Request Errors
+Pagination:All
+Pagination:Contains Pagination
+Pagination:First Page
+Pagination:Paginated 2+ Pages
+Pagination:Pagination URL Not in Anchor Tag
+Pagination:Non-200 Pagination URLs
+Pagination:Unlinked Pagination URLs
+Pagination:Non-Indexable
+Pagination:Multiple Pagination URLs
+Pagination:Pagination Loop
+Pagination:Sequence Error
+Response Codes:All
+Response Codes:Blocked by Robots.txt
+Response Codes:Blocked Resource
+Response Codes:No Response
+Response Codes:Success (2xx)
+Response Codes:Redirection (3xx)
+Response Codes:Redirection (JavaScript)
+Response Codes:Redirection (Meta Refresh)
+Response Codes:Client Error (4xx)
+Response Codes:Server Error (5xx)
+Response Codes:Internal All
+Response Codes:Internal Blocked by Robots.txt
+Response Codes:Internal Blocked Resource
+Response Codes:Internal No Response
+Response Codes:Internal Success (2xx)
+Response Codes:Internal Redirection (3xx)
+Response Codes:Internal Redirection (JavaScript)
+Response Codes:Internal Redirection (Meta Refresh)
+Response Codes:Internal Redirect Chain
+Response Codes:Internal Redirect Loop
+Response Codes:Internal Client Error (4xx)
+Response Codes:Internal Server Error (5xx)
+Response Codes:External All
+Response Codes:External Blocked by Robots.txt
+Response Codes:External Blocked Resource
+Response Codes:External No Response
+Response Codes:External Success (2xx)
+Response Codes:External Redirection (3xx)
+Response Codes:External Redirection (JavaScript)
+Response Codes:External Redirection (Meta Refresh)
+Response Codes:External Client Error (4xx)
+Response Codes:External Server Error (5xx)
+Search Console:All
+Search Console:Clicks Above 0
+Search Console:No Search Analytics Data
+Search Console:Non-Indexable with Search Analytics Data
+Search Console:Orphan URLs
+Search Console:URL is Not on Google
+Search Console:Indexable URL Not Indexed
+Search Console:URL is on Google But Has Issues
+Search Console:User-Declared Canonical Not Selected
+Search Console:Page is Not Mobile Friendly
+Search Console:AMP URL Invalid
+Search Console:Rich Result Invalid
+Security:All
+Security:HTTP URLs
+Security:HTTPS URLs
+Security:Mixed Content
+Security:Form URL Insecure
+Security:Form on HTTP URL
+Security:Unsafe Cross-Origin Links
+Security:Missing HSTS Header
+Security:Bad Content Type
+Security:Missing X-Content-Type-Options Header
+Security:Missing X-Frame-Options Header
+Security:Protocol-Relative Resource Links
+Security:Missing Content-Security-Policy Header
+Security:Missing Secure Referrer-Policy Header
+Sitemaps:All
+Sitemaps:URLs in Sitemap
+Sitemaps:URLs not in Sitemap
+Sitemaps:Orphan URLs
+Sitemaps:Non-Indexable URLs in Sitemap
+Sitemaps:URLs in Multiple Sitemaps
+Sitemaps:XML Sitemap with over 50k URLs
+Sitemaps:XML Sitemap over 50MB
+Structured Data:All
+Structured Data:Contains Structured Data
+Structured Data:Missing
+Structured Data:Validation Errors
+Structured Data:Validation Warnings
+Structured Data:Rich Result Validation Errors
+Structured Data:Rich Result Validation Warnings
+Structured Data:Parse Errors
+Structured Data:Microdata URLs
+Structured Data:JSON-LD URLs
+Structured Data:RDFa URLs
+Structured Data:Rich Result Feature Detected
+URL:All
+URL:Non ASCII Characters
+URL:Underscores
+URL:Uppercase
+URL:Parameters
+URL:Over X Characters
+URL:Multiple Slashes
+URL:Repetitive Path
+URL:Contains Space
+URL:Broken Bookmark
+URL:Internal Search
+URL:GA Tracking Parameters
+Validation:All
+Validation:Invalid HTML Elements in <head>
+Validation:<head> Not First In <html> Element
+Validation:Missing <head> Tag
+Validation:Multiple <head> Tags
+Validation:Missing <body> Tag
+Validation:Multiple <body> Tags
+Validation:HTML Document Over 15MB
+Validation:Resource Over 15MB
+Validation:<body> Element Preceding <html>
+Validation:High Carbon Rating

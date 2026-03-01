@@ -1,0 +1,98 @@
+{
+  "file": "response_codes_client_error_(4xx).csv",
+  "rows_sampled": 89,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/legal-online-sports-betting/louisiana-daily-fantasy-rollout-online-sports-betting-legalization",
+        "https://impressions.onelink.me/5kut?pid=bettercol6o_int&af_siteid=moarperformance&af_prt=moarperformance&utm_medium=&af_channel=BetterCollective&utm_channel=BetterCollective&utm_source=moarperformance&utm_campaign=ActionNetwork&c=ActionNetwork&af_ad=2000NSB_action2037&utm_content=2000NSB_action2037&af_adset=BC1",
+        "https://www.actionnetwork.com/legal-online-sports-betting/ohio-sportsbook-promos-net-3500-in-bonuses-for-chargers-vs-lions-nfl-hall-of-fame-game"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/plain; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "410",
+        "400",
+        "410"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Aborted",
+        "Forbidden",
+        "Forbidden"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Non-Indexable",
+        "Non-Indexable",
+        "Non-Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Client Error",
+        "Client Error",
+        "Client Error"
+      ]
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "0",
+        "4"
+      ]
+    },
+    {
+      "name": "Response Time",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "0.686",
+        "0.235",
+        "0.572"
+      ]
+    },
+    {
+      "name": "Redirect URL",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

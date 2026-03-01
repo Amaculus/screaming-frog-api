@@ -1,0 +1,46 @@
+{
+  "file": "reduce_unused_css_report.csv",
+  "rows_sampled": 12,
+  "columns": [
+    {
+      "name": "Source Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/buffalo-bills-vs-new-york-jets-prediction-pick-odds-nfl-monday-night-football-october-14",
+        "https://www.actionnetwork.com/nfl/buffalo-bills-vs-new-york-jets-prediction-pick-odds-nfl-monday-night-football-october-14",
+        "https://www.actionnetwork.com/nfl/buffalo-bills-vs-new-york-jets-prediction-pick-odds-nfl-monday-night-football-october-14"
+      ]
+    },
+    {
+      "name": "URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.youtube.com/s/player/c9168c90/www-player.css",
+        "https://www.youtube.com/s/embeds/7f51e957/embed_ui_css.css",
+        "#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit; \u2026 } \u2026"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "60385",
+        "32149",
+        "19095"
+      ]
+    },
+    {
+      "name": "Potential Savings (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "59888",
+        "32064",
+        "18775"
+      ]
+    }
+  ]
+}

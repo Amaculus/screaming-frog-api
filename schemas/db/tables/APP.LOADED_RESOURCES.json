@@ -1,0 +1,16 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADED_RESOURCE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

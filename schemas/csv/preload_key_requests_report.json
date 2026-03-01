@@ -1,0 +1,24 @@
+{
+  "file": "preload_key_requests_report.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Source Page",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "URL",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Potential Savings (ms)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

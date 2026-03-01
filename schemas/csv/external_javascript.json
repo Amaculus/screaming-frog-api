@@ -1,0 +1,66 @@
+{
+  "file": "external_javascript.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://static-web-prod.actionnetwork.com/_next/static/chunks/pages/%5Bleague%5D/archive/%5Bpage%5D-119753197d95bee1.js",
+        "https://static-web-prod.actionnetwork.com/_next/static/chunks/8798-3de42066ade8a0c2.js",
+        "https://dev.visualwebsiteoptimizer.com/j.php?a=7151&u=https%3A%2F%2Fwww.actionnetwork.com%2Fsweepstakes-casinos%2Fsixty6&vn=2.1&x=true"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "application/javascript; charset=UTF-8",
+        "application/javascript; charset=UTF-8",
+        "application/javascript; charset=UTF-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "OK",
+        "OK",
+        "OK"
+      ]
+    },
+    {
+      "name": "Crawl Depth",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    }
+  ]
+}

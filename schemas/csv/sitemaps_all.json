@@ -1,0 +1,66 @@
+{
+  "file": "sitemaps_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/2021-college-football-returning-production-transfer-grades",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "308",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Permanent Redirect",
+        "Blocked by robots.txt",
+        "Temporary Redirect"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Non-Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Redirected",
+        "Client Error",
+        "noindex"
+      ]
+    }
+  ]
+}

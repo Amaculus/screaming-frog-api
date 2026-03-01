@@ -1,0 +1,32 @@
+{
+  "file": "images_missing_alt_attribute_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/nfl/new-orleans-saints-vs-kansas-city-chiefs-picks-predictions-props-odds-monday-night-football",
+        "https://www.actionnetwork.com/mlb/world-series-best-bets-props-picks-for-dodgers-vs-yankees-10-25"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/736824_ActionPRO_promo_1500x844.jpg",
+        "https://assets.actionnetwork.com/736824_ActionPRO_promo_1500x844.jpg",
+        "https://assets.actionnetwork.com/736824_ActionPRO_promo_1500x844.jpg"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

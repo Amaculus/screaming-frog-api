@@ -1,0 +1,34 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SF_REQUEST_STATUS_KEY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SF_REQUEST_ERROR_KEY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "PROMPT_INDEX",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CONTENT",
+      "type": "CLOB",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

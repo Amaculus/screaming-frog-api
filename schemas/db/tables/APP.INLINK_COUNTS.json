@@ -1,0 +1,34 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_HYPER_LINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_UNIQUE_HYPER_LINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_JS_UNIQUE_HYPER_LINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_IMAGE_LINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    }
+  ]
+}

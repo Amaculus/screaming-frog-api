@@ -1,0 +1,96 @@
+{
+  "file": "all_violations.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Issue",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "All Page Content Must Be Contained By Landmarks",
+        "All Page Content Must Be Contained By Landmarks",
+        "All Page Content Must Be Contained By Landmarks"
+      ]
+    },
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/playbook/bot",
+        "https://www.actionnetwork.com/playbook/bot",
+        "https://www.actionnetwork.com/playbook/bot"
+      ]
+    },
+    {
+      "name": "Location on Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        ".css-bn3nr6",
+        ".e14yg5fa0",
+        ".css-1h1stq4"
+      ]
+    },
+    {
+      "name": "Guidelines",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Best Practice",
+        "Best Practice",
+        "Best Practice"
+      ]
+    },
+    {
+      "name": "User Impact",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Moderate",
+        "Moderate",
+        "Moderate"
+      ]
+    },
+    {
+      "name": "Priority",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Medium",
+        "Medium",
+        "Medium"
+      ]
+    },
+    {
+      "name": "Issue Description",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "All page content should be contained by landmarks.",
+        "All page content should be contained by landmarks.",
+        "All page content should be contained by landmarks."
+      ]
+    },
+    {
+      "name": "How To Fix",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Ensure all page content is contained by landmarks.",
+        "Ensure all page content is contained by landmarks.",
+        "Ensure all page content is contained by landmarks."
+      ]
+    },
+    {
+      "name": "Help URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://dequeuniversity.com/rules/axe/4.10/region?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/region?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/region?application=axeAPI"
+      ]
+    }
+  ]
+}

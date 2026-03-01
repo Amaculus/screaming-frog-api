@@ -1,0 +1,102 @@
+{
+  "file": "url_over_115_characters.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/legal-online-sports-betting/louisiana-daily-fantasy-rollout-online-sports-betting-legalization"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "410"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Non-Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Client Error",
+        "Client Error",
+        "Client Error"
+      ]
+    },
+    {
+      "name": "Hash",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "ec91cf15916967fdd9c60dae56016f3d",
+        "5632d1604177038d1adbd1a823825259",
+        "e4f638649ab4c6b1db8163bb455ab739"
+      ]
+    },
+    {
+      "name": "Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "118",
+        "139",
+        "124"
+      ]
+    },
+    {
+      "name": "Canonical Link Element 1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/ncaab/utah-state-aggies-vs-colorado-state-rams-predictions-picks-odds-college-basketball-friday-january-23"
+      ]
+    },
+    {
+      "name": "URL Encoded Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/legal-online-sports-betting/louisiana-daily-fantasy-rollout-online-sports-betting-legalization"
+      ]
+    }
+  ]
+}

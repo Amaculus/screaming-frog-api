@@ -1,0 +1,81 @@
+{
+  "file": "accessibility_video_elements_require_track_for_captions.csv",
+  "rows_sampled": 2,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/mlb/mlb-predictions-tuesday-expert-picks-odds-preview-today-july-9",
+        "https://www.actionnetwork.com/mlb/mlb-predictions-wednesday-expert-picks-odds-for-mets-vs-dodgers-game-3-oct-16"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "All Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "8",
+        "7"
+      ]
+    },
+    {
+      "name": "WCAG 2.0 A Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "5",
+        "4"
+      ]
+    },
+    {
+      "name": "PSI Request Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Success",
+        "Success"
+      ]
+    }
+  ]
+}

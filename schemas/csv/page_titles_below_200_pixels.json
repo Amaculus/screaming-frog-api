@@ -1,0 +1,72 @@
+{
+  "file": "page_titles_below_200_pixels.csv",
+  "rows_sampled": 8,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/sweepstakes-casinos/pulsz/free-spins",
+        "https://www.actionnetwork.com/sportsbook-quiz",
+        "https://www.actionnetwork.com/wnba/futures"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "Title 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Pulsz Free Spins 2026",
+        "Best Sportsbook Quiz",
+        "WNBA Futures"
+      ]
+    },
+    {
+      "name": "Title 1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "21",
+        "20",
+        "12"
+      ]
+    },
+    {
+      "name": "Title 1 Pixel Width",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "196",
+        "190",
+        "130"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

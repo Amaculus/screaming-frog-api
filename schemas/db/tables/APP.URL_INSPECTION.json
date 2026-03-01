@@ -1,0 +1,136 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "SF_REQUEST_STATUS_KEY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SF_REQUEST_ERROR_KEY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SUMMARY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COVERAGE_STATE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LAST_CRAWL_TIME",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DAYS_SINCE_LAST_CRAWL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CRAWLED_AS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ROBOTS_TXT_STATE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PAGE_FETCH_STATE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "INDEXING_STATE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "USER_CANONICAL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GOOGLE_CANONICAL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MOBILE_USABILITY_VERDICT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MOBILE_USABILITY_ISSUES",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "AMP_RESULTS_VERDICT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "AMP_ISSUES",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "RICH_RESULTS_VERDICT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "RICH_RESULTS_TYPES",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "RICH_RESULTS_TYPE_ERRORS",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "RICH_RESULTS_TYPE_WARNINGS",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "JSON",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "file": "success_(2xx)_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Image",
+        "Image",
+        "Image"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaab/teams",
+        "https://www.actionnetwork.com/ncaab/odds",
+        "https://www.actionnetwork.com/ncaaf/education"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/118654_utrgv.png",
+        "https://assets.actionnetwork.com/118654_utrgv.png",
+        "https://assets.actionnetwork.com/761154_line.png"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "14392",
+        "14392",
+        "364261"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "UT Grande Valley logo",
+        "UT Grande Valley Team Icon",
+        "Moneyline Image"
+      ]
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "EMU",
+        "@EMU",
+        "Eastern Michigan Eagles"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "OK",
+        "OK",
+        "OK"
+      ]
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "_self",
+        "_self",
+        "_self"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Absolute",
+        "Absolute",
+        "Absolute"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "//body/div[@id='__next']/div/main/div/div[1]/section/ul/li[23]/ul/li[12]/a/span[@class='grouped-teams__logo-container']/img",
+        "//body/div[@id='__next']/div[2]/main/div/div[4]/div/div/table/tbody/tr[10]/td[1]/div/a/div[@class='game-info__teams'][2]/div/div[@class='game-info__placeholder']/div/img",
+        "//body/div[@id='__next']/div[2]/main/div/div/div[1]/div[@class='card-container__card-wrapper']/div[2]/div/picture/img"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Content"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML"
+      ]
+    }
+  ]
+}

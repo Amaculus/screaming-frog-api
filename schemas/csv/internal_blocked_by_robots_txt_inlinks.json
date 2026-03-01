@@ -1,0 +1,152 @@
+{
+  "file": "internal_blocked_by_robots_txt_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Hyperlink",
+        "Hyperlink"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/nfl/nfl-conference-championship-betting-trends-stats-notes-action-network-betting-preview-2026",
+        "https://www.actionnetwork.com/education/9-common-sports-betting-mistakes-to-avoid"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/upgrade?intcmp=ArticleNavBarLoggedOut&intcid=604056362",
+        "https://www.actionnetwork.com/upgrade?intcmp=ArticleNavBarLoggedOut&intcid=604040828",
+        "https://www.actionnetwork.com/general/article/sports-betting-for-beginners-10-things-to-know?mod=inline"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Betting Floor at a Casino",
+        "Pro Subscription Upsell",
+        "Pro Subscription Upsell"
+      ]
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "GET PRO NOW",
+        "GET PRO NOW",
+        "Sports Betting for Beginners: 12 Things to Know"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Blocked by robots.txt",
+        "Blocked by robots.txt",
+        "Blocked by robots.txt"
+      ]
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "_blank",
+        "_blank",
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Root-Relative",
+        "Root-Relative",
+        "Absolute"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/nav/div[@class='nav__grid']/div[3]/div/a",
+        "//body/div[@id='__next']/div[2]/nav/div[@class='nav__grid']/div[3]/div/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[@id='article']/div[@class='contentBody__main']/div[@class='wp-relatedArticle'][2]/figure/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Navigation",
+        "Navigation",
+        "Content"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML"
+      ]
+    }
+  ]
+}

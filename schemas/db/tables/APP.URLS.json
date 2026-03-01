@@ -1,0 +1,1240 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "RESPONSE_MSG",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "RESPONSE_CODE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "RESPONSE_TIME_MS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MD5SUM",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PAGE_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LAST_MODIFIED_DATE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CRAWL_DEPTH",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IS_INTERNAL",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CONTENT_TYPE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGINAL_CONTENT",
+      "type": "CLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "RENDERED_CONTENT",
+      "type": "CLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "WORD_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "WORD_COUNT_JS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SENTENCE_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "AVG_WORDS_PER_SENTENCE",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "READABILITY_SCORE",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CRAWL_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REDIRECT_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CRAWL_IN_ESCAPED_FRAGMENT_FORM",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "BLOCKED_BY_ROBOTS_TXT",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "MATCHED_ROBOTS_TXT_LINE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ROOT_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TEXT_TO_HTML_RATIO",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_INTERNAL_OUTLINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_EXTERNAL_OUTLINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_UNIQUE_INTERNAL_OUTLINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_UNIQUE_EXTERNAL_OUTLINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_JS_UNIQUE_INTERNAL_OUTLINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_JS_UNIQUE_EXTERNAL_OUTLINKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "LOADED_AS_A_RESOURCE",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "IS_AMP_HTML",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "HAS_HSTS_HEADER",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "HAS_CSP_HEADER",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "HAS_NOSNIFF_HEADER",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "HAS_FRAME_OPTIONS_HEADER",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "HAS_STRICT_REFERRER_POLICY",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "HTTP_VERSION",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "BOOKMARK_VALID",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "TIMESTAMP",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HTML_FORM_COLLECTION",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HTTP_REQUEST_HEADER_COLLECTION",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HTTP_RESPONSE_HEADER_COLLECTION",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COOKIE_COLLECTION",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_TITLES",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "TITLE_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TITLE_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_TITLES_JS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "TITLE_JS_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TITLE_JS_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_H1",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "H1_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "H1_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "H1_SOURCE_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "H1_SOURCE_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_H1_JS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "H1_JS_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "H1_JS_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "H1_JS_SOURCE_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "H1_JS_SOURCE_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_H2",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "H2_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "H2_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "H2_SOURCE_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "H2_SOURCE_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_XROBOTS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "X_ROBOT_TAG_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_3",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_4",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_5",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_6",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_7",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_8",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_9",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_10",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_11",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_12",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_13",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_14",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_15",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_16",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_17",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_18",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_19",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "X_ROBOT_TAG_20",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SERIALISED_STRUCTURED_DATA",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PARSE_ERROR_MSG",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_META",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "META_NAME_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_3",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_4",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_5",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_6",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_7",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_8",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_9",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_10",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_11",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_12",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_13",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_14",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_15",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_16",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_17",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_18",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_19",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_20",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_3",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_4",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_5",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_6",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_7",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_8",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_9",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_10",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_11",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_12",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_13",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_14",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_15",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_16",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_17",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_18",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_19",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_20",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_META_JS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "META_NAME_JS_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_3",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_4",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_5",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_6",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_7",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_8",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_9",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_10",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_11",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_12",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_13",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_14",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_15",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_16",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_17",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_18",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_19",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_NAME_JS_20",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_3",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_4",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_5",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_6",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_7",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_8",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_9",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_10",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_11",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_12",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_13",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_14",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_15",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_16",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_17",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_18",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_19",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_CONTENT_JS_20",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_METAREFRESH",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "METAREFRESH_CONTENT_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "METAREFRESH_CONTENT_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_FULL_URL_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "META_FULL_URL_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "METAREFRESH_PATH_TYPE_1",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "METAREFRESH_PATH_TYPE_2",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "METAREFRESH_ELEMENT_PATH_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "METAREFRESH_ELEMENT_PATH_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "METAREFRESH_ELEMENT_POSITION_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "METAREFRESH_ELEMENT_POSITION_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "METAREFRESH_SCOPE_1",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "METAREFRESH_SCOPE_2",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "IS_REDIRECT",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "IS_SELF_REF_META_REFRESH",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "IS_CANONICALISED",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SIMILARITY_MATCH_PERCENTAGE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "PDF_SUBJECT",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PDF_AUTHOR",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PDF_CREATION_DATE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PDF_MODIFIED_DATE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PDF_PAGE_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "IMAGE_WIDTH",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "IMAGE_HEIGHT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SEGMENTS",
+      "type": "CHAR () FOR BIT DATA",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IS_SOFT_404",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "LOREM_IPSUM_OCCURRENCES",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "PAGE_TRANSFER_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "TOTAL_PAGE_TRANSFER_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NON_SEQUENTIAL_H1",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NON_SEQUENTIAL_H2",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SOFTWARE_VERSION",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LANG_CODE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SCRAPED_FILE_NAME",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CO2",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "WARC_POSITION",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

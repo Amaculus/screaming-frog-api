@@ -1,0 +1,34 @@
+{
+  "columns": [
+    {
+      "name": "SEGMENT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "ID_KEY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ERROR_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "URLS_AFFECTED",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SAMPLE_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

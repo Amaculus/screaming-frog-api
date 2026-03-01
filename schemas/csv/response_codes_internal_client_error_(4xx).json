@@ -1,0 +1,94 @@
+{
+  "file": "response_codes_internal_client_error_(4xx).csv",
+  "rows_sampled": 65,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/legal-online-sports-betting/louisiana-daily-fantasy-rollout-online-sports-betting-legalization",
+        "https://www.actionnetwork.com/legal-online-sports-betting/ohio-sportsbook-promos-net-3500-in-bonuses-for-chargers-vs-lions-nfl-hall-of-fame-game",
+        "https://www.actionnetwork.com/legal-online-sports-betting/betrivers-bonus-code-500-2nd-chance-bet-for-sunday-nfl-week-9"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "410",
+        "410",
+        "410"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Non-Indexable",
+        "Non-Indexable",
+        "Non-Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Client Error",
+        "Client Error",
+        "Client Error"
+      ]
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "4",
+        "2"
+      ]
+    },
+    {
+      "name": "Response Time",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "0.686",
+        "0.572",
+        "0.722"
+      ]
+    },
+    {
+      "name": "Redirect URL",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

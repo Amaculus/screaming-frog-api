@@ -1,0 +1,16 @@
+{
+  "columns": [
+    {
+      "name": "ID",
+      "type": "INTEGER",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

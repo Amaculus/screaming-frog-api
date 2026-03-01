@@ -1,0 +1,192 @@
+{
+  "file": "security_protocolrelative_resource_links.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/mma/ufc-contender-series-week-4-odds-picks-predictions-tuesday-september-3"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "HTTP Version",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "2.0",
+        "2.0",
+        "2.0"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Canonicalised"
+      ]
+    },
+    {
+      "name": "Canonical Link Element 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/mma/ufc-contender-series-week-4-odds-picks-predictions-tuesday-september-3"
+      ]
+    },
+    {
+      "name": "Meta Robots 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "max-image-preview:large",
+        "max-image-preview:large",
+        "max-image-preview:large"
+      ]
+    },
+    {
+      "name": "X-Robots-Tag 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Response Header: cache-control",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "max-age=300, must-revalidate, public",
+        "max-age=300, must-revalidate, public",
+        "max-age=300, must-revalidate, public"
+      ]
+    },
+    {
+      "name": "Response Header: content-encoding",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "gzip",
+        "gzip",
+        "gzip"
+      ]
+    },
+    {
+      "name": "Response Header: date",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Fri, 23 Jan 2026 18:49:27 GMT",
+        "Fri, 23 Jan 2026 20:38:50 GMT",
+        "Fri, 23 Jan 2026 20:39:28 GMT"
+      ]
+    },
+    {
+      "name": "Response Header: etag",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "W/\"19swtdc9rz5umv\"",
+        "W/\"c2i7eoih4863cr\"",
+        "W/\"14ysnqghbq77l5s\""
+      ]
+    },
+    {
+      "name": "Response Header: vary",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Accept-Encoding",
+        "Accept-Encoding",
+        "Accept-Encoding"
+      ]
+    },
+    {
+      "name": "Response Header: via",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "1.1 7f49597aa3d98f16ba8c794a3d2c6ed8.cloudfront.net (CloudFront)",
+        "1.1 d31121675203e55f502584ea86567648.cloudfront.net (CloudFront)",
+        "1.1 92b04fa1f7fc8cf7b88f8e05368a8846.cloudfront.net (CloudFront)"
+      ]
+    },
+    {
+      "name": "Response Header: x-amz-cf-id",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "It-Z3cA5ZbnPtBoHqKvfaR2hhnBGl7KAICJZrQiIJidryLma4iIdzQ==",
+        "8iZ1jSJ-HvR0ABUOZ5LtZ_ut-KDWlBFnhpWvP46d1jtGDRYAe1AyTw==",
+        "Tya2wHnOxrUwn9yecpR1EmrXrsk4L5X5G2_VTNvKaRYLjZwsu18Q1w=="
+      ]
+    },
+    {
+      "name": "Response Header: x-amz-cf-pop",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "EZE50-P7",
+        "EZE50-P7",
+        "EZE50-P7"
+      ]
+    },
+    {
+      "name": "Response Header: x-cache",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Miss from cloudfront",
+        "Miss from cloudfront",
+        "Miss from cloudfront"
+      ]
+    },
+    {
+      "name": "Response Header: age",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "file": "validation_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/2021-college-football-returning-production-transfer-grades",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "308",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Permanent Redirect",
+        "Blocked by robots.txt",
+        "Temporary Redirect"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Non-Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Redirected",
+        "Client Error",
+        "noindex"
+      ]
+    },
+    {
+      "name": "Size (bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "301222",
+        "35",
+        "666662"
+      ]
+    },
+    {
+      "name": "Transferred (bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "54148",
+        "35",
+        "85233"
+      ]
+    },
+    {
+      "name": "Total Transferred (bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "692649",
+        "35",
+        "756598"
+      ]
+    },
+    {
+      "name": "CO2 (mg)",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "269.914",
+        "0.000",
+        "294.833"
+      ]
+    },
+    {
+      "name": "Carbon Rating",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "B",
+        "A+",
+        "B"
+      ]
+    }
+  ]
+}

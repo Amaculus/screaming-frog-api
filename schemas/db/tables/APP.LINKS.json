@@ -1,0 +1,130 @@
+{
+  "columns": [
+    {
+      "name": "LINK_TYPE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SCOPE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "ORIGIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "PATH_TYPE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "ELEMENT_PATH",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SRC_ID",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "DST_ID",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "ELEMENT_POSITION",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ALT_TEXT",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINK_TEXT",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HREF_LANG",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOFOLLOW",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "UGC",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SPONSORED",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TARGET",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOOPENER",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOREFERRER",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IMAGE_DISPLAY_WIDTH",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "IMAGE_DISPLAY_HEIGHT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "IMAGE_WIDTH_ATTRIBUTE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "IMAGE_HEIGHT_ATTRIBUTE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    }
+  ]
+}

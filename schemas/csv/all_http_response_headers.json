@@ -1,0 +1,180 @@
+{
+  "file": "all_http_response_headers.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/118654_utrgv.png",
+        "https://assets.actionnetwork.com/761154_line.png",
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=7714DE1EEF7449B1B4DA9B6C48007741&RedC=c.clarity.ms&MXFR=033F389088B064AF17D52E7A8CB06ACA"
+      ]
+    },
+    {
+      "name": "age",
+      "dtype": "integer",
+      "nullable": true,
+      "sample_values": [
+        "9860301",
+        "186349",
+        "3100384"
+      ]
+    },
+    {
+      "name": "cache-control",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "max-age=31536000, immutable",
+        "private, no-cache, proxy-revalidate, no-store",
+        "private, no-cache, proxy-revalidate, no-store"
+      ]
+    },
+    {
+      "name": "connection",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "content-encoding",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "br",
+        "gzip",
+        "gzip"
+      ]
+    },
+    {
+      "name": "content-length",
+      "dtype": "integer",
+      "nullable": true,
+      "sample_values": [
+        "14392",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "content-type",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "image/png",
+        "application/json; charset=utf-8",
+        "image/webp"
+      ]
+    },
+    {
+      "name": "date",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Wed, 01 Oct 2025 15:55:35 GMT",
+        "Fri, 23 Jan 2026 18:48:40 GMT",
+        "Fri, 23 Jan 2026 18:52:45 GMT"
+      ]
+    },
+    {
+      "name": "etag",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "\"0908d021ae6b05269fc7cc3fcbfd122f\"",
+        "\"e0f1f9e60de4b0a9f3ee5971225d802f\"",
+        "W/\"9vwacns8f76geb\""
+      ]
+    },
+    {
+      "name": "location",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "https://c.clarity.ms/c.gif?ctsa=mr&CtsSyncId=7714DE1EEF7449B1B4DA9B6C48007741&MUID=00D0AB4784EA6D0A25B9BDAD85966CB9",
+        "https://c.clarity.ms/c.gif?ctsa=mr&CtsSyncId=2366B21AB52840A3BF0A5923CDE74576&MUID=02B06DB62C13657C1C3D7B5C2D6F6462",
+        "https://c.clarity.ms/c.gif?ctsa=mr&CtsSyncId=D0F90D68844A414EBCA2CBFCA730F5E7&MUID=007D8CB8D3A96CBB35C99A52D2D56D70"
+      ]
+    },
+    {
+      "name": "refresh",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "0;url=https://www.actionnetwork.com/ncaaf"
+      ]
+    },
+    {
+      "name": "server",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "AmazonS3",
+        "AmazonS3",
+        "AmazonS3"
+      ]
+    },
+    {
+      "name": "vary",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Origin",
+        "accept-encoding",
+        "Accept-Encoding"
+      ]
+    },
+    {
+      "name": "via",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "1.1 254614d93228aba8d725b3ca760af576.cloudfront.net (CloudFront)",
+        "1.1 4a17990a9d6fff0e0aa8d32198354d82.cloudfront.net (CloudFront)",
+        "1.1 f12842c1de6b034b31a70b2ca2567194.cloudfront.net (CloudFront)"
+      ]
+    },
+    {
+      "name": "x-amz-cf-id",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "TIgVfM49hLAFzzSv-WPT5vvjH0KK5mecJGXEgv8YvK7_HyWOJY8Wxg==",
+        "Hi-hR6ptwUt103nGjF44VU5kkfxsm9sFEa0ow0HsLmSXdWa6qUZ5Mw==",
+        "EtJBFkK_pZsE5xXuS0206shpPC4G4mbFKuFL44HHTG7l5B-CBRpW7A=="
+      ]
+    },
+    {
+      "name": "x-amz-cf-pop",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "EZE50-P1",
+        "EZE50-P1",
+        "EZE50-P2"
+      ]
+    },
+    {
+      "name": "x-cache",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Hit from cloudfront",
+        "CONFIG_NOCACHE",
+        "CONFIG_NOCACHE"
+      ]
+    },
+    {
+      "name": "x-nextjs-cache",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "STALE",
+        "STALE",
+        "STALE"
+      ]
+    }
+  ]
+}

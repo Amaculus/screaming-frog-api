@@ -1,0 +1,70 @@
+{
+  "file": "javascript_page_title_updated_by_javascript.csv",
+  "rows_sampled": 9,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/reviews/kalshi/gta-6",
+        "https://www.actionnetwork.com/sweepstakes-casinos/ding-ding-ding",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/fanduel-ohio"
+      ]
+    },
+    {
+      "name": "HTML Title",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "GTA 6 Predictions Markets at Kalshi  2026",
+        "DingDingDing Casino Promo Code  January 2026: Officially Blacklisted",
+        "FanDuel Ohio Promo Code 2025:  Bet $5 Get $300 in Bonus Bets If Your Bet Wins!"
+      ]
+    },
+    {
+      "name": "Rendered HTML Title",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "GTA 6 Predictions Markets at Kalshi 2026",
+        "DingDingDing Casino Promo Code January 2026: Officially Blacklisted",
+        "FanDuel Ohio Promo Code 2025: Bet $5 Get $300 in Bonus Bets If Your Bet Wins!"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noindex"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

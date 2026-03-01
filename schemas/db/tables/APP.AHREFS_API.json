@@ -1,0 +1,874 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "SF_REQUEST_STATUS_KEY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SF_REQUEST_ERROR_KEY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "BACKLINKS_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REFDOMAINS_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "AHREFS_RANK_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REF_PAGES_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PAGES_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TEXT_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IMAGE_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SITEWIDE_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOT_SITEWIDE_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NO_FOLLOW_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DO_FOLLOW_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REDIRECT_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CANONICAL_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GOV_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EDU_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HTML_PAGES_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKS_INTERNAL_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKES_EXTERNAL_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REFCLASS_C_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REF_IPS_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKED_ROOT_DOMAINS_EXACT",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TWITTER_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PINTEREST_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GPLUS_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_LIKES_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_SHARES_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_COMMENTS_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_CLICKS_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_COMMENTS_BOX_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TOTAL_SHARES_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MEDIAN_SHARES_EXACT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_TOP3",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_TOP10",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_TOP3",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_TOP10",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_TOP3",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_TOP10",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "BACKLINKS_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REFDOMAINS_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "AHREFS_RANK_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REF_PAGES_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PAGES_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TEXT_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IMAGE_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SITEWIDE_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOT_SITEWIDE_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NO_FOLLOW_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DO_FOLLOW_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REDIRECT_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CANONICAL_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GOV_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EDU_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HTML_PAGES_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKS_INTERNAL_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKES_EXTERNAL_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REFCLASS_C_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REF_IPS_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKED_ROOT_DOMAINS_EXACT_HTTP_AND_HTTPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TWITTER_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PINTEREST_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GPLUS_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_LIKES_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_SHARES_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_COMMENTS_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_CLICKS_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FACEBOOK_COMMENTS_BOX_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TOTAL_SHARES_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MEDIAN_SHARES_EXACT_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_TOP3_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_TOP10_EXACT_HTTP_AND_HTTPS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_EXACT_HTTP_AND_HTTPS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_TOP3_EXACT_HTTP_AND_HTTPS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_TOP10_EXACT_HTTP_AND_HTTPS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_EXACT_HTTP_AND_HTTPS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_TOP3_EXACT_HTTP_AND_HTTPS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_TOP10_EXACT_HTTP_AND_HTTPS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "BACKLINKS_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REFDOMAINS_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REF_PAGES_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PAGES_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TEXT_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IMAGE_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SITEWIDE_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOT_SITEWIDE_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NO_FOLLOW_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DO_FOLLOW_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REDIRECT_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CANONICAL_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GOV_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EDU_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HTML_PAGES_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKS_INTERNAL_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKES_EXTERNAL_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REFCLASS_C_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REF_IPS_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKED_ROOT_DOMAINS_SUB_DOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_SUB_DOMAINS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_TOP3_SUB_DOMAINS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_TOP10_SUB_DOMAINS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_SUB_DOMAINS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_TOP3_SUB_DOMAINS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_TOP10_SUB_DOMAINS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_SUB_DOMAINS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_TOP3_SUB_DOMAINS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_TOP10_SUB_DOMAINS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "BACKLINKS_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REFDOMAINS_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DOMAIN_RATING",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "AHREFS_TOP",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REF_PAGES_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PAGES_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TEXT_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IMAGE_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SITEWIDE_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOT_SITEWIDE_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NO_FOLLOW_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DO_FOLLOW_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REDIRECT_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CANONICAL_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GOV_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EDU_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HTML_PAGES_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKS_INTERNAL_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKES_EXTERNAL_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REFCLASS_C_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REF_IPS_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINKED_ROOT_DOMAINS_DOMAIN",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_DOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_TOP3_DOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITIONS_TOP10_DOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_DOMAIN",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_TOP3_DOMAIN",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TRAFFIC_TOP10_DOMAIN",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_DOMAIN",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_TOP3_DOMAIN",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "COST_TOP10_DOMAIN",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

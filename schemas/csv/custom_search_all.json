@@ -1,0 +1,1042 @@
+{
+  "file": "custom_search_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Filter 1",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 2",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 3",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 4",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 5",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 6",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 7",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 8",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 9",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 10",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 11",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 12",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 13",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 14",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 15",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 16",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 17",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 18",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 19",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 20",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 21",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 22",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 23",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 24",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 25",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 26",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 27",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 28",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 29",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 30",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 31",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 32",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 33",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 34",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 35",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 36",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 37",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 38",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 39",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 40",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 41",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 42",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 43",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 44",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 45",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 46",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 47",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 48",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 49",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 50",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 51",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 52",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 53",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 54",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 55",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 56",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 57",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 58",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 59",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 60",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 61",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 62",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 63",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 64",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 65",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 66",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 67",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 68",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 69",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 70",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 71",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 72",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 73",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 74",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 75",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 76",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 77",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 78",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 79",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 80",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 81",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 82",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 83",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 84",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 85",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 86",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 87",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 88",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 89",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 90",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 91",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 92",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 93",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 94",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 95",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 96",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 97",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 98",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 99",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Filter 100",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "file": "reduce_unused_javascript_report.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Source Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles"
+      ]
+    },
+    {
+      "name": "URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://cdn.cookielaw.org/scripttemplates/202506.1.0/otBannerSdk.js",
+        "https://www.googletagmanager.com/gtag/js?id=G-P6ZYBPW4VV",
+        "https://static-web-prod.actionnetwork.com/_next/static/chunks/pages/_app-1c0d37d57e95c577.js"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "122308",
+        "167088",
+        "125731"
+      ]
+    },
+    {
+      "name": "Potential Savings (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "69139",
+        "58199",
+        "50599"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "file": "http_header_summary.csv",
+  "rows_sampled": 35,
+  "columns": [
+    {
+      "name": "HTTP Request Headers",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Header Name",
+        "Accept",
+        "Accept-Encoding"
+      ]
+    }
+  ]
+}

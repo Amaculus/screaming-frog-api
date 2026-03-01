@@ -1,0 +1,66 @@
+{
+  "file": "pathrelative_outlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Hyperlink",
+        "Hyperlink"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728"
+      ]
+    },
+    {
+      "name": "Anchor Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Details",
+        "News",
+        "Odds"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "promotion logo",
+        "promotion logo",
+        "promotion logo"
+      ]
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Path-Relative",
+        "Path-Relative",
+        "Path-Relative"
+      ]
+    }
+  ]
+}

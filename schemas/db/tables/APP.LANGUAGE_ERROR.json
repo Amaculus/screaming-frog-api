@@ -1,0 +1,34 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "LANGUAGE_ERROR_DATA",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LANGUAGE_CODE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SPELLING_ERRORS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GRAMMAR_ERRORS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "file": "javascript_pages_with_blocked_resources.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Client Error"
+      ]
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "10",
+        "38",
+        "4"
+      ]
+    },
+    {
+      "name": "Response Time",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "1.200",
+        "0.641",
+        "0.788"
+      ]
+    },
+    {
+      "name": "Redirect URL",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

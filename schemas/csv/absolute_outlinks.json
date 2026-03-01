@@ -1,0 +1,66 @@
+{
+  "file": "absolute_outlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTTP Redirect",
+        "HTTP Redirect",
+        "HTTP Redirect"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=7714DE1EEF7449B1B4DA9B6C48007741&RedC=c.clarity.ms&MXFR=033F389088B064AF17D52E7A8CB06ACA",
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=2366B21AB52840A3BF0A5923CDE74576&RedC=c.clarity.ms&MXFR=0100DF4E2A8D6A3D16B6C9A42E8D6456",
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=D0F90D68844A414EBCA2CBFCA730F5E7&RedC=c.clarity.ms&MXFR=1D121BB89C996F0D324E0D529899615D"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://c.clarity.ms/c.gif?ctsa=mr&CtsSyncId=7714DE1EEF7449B1B4DA9B6C48007741&MUID=00D0AB4784EA6D0A25B9BDAD85966CB9",
+        "https://c.clarity.ms/c.gif?ctsa=mr&CtsSyncId=2366B21AB52840A3BF0A5923CDE74576&MUID=02B06DB62C13657C1C3D7B5C2D6F6462",
+        "https://c.clarity.ms/c.gif?ctsa=mr&CtsSyncId=D0F90D68844A414EBCA2CBFCA730F5E7&MUID=007D8CB8D3A96CBB35C99A52D2D56D70"
+      ]
+    },
+    {
+      "name": "Anchor Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Legalization Tracker",
+        "Latest Legal News",
+        "U.S. Online Betting"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "State Gambling Disclosure Logo",
+        "Powered by Onetrust",
+        "E. Michigan logo"
+      ]
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Absolute",
+        "Absolute",
+        "Absolute"
+      ]
+    }
+  ]
+}

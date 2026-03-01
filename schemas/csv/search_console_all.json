@@ -1,0 +1,56 @@
+{
+  "file": "search_console_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/2021-college-football-returning-production-transfer-grades",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "308",
+        "200"
+      ]
+    },
+    {
+      "name": "Title 1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Eastern Michigan Eagles Odds | The Action Network",
+        "Los Angeles Rams Odds & Betting Lines | Action Network",
+        "New Orleans Pelicans Odds & Betting Lines | Action Network"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Non-Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Redirected",
+        "Client Error",
+        "noindex"
+      ]
+    }
+  ]
+}

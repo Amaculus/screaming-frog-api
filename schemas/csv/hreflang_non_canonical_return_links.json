@@ -1,0 +1,24 @@
+{
+  "file": "hreflang_non_canonical_return_links.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "URL",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Non Canonical Return Link URL",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Canonical",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

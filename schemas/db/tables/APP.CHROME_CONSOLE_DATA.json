@@ -1,0 +1,46 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "COMPRESSED_JSON",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_ERRORS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_WARNINGS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_INFO",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_DEBUG",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "NUM_ISSUES",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

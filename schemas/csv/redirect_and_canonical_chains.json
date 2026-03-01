@@ -1,0 +1,510 @@
+{
+  "file": "redirect_and_canonical_chains.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Chain Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTTP Redirect",
+        "HTTP Redirect",
+        "HTTP Redirect"
+      ]
+    },
+    {
+      "name": "Number of Redirects/Canonicals",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Loop",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "false",
+        "false",
+        "false"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/article/author/alicia-grimes",
+        "https://www.actionnetwork.com/sweepstakes-casinos/pulsz/payments",
+        "https://www.actionnetwork.com/casino/gun-lake-casino"
+      ]
+    },
+    {
+      "name": "Temp Redirect in Chain",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "false",
+        "false",
+        "false"
+      ]
+    },
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.x.com/ActionNetworkHQ",
+        "https://www.x.com/ActionNetworkHQ",
+        "https://www.x.com/ActionNetworkHQ"
+      ]
+    },
+    {
+      "name": "Final Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://x.com/ActionNetworkHQ",
+        "https://x.com/ActionNetworkHQ",
+        "https://x.com/ActionNetworkHQ"
+      ]
+    },
+    {
+      "name": "Final Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Final Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Not crawled",
+        "Not crawled",
+        "Not crawled"
+      ]
+    },
+    {
+      "name": "Final Content",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Final Status Code",
+      "dtype": "integer",
+      "nullable": true,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Final Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "OK",
+        "OK",
+        "OK"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Anchor Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "View on X",
+        "View on X",
+        "View on X"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "//body/div[@id='__next']/div/main/div/div/div[2]/div[2]/div/div/div[@class='side-rail__social-icons']/a[@class='side-rail__social-icon'][1]",
+        "//body/div[@id='__next']/div[2]/main/div/div[2]/div[10]/div[2]/div/div[2]/div[2]/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[2]/div[22]/div[2]/div/div[2]/div[2]/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Content"
+      ]
+    },
+    {
+      "name": "Content 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code 1",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "301",
+        "301",
+        "301"
+      ]
+    },
+    {
+      "name": "Status 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Moved Permanently",
+        "Moved Permanently",
+        "Moved Permanently"
+      ]
+    },
+    {
+      "name": "Redirect Type 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTTP Redirect",
+        "HTTP Redirect",
+        "HTTP Redirect"
+      ]
+    },
+    {
+      "name": "Redirect URL 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://twitter.com/ActionNetworkHQ",
+        "https://twitter.com/ActionNetworkHQ",
+        "https://twitter.com/ActionNetworkHQ"
+      ]
+    },
+    {
+      "name": "Content 2",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code 2",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "301",
+        "301",
+        "301"
+      ]
+    },
+    {
+      "name": "Status 2",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Moved Permanently",
+        "Moved Permanently",
+        "Moved Permanently"
+      ]
+    },
+    {
+      "name": "Redirect Type 2",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTTP Redirect",
+        "HTTP Redirect",
+        "HTTP Redirect"
+      ]
+    },
+    {
+      "name": "Redirect URL 2",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://x.com/ActionNetworkHQ",
+        "https://x.com/ActionNetworkHQ",
+        "https://x.com/ActionNetworkHQ"
+      ]
+    },
+    {
+      "name": "Content 3",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code 3",
+      "dtype": "integer",
+      "nullable": true,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status 3",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "OK",
+        "OK",
+        "OK"
+      ]
+    },
+    {
+      "name": "Redirect Type 3",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect URL 3",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Content 4",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code 4",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status 4",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type 4",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect URL 4",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Content 5",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code 5",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status 5",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type 5",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect URL 5",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Content 6",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code 6",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status 6",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type 6",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect URL 6",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Content 7",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code 7",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status 7",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type 7",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect URL 7",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Content 8",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code 8",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status 8",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type 8",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect URL 8",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Content 9",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code 9",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status 9",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type 9",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect URL 9",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Content 10",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code 10",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status 10",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type 10",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect URL 10",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

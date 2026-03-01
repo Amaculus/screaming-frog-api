@@ -1,0 +1,58 @@
+{
+  "file": "page_titles_missing.csv",
+  "rows_sampled": 1,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/pricing"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1"
+      ]
+    },
+    {
+      "name": "Title 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Title 1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0"
+      ]
+    },
+    {
+      "name": "Title 1 Pixel Width",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

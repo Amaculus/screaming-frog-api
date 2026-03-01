@@ -1,0 +1,118 @@
+{
+  "file": "missing_size_attributes.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Image",
+        "Image",
+        "Image"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/reviews/bet365-ohio",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/fanatics-sportsbook/refer-a-friend",
+        "https://www.actionnetwork.com/article/author/logan-martinez"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/750619_general-responsible-gambling-logo.png",
+        "https://assets.actionnetwork.com/750619_general-responsible-gambling-logo.png",
+        "https://assets.actionnetwork.com/750619_general-responsible-gambling-logo.png"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "State Gambling Disclosure Logo",
+        "State Gambling Disclosure Logo",
+        "State Gambling Disclosure Logo"
+      ]
+    },
+    {
+      "name": "Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "30",
+        "30",
+        "30"
+      ]
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Absolute",
+        "Absolute",
+        "Absolute"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/footer/div[2]/div/div/a/picture/img",
+        "//body/div[@id='__next']/div[2]/footer/div[2]/div/div/a/picture/img",
+        "//body/div[@id='__next']/div/footer/div[2]/div/div/a/picture/img"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Footer",
+        "Footer",
+        "Footer"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML"
+      ]
+    },
+    {
+      "name": "Real Dimensions",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Dimensions in Attributes",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Display Dimensions",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "0x0",
+        "0x0",
+        "120x50"
+      ]
+    }
+  ]
+}

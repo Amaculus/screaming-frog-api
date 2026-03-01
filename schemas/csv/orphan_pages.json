@@ -1,0 +1,18 @@
+{
+  "file": "orphan_pages.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "URL",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Source",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

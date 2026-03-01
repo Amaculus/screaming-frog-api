@@ -1,0 +1,72 @@
+{
+  "file": "images_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/118654_utrgv.png",
+        "https://assets.actionnetwork.com/761154_line.png",
+        "https://static.sprtactn.co/assets/upload/510631_9.svg"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "image/png",
+        "image/png",
+        "image/svg+xml"
+      ]
+    },
+    {
+      "name": "Size (bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "14392",
+        "364261",
+        "0"
+      ]
+    },
+    {
+      "name": "IMG Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "1",
+        "17"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Dimensions",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "200x200",
+        "100x100",
+        "200x200"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "file": "structured_data_parse_errors.csv",
+  "rows_sampled": 1,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/casino/bet365"
+      ]
+    },
+    {
+      "name": "Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1"
+      ]
+    },
+    {
+      "name": "Warnings",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0"
+      ]
+    },
+    {
+      "name": "Rich Result Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0"
+      ]
+    },
+    {
+      "name": "Rich Result Warnings",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0"
+      ]
+    },
+    {
+      "name": "Rich Result Features",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2"
+      ]
+    },
+    {
+      "name": "Feature-1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Google Breadcrumb"
+      ]
+    },
+    {
+      "name": "Feature-2",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Google FAQ"
+      ]
+    },
+    {
+      "name": "Total Types",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "23"
+      ]
+    },
+    {
+      "name": "Unique Types",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "8"
+      ]
+    },
+    {
+      "name": "Type-1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Answer"
+      ]
+    },
+    {
+      "name": "Type-2",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "BreadcrumbList"
+      ]
+    },
+    {
+      "name": "Type-3",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "FAQPage"
+      ]
+    },
+    {
+      "name": "Type-4",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HowTo"
+      ]
+    },
+    {
+      "name": "Type-5",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HowToStep"
+      ]
+    },
+    {
+      "name": "Type-6",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "ListItem"
+      ]
+    },
+    {
+      "name": "Type-7",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Question"
+      ]
+    },
+    {
+      "name": "Type-8",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "WebPage"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

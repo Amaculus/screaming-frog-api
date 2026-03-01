@@ -1,0 +1,72 @@
+{
+  "file": "images_missing_alt_text.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/161330_499193_PriceTag.png",
+        "https://assets.actionnetwork.com/32508_new-york.png",
+        "https://assets.actionnetwork.com/147028_Louisiana.png"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "image/png",
+        "image/png",
+        "image/png"
+      ]
+    },
+    {
+      "name": "Size (bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "583",
+        "375",
+        "434"
+      ]
+    },
+    {
+      "name": "IMG Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "335",
+        "149",
+        "149"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Dimensions",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "100x100",
+        "100x100",
+        "100x100"
+      ]
+    }
+  ]
+}

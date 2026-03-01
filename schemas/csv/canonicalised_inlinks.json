@@ -1,0 +1,148 @@
+{
+  "file": "canonicalised_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Hyperlink",
+        "Hyperlink"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/ncaab-game/st-bonaventure-saint-josephs-score-odds-january-14-2026/276126"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/picks/profile/FTN",
+        "https://www.actionnetwork.com/picks/profile/FTN",
+        "https://www.actionnetwork.com/picks/profile/FTN"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "292279",
+        "292279",
+        "292279"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "FTN Fantasy",
+        "FTN Fantasy",
+        "FTN Fantasy"
+      ]
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "FTN Fantasy",
+        "FTN Fantasy",
+        "FTN Fantasy"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "_blank",
+        "_blank",
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Root-Relative",
+        "Root-Relative",
+        "Root-Relative"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "//body/div[@id='__next']/div/main/div/div[1]/section[4]/div[42]/div[@class='pick-card__header']/a",
+        "//body/div[@id='__next']/div/main/div/div[1]/section[4]/div[42]/div[@class='pick-card__header']/div[@class='pick-card__expert-info']/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[@class='game-details-container']/div/section[3]/div[2]/div[1]/div[@class='pick-card__header']/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Header",
+        "Header",
+        "Header"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML"
+      ]
+    }
+  ]
+}

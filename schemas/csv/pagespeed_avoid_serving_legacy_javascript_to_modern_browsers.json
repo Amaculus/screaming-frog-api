@@ -1,0 +1,18 @@
+{
+  "file": "pagespeed_avoid_serving_legacy_javascript_to_modern_browsers.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Avoid Serving Legacy JavaScript to Modern Browsers Savings (ms)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

@@ -1,0 +1,306 @@
+{
+  "file": "structured_data_rich_result_feature_detected.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728"
+      ]
+    },
+    {
+      "name": "Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Warnings",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Rich Result Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "1"
+      ]
+    },
+    {
+      "name": "Rich Result Warnings",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "4"
+      ]
+    },
+    {
+      "name": "Rich Result Features",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "Feature-1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Google FAQ",
+        "Google FAQ",
+        "Google Event"
+      ]
+    },
+    {
+      "name": "Feature-2",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Google Breadcrumb",
+        "Google Breadcrumb",
+        "Google Profile Page"
+      ]
+    },
+    {
+      "name": "Feature-3",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Google Review Snippet",
+        "Google Event",
+        "Google Review Snippet"
+      ]
+    },
+    {
+      "name": "Feature-4",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Google Software App",
+        "Google Software App",
+        "Google Software App"
+      ]
+    },
+    {
+      "name": "Feature-5",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Feature-6",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Total Types",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "17",
+        "7",
+        "11"
+      ]
+    },
+    {
+      "name": "Unique Types",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "3",
+        "3",
+        "6"
+      ]
+    },
+    {
+      "name": "Type-1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Answer",
+        "Answer",
+        "CivicStructure"
+      ]
+    },
+    {
+      "name": "Type-2",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "FAQPage",
+        "FAQPage",
+        "Organization"
+      ]
+    },
+    {
+      "name": "Type-3",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Question",
+        "Question",
+        "PostalAddress"
+      ]
+    },
+    {
+      "name": "Type-4",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "SportsEvent",
+        "NewsArticle",
+        "NewsArticle"
+      ]
+    },
+    {
+      "name": "Type-5",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "SportsOrganization",
+        "Organization",
+        "Organization"
+      ]
+    },
+    {
+      "name": "Type-6",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "SportsTeam",
+        "Person",
+        "Person"
+      ]
+    },
+    {
+      "name": "Type-7",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "PostalAddress",
+        "PostalAddress",
+        "PostalAddress"
+      ]
+    },
+    {
+      "name": "Type-8",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "WebPage",
+        "WebPage",
+        "WebPage"
+      ]
+    },
+    {
+      "name": "Type-9",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Review",
+        "SportsEvent",
+        "Review"
+      ]
+    },
+    {
+      "name": "Type-10",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "SoftwareApplication",
+        "SportsOrganization",
+        "SoftwareApplication"
+      ]
+    },
+    {
+      "name": "Type-11",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "WebPage",
+        "SportsTeam",
+        "WebPage"
+      ]
+    },
+    {
+      "name": "Type-12",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "WebPage",
+        "WebPage",
+        "WebPage"
+      ]
+    },
+    {
+      "name": "Type-13",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "WebPageElement"
+      ]
+    },
+    {
+      "name": "Type-14",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Type-15",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Type-16",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Type-17",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

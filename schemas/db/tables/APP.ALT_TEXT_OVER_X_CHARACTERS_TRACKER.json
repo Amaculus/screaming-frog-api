@@ -1,0 +1,16 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "BAD_SRC_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

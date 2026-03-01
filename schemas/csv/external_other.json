@@ -1,0 +1,66 @@
+{
+  "file": "external_other.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=7714DE1EEF7449B1B4DA9B6C48007741&RedC=c.clarity.ms&MXFR=033F389088B064AF17D52E7A8CB06ACA",
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=2366B21AB52840A3BF0A5923CDE74576&RedC=c.clarity.ms&MXFR=0100DF4E2A8D6A3D16B6C9A42E8D6456",
+        "https://b.bet-links.com/v1/affiliate/properties/1/placements/100/promotions?device_type=desktop&user_parent_book_ids=&context=web-book-state-review"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "application/json; charset=utf-8",
+        "application/json; charset=utf-8",
+        "application/json; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "302",
+        "302",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Found",
+        "Found",
+        "Found"
+      ]
+    },
+    {
+      "name": "Crawl Depth",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    }
+  ]
+}

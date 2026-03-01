@@ -1,0 +1,76 @@
+{
+  "file": "structured_data_error_summary_report.csv",
+  "rows_sampled": 41,
+  "columns": [
+    {
+      "name": "Name",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "NewsMediaOrganization",
+        "SoftwareApplication",
+        "Audience"
+      ]
+    },
+    {
+      "name": "Format",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "JSON-LD",
+        "JSON-LD",
+        "JSON-LD"
+      ]
+    },
+    {
+      "name": "Validation Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Google Organization",
+        "Google Software App",
+        "Schema.org"
+      ]
+    },
+    {
+      "name": "Issue Severity",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Warning",
+        "Error",
+        "Error"
+      ]
+    },
+    {
+      "name": "Number of URLs Affected",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "51",
+        "111",
+        "1"
+      ]
+    },
+    {
+      "name": "Issue Message",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "'http://schema.org/address' property is recommended for 'NewsMediaOrganization'",
+        "'http://schema.org/offers' property is required for 'SoftwareApplication'",
+        "'http://schema.org/eligibility' property is not defined by schema.org [version 29.00]"
+      ]
+    },
+    {
+      "name": "Sample URL Affected",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/article/author/action-network",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/bleacher-nation-fantasy",
+        "https://www.actionnetwork.com/casino/hollywood"
+      ]
+    }
+  ]
+}

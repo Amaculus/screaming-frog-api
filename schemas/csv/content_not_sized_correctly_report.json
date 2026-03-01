@@ -1,0 +1,18 @@
+{
+  "file": "content_not_sized_correctly_report.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Source Page",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Explanation",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

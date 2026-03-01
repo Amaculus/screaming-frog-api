@@ -1,0 +1,172 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "SF_REQUEST_STATUS_KEY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SF_REQUEST_ERROR_KEY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "PAGE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PAGE_AUTHORITY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LAST_CRAWLED",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EXTERNAL_PAGES_TO_PAGE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FOLLOW_EXTERNAL_PAGES_TO_PAGE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOFOLLOW_EXTERNAL_PAGES_TO_PAGE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ROOT_DOMAINS_TO_PAGE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FOLLOW_ROOT_DOMAINS_TO_PAGE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOFOLLOW_ROOT_DOMAINS_TO_PAGE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EXTERNAL_PAGES_TO_SUBDOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FOLLOW_EXTERNAL_PAGES_TO_SUBDOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOFOLLOW_EXTERNAL_PAGES_TO_SUBDOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ROOT_DOMAINS_TO_SUBDOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FOLLOW_ROOT_DOMAINS_TO_SUBDOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOFOLLOW_ROOT_DOMAINS_TO_SUBDOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DOMAIN_AUTHORITY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LINK_PROPENSITY",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SPAM_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "BRAND_AUTHORITY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EXTERNAL_PAGES_TO_ROOT_DOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FOLLOW_EXTERNAL_PAGES_TO_ROOT_DOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOFOLLOW_EXTERNAL_PAGES_TO_ROOT_DOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ROOT_DOMAINS_TO_ROOT_DOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FOLLOW_ROOT_DOMAINS_TO_ROOT_DOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NOFOLLOW_ROOT_DOMAINS_TO_ROOT_DOMAIN",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

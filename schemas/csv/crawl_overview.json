@@ -1,0 +1,26 @@
+{
+  "file": "crawl_overview.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Site Crawled",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Start Date",
+        "Start Time",
+        "Elapsed"
+      ]
+    },
+    {
+      "name": "https://www.actionnetwork.com/",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "2026-01-23",
+        "15:46:38",
+        "02:26:23"
+      ]
+    }
+  ]
+}

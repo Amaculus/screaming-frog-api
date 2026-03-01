@@ -1,0 +1,146 @@
+{
+  "file": "client_error_(4xx)_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Misc",
+        "Misc"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/louisiana",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/fanatics-sportsbook/refer-a-friend",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/fanatics-sportsbook-michigan"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/legal-online-sports-betting/louisiana-daily-fantasy-rollout-online-sports-betting-legalization",
+        "https://impressions.onelink.me/5kut?pid=bettercol6o_int&af_siteid=moarperformance&af_prt=moarperformance&utm_medium=&af_channel=BetterCollective&utm_channel=BetterCollective&utm_source=moarperformance&utm_campaign=ActionNetwork&c=ActionNetwork&af_ad=2000NSB_action2037&utm_content=2000NSB_action2037&af_adset=BC1",
+        "https://impressions.onelink.me/5kut?pid=bettercol6o_int&af_siteid=moarperformance&af_prt=moarperformance&utm_medium=&af_channel=BetterCollective&utm_channel=BetterCollective&utm_source=moarperformance&utm_campaign=ActionNetwork&c=ActionNetwork&af_ad=2000NSB_action2037&utm_content=2000NSB_action2037&af_adset=BC1"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "156947",
+        "11",
+        "11"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Ohio Sportsbook Promos: Net Up To $3,500 in Bonus Bets for NFL Hall of Fame Game article feature image",
+        "Ohio Sportsbook Promos: Net $3,500 in Bonuses for Chargers vs. Lions NFL Hall of Fame Game article feature image",
+        "BetRivers Bonus Code: $500 2nd Chance Bet for Sunday NFL Week 9 article feature image"
+      ]
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "DFS apps are now deemed legal in Louisiana",
+        "Ohio Sportsbook Promos: Net Up To $3,500 in Bonus Bets for NFL Hall of Fame Game",
+        "Ohio Sportsbook Promos: Net $3,500 in Bonuses for Chargers vs. Lions NFL Hall of Fame Game The NFL Hall of Fame Game marks a prime time to sign up with Ohio sportsbook promos and pocket up to $3,500 in bonuses. Register now with the best"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "410",
+        "400",
+        "400"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Absolute",
+        "N/A",
+        "N/A"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[2]/div[2]/p[6]/span/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[6]/ul/li[4]/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[6]/ul/li[4]/h3/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Content"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "Dynamically Loaded",
+        "Dynamically Loaded"
+      ]
+    }
+  ]
+}

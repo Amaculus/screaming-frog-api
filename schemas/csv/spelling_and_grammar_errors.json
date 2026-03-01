@@ -1,0 +1,116 @@
+{
+  "file": "spelling_and_grammar_errors.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles"
+      ]
+    },
+    {
+      "name": "Lang",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "en-US",
+        "en-US",
+        "en-US"
+      ]
+    },
+    {
+      "name": "Spelling Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "27",
+        "27",
+        "27"
+      ]
+    },
+    {
+      "name": "Grammar Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "9",
+        "9",
+        "9"
+      ]
+    },
+    {
+      "name": "Error Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Grammar",
+        "Grammar",
+        "Grammar"
+      ]
+    },
+    {
+      "name": "Error Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "2"
+      ]
+    },
+    {
+      "name": "Error",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "\"Nov 26, 2025\"",
+        "\"Nov 25, 2025\"",
+        "\"Nov 15, 2025\""
+      ]
+    },
+    {
+      "name": "Error with Context",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "\"... Nov 26, 2025 UTC...\"",
+        "\"... Nov 25, 2025 UTC...\"",
+        "\"... Nov 15, 2025 UTC...\""
+      ]
+    },
+    {
+      "name": "Error Detail",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "\"A new year has begun. Did you mean <suggestion>Nov 26, 2026</suggestion>?\"",
+        "\"A new year has begun. Did you mean <suggestion>Nov 25, 2026</suggestion>?\"",
+        "\"A new year has begun. Did you mean <suggestion>Nov 15, 2026</suggestion>?\""
+      ]
+    },
+    {
+      "name": "Suggestions",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "\"Nov 26, 2026\"",
+        "\"Nov 25, 2026\"",
+        "\"Nov 15, 2026\""
+      ]
+    },
+    {
+      "name": "Page Section",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Page Body",
+        "Page Body",
+        "Page Body"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "file": "unsafe_crossorigin_links.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://myaction.app/kjcN6tDia0b",
+        "https://myaction.app/kjcN6tDia0b",
+        "https://myaction.app/kjcN6tDia0b"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Twitter Logo",
+        "Cavaliers logo",
+        "Underdog Fantasy Logo"
+      ]
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "https://myaction.app/kjcN6tDia0b",
+        "https://myaction.app/kjcN6tDia0b",
+        "https://myaction.app/kjcN6tDia0b"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "_blank",
+        "_blank",
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "nofollow",
+        "nofollow",
+        "nofollow"
+      ]
+    }
+  ]
+}

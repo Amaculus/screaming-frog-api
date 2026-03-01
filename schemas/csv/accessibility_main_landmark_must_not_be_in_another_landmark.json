@@ -1,0 +1,88 @@
+{
+  "file": "accessibility_main_landmark_must_not_be_in_another_landmark.csv",
+  "rows_sampled": 5,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nhl/futures",
+        "https://www.actionnetwork.com/mlb/futures",
+        "https://www.actionnetwork.com/wnba/futures"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "All Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "12",
+        "12",
+        "11"
+      ]
+    },
+    {
+      "name": "Best Practice Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "5",
+        "5",
+        "5"
+      ]
+    },
+    {
+      "name": "PSI Request Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Success",
+        "Success",
+        "Success"
+      ]
+    }
+  ]
+}

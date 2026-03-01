@@ -1,0 +1,154 @@
+{
+  "file": "redirection_(3xx)_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Misc",
+        "Misc",
+        "Misc"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/sweepstakes-casinos/sweet-sweeps",
+        "https://www.actionnetwork.com/casino/mobile",
+        "https://www.actionnetwork.com/casino/parx"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=7714DE1EEF7449B1B4DA9B6C48007741&RedC=c.clarity.ms&MXFR=033F389088B064AF17D52E7A8CB06ACA",
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=2366B21AB52840A3BF0A5923CDE74576&RedC=c.clarity.ms&MXFR=0100DF4E2A8D6A3D16B6C9A42E8D6456",
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=D0F90D68844A414EBCA2CBFCA730F5E7&RedC=c.clarity.ms&MXFR=1D121BB89C996F0D324E0D529899615D"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Google Podcasts image"
+      ]
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "http://www.cocopahresort.com/",
+        "College Football Returning Production & Transfer Grades",
+        "College Football Returning Production & Transfer Grades"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "302",
+        "302",
+        "302"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Found",
+        "Found",
+        "Found"
+      ]
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "_blank",
+        "_blank",
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noopener",
+        "noopener",
+        "noopener"
+      ]
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "N/A",
+        "N/A",
+        "N/A"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[5]/div[2]/div/div[22]/div[@class='location-card__link-wrapper'][1]/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[3]/div[2]/ul[5]/li[2]/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[4]/div[2]/ul[7]/li[1]/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Content"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Dynamically Loaded",
+        "Dynamically Loaded",
+        "Dynamically Loaded"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "columns": [
+    {
+      "name": "SITEMAP_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SRC",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DST",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HREF_LANG",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PATH_TYPE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "ELEMENT_PATH",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "ELEMENT_POSITION",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "file": "response_codes_internal_no_response.csv",
+  "rows_sampled": 6,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/futures/ncaaf-big-ten-odds",
+        "https://www.actionnetwork.com/ncaaf/odds/michigan-state-spartans",
+        "https://www.actionnetwork.com/ncaaf/odds/utah-utes"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Timeout expired while waiting for server response.",
+        "Timeout expired while waiting for server response."
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Non-Indexable",
+        "Non-Indexable",
+        "Non-Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "No Response",
+        "No Response",
+        "No Response"
+      ]
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "10",
+        "15",
+        "21"
+      ]
+    },
+    {
+      "name": "Response Time",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect URL",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Redirect Type",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

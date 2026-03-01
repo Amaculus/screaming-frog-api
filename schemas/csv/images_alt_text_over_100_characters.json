@@ -1,0 +1,68 @@
+{
+  "file": "images_alt_text_over_100_characters.csv",
+  "rows_sampled": 93,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://images.actionnetwork.com/blog/2026/01/FeatureImage_Starter-54.jpg",
+        "https://images.actionnetwork.com/blog/2026/01/Australian-Open-Womens-Best-Bets-Day-7-1_23_26.jpg",
+        "https://images.actionnetwork.com/blog/2026/01/Womens-Best-Bets-Australian-Open-1_19_26.jpg"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "image/jpeg",
+        "image/jpeg",
+        "image/jpeg"
+      ]
+    },
+    {
+      "name": "Size (bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "68301",
+        "65193",
+        "89580"
+      ]
+    },
+    {
+      "name": "IMG Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "19",
+        "18",
+        "16"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Dimensions",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

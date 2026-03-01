@@ -1,0 +1,76 @@
+{
+  "file": "pagespeed_opportunities_summary.csv",
+  "rows_sampled": 15,
+  "columns": [
+    {
+      "name": "Opportunity",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Reduce Unused JavaScript",
+        "Reduce Unused CSS",
+        "Eliminate Render-Blocking Resources"
+      ]
+    },
+    {
+      "name": "Number of URLs Affected",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "714",
+        "4",
+        "0"
+      ]
+    },
+    {
+      "name": "Total Size Bytes",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "731835706",
+        "446521",
+        "0"
+      ]
+    },
+    {
+      "name": "Total Savings ms",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "433590",
+        "2260",
+        "0"
+      ]
+    },
+    {
+      "name": "Total Savings Size Bytes",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "358089595",
+        "442913",
+        "0"
+      ]
+    },
+    {
+      "name": "Average Savings ms",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "607",
+        "565",
+        "0"
+      ]
+    },
+    {
+      "name": "Average Savings Size Bytes",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "501526",
+        "110728",
+        "0"
+      ]
+    }
+  ]
+}

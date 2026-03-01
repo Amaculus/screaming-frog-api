@@ -1,0 +1,96 @@
+{
+  "file": "all_incomplete.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Issue",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Frames Should Be Tested With axe-core",
+        "Frames Should Be Tested With axe-core",
+        "Frames Should Be Tested With axe-core"
+      ]
+    },
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/bet365-ohio",
+        "https://www.actionnetwork.com/golf/2024-us-open-picks"
+      ]
+    },
+    {
+      "name": "Location on Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "iframe[title=\"CFBPlaysperMinuteWeek12\"]",
+        "iframe[width=\"560\"]",
+        "iframe[height=\"352\"]"
+      ]
+    },
+    {
+      "name": "Guidelines",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Best Practice",
+        "Best Practice",
+        "Best Practice"
+      ]
+    },
+    {
+      "name": "User Impact",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Critical",
+        "Critical",
+        "Critical"
+      ]
+    },
+    {
+      "name": "Priority",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "High",
+        "High",
+        "High"
+      ]
+    },
+    {
+      "name": "Issue Description",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Frames should be tested with axe-core.",
+        "Frames should be tested with axe-core.",
+        "Frames should be tested with axe-core."
+      ]
+    },
+    {
+      "name": "How To Fix",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Ensure <iframe> and <frame> elements contain the axe-core script.",
+        "Ensure <iframe> and <frame> elements contain the axe-core script.",
+        "Ensure <iframe> and <frame> elements contain the axe-core script."
+      ]
+    },
+    {
+      "name": "Help URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://dequeuniversity.com/rules/axe/4.10/frame-tested?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/frame-tested?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/frame-tested?application=axeAPI"
+      ]
+    }
+  ]
+}

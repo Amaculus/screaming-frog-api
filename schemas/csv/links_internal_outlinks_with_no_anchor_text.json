@@ -1,0 +1,152 @@
+{
+  "file": "links_internal_outlinks_with_no_anchor_text.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noindex",
+        "noindex",
+        "noindex"
+      ]
+    },
+    {
+      "name": "Crawl Depth",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Link Score",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "20",
+        "75",
+        "39"
+      ]
+    },
+    {
+      "name": "Unique Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "14",
+        "34",
+        "20"
+      ]
+    },
+    {
+      "name": "Unique JS Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "2",
+        "1"
+      ]
+    },
+    {
+      "name": "% of Total",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "1.190",
+        "2.890",
+        "1.700"
+      ]
+    },
+    {
+      "name": "Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "293",
+        "420",
+        "280"
+      ]
+    },
+    {
+      "name": "Unique Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "196",
+        "209",
+        "186"
+      ]
+    },
+    {
+      "name": "Unique JS Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "External Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "20",
+        "50",
+        "20"
+      ]
+    },
+    {
+      "name": "Unique External Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "19",
+        "29",
+        "19"
+      ]
+    },
+    {
+      "name": "Unique External JS Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    }
+  ]
+}

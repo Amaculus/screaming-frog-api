@@ -1,0 +1,30 @@
+{
+  "file": "minify_css_report.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Source Page",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "URL",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Potential Savings (Bytes)",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

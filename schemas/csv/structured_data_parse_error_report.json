@@ -1,0 +1,22 @@
+{
+  "file": "structured_data_parse_error_report.csv",
+  "rows_sampled": 1,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/casino/bet365"
+      ]
+    },
+    {
+      "name": "Parse Error",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "com.github.jsonldjava.core.JsonLdError: colliding keywords: @type already exists in result (-1, -1)"
+      ]
+    }
+  ]
+}

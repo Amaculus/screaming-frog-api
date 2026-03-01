@@ -1,0 +1,148 @@
+{
+  "file": "http_urls_inlinks.csv",
+  "rows_sampled": 5,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Hyperlink",
+        "Hyperlink"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/georgia",
+        "https://www.actionnetwork.com/education/point-spread",
+        "https://www.actionnetwork.com/online-sports-betting/georgia"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "http://www.actionnetwork.com/nfl/odds/atlanta-falcons",
+        "http://actionnetwork.com/nfl",
+        "http://actionnetwork.com/nba/odds/atlanta-hawks"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "167",
+        "167",
+        "167"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Atlanta Falcons",
+        "football",
+        "Atlanta Hawks"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "301",
+        "301",
+        "301"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Moved Permanently",
+        "Moved Permanently",
+        "Moved Permanently"
+      ]
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "_blank",
+        "_blank",
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Absolute",
+        "Absolute",
+        "Absolute"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[2]/div[2]/div/div/div[@class='teams-container__wrapper'][3]/a",
+        "//body/div[@id='__next']/div[2]/main/div[1]/div[@id='article']/div[@class='contentBody__main']/div[@id='article-body']/p[1]/a[2]",
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[2]/div[2]/div/div/div[@class='teams-container__wrapper'][2]/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Content"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML"
+      ]
+    }
+  ]
+}

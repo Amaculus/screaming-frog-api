@@ -1,0 +1,90 @@
+{
+  "file": "accessibility_frames_require_title_attribute.csv",
+  "rows_sampled": 19,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/golf/2024-us-open-picks",
+        "https://www.actionnetwork.com/nfl/buffalo-bills-vs-new-york-jets-prediction-pick-odds-nfl-monday-night-football-october-14",
+        "https://www.actionnetwork.com/nfl/education"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Canonicalised"
+      ]
+    },
+    {
+      "name": "All Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "7",
+        "8",
+        "9"
+      ]
+    },
+    {
+      "name": "WCAG 2.0 A Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "5",
+        "5",
+        "5"
+      ]
+    },
+    {
+      "name": "PSI Request Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Success",
+        "Success",
+        "Success"
+      ]
+    }
+  ]
+}

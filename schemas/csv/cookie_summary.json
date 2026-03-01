@@ -1,0 +1,86 @@
+{
+  "file": "cookie_summary.csv",
+  "rows_sampled": 21,
+  "columns": [
+    {
+      "name": "Cookie Name",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "ANONCHK",
+        "ANONCHK",
+        "CLID"
+      ]
+    },
+    {
+      "name": "Domain",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "c.clarity.ms",
+        "c.clarity.ms",
+        "www.clarity.ms"
+      ]
+    },
+    {
+      "name": "Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "/",
+        "/",
+        "/"
+      ]
+    },
+    {
+      "name": "Expiration Time",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "8 Minutes",
+        "9 Minutes",
+        "364 Days"
+      ]
+    },
+    {
+      "name": "Secure",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "HttpOnly",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "false",
+        "false",
+        "true"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "68",
+        "726"
+      ]
+    },
+    {
+      "name": "Sample URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/social-casinos",
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728"
+      ]
+    }
+  ]
+}

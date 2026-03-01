@@ -1,0 +1,58 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "COMPRESSED_JSON",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "OVERVIEW",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_BEST_PRACTICE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_WCAG2A",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_WCAG2AA",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_WCAG2AAA",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_WCAG21AA",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUM_WCAG22AA",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

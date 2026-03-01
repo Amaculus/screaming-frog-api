@@ -1,0 +1,26 @@
+{
+  "file": "pagespeed_reduce_unused_css.csv",
+  "rows_sampled": 4,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/buffalo-bills-vs-new-york-jets-prediction-pick-odds-nfl-monday-night-football-october-14",
+        "https://www.actionnetwork.com/mma/ufc-abu-dhabi-odds-picks-predictions-tony-ferguson-vs-michael-chiesa-betting-preview-august-3",
+        "https://www.actionnetwork.com/nfl/san-francisco-49ers-vs-seattle-seahawks-prediction-pick-odds-nfl-thursday-night-football-october-10"
+      ]
+    },
+    {
+      "name": "Reduce Unused CSS Savings (ms)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "450",
+        "600",
+        "600"
+      ]
+    }
+  ]
+}

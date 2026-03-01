@@ -1,0 +1,36 @@
+{
+  "file": "hreflang_inconsistent_language_return_links.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "URL with Inconsistent Language Return Link",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "URL Target",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "URL Returning with Inconsistent Language",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Expected Language",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Actual Language",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

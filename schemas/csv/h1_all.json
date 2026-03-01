@@ -1,0 +1,85 @@
+{
+  "file": "h1_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "H1-1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Eastern Michigan Eagles Odds",
+        "Los Angeles Rams Odds",
+        "New Orleans Pelicans Odds"
+      ]
+    },
+    {
+      "name": "H1-1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "28",
+        "21",
+        "25"
+      ]
+    },
+    {
+      "name": "H1-2",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Memphis Tigers Football",
+        "Kentucky Wildcats Football 2025"
+      ]
+    },
+    {
+      "name": "H1-2 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noindex",
+        "noindex",
+        "noindex"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "file": "accessibility_scrollable_region_requires_keyboard_access.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/bet365-ohio",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/betmgm"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Canonicalised",
+        "Canonicalised",
+        "Canonicalised"
+      ]
+    },
+    {
+      "name": "All Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "8",
+        "9",
+        "9"
+      ]
+    },
+    {
+      "name": "WCAG 2.0 A Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "5",
+        "5",
+        "5"
+      ]
+    },
+    {
+      "name": "PSI Request Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Success",
+        "Success",
+        "Success"
+      ]
+    }
+  ]
+}

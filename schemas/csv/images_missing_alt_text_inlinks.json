@@ -1,0 +1,32 @@
+{
+  "file": "images_missing_alt_text_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/mma/ufc-contender-series-week-4-odds-picks-predictions-tuesday-september-3",
+        "https://www.actionnetwork.com/mma/ufc-contender-series-week-4-odds-picks-predictions-tuesday-september-3",
+        "https://www.actionnetwork.com/education/favorite"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/161330_499193_PriceTag.png",
+        "https://assets.actionnetwork.com/161330_499193_PriceTag.png",
+        "https://assets.actionnetwork.com/161330_499193_PriceTag.png"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

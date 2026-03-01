@@ -1,0 +1,68 @@
+{
+  "file": "h1_alt_text_in_h1.csv",
+  "rows_sampled": 1,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/reviews/circa-sportsbook/missouri"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2"
+      ]
+    },
+    {
+      "name": "H1-1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Circa Sportsbook Missouri Promo Code"
+      ]
+    },
+    {
+      "name": "H1-1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "36"
+      ]
+    },
+    {
+      "name": "H1-2",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Circa Sportsbook Missouri Promo Code Review"
+      ]
+    },
+    {
+      "name": "H1-2 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "43"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

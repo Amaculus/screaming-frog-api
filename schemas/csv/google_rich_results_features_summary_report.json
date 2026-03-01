@@ -1,0 +1,126 @@
+{
+  "file": "google_rich_results_features_summary_report.csv",
+  "rows_sampled": 12,
+  "columns": [
+    {
+      "name": "Rich Results Feature",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Google FAQ",
+        "Google Article",
+        "Google Breadcrumb"
+      ]
+    },
+    {
+      "name": "URLs",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "447",
+        "438",
+        "425"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "447",
+        "438",
+        "425"
+      ]
+    },
+    {
+      "name": "% Eligible",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "100",
+        "100",
+        "100"
+      ]
+    },
+    {
+      "name": "Eligible URLs",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "447",
+        "438",
+        "425"
+      ]
+    },
+    {
+      "name": "Error URLs",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Warning URLs",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Unique Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Unique Warnings",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Total Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Total Warnings",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Sample URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8"
+      ]
+    }
+  ]
+}

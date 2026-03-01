@@ -1,0 +1,86 @@
+{
+  "file": "all_cookies.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Cookie Name",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "OptanonConsent",
+        "OptanonConsent",
+        "OptanonConsent"
+      ]
+    },
+    {
+      "name": "Cookie Value",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "isGpcEnabled=0&datestamp=Fri+Jan+23+2026+17%3A19%3A16+GMT-0300+(hora+est%C3%A1ndar+de+Argentina)&version=202506.1.0&browserGpcFlag=0&isIABGlobal=false&hosts=&consentId=d831f95b-bd78-4d97-b097-5722b123055a&interactionCount=0&isAnonUser=1&landingPath=https%3A%2F%2Fwww.actionnetwork.com%2Fncaaf%2Fodds%2Feastern-michigan-eagles&groups=C0001%3A1%2CC0004%3A0%2CC0003%3A0%2CC0002%3A0",
+        "isGpcEnabled=0&datestamp=Fri+Jan+23+2026+17%3A59%3A19+GMT-0300+(hora+est%C3%A1ndar+de+Argentina)&version=202506.1.0&browserGpcFlag=0&isIABGlobal=false&hosts=&consentId=ad59bd99-11ed-4d0b-a4da-59b51b084b2a&interactionCount=0&isAnonUser=1&landingPath=https%3A%2F%2Fwww.actionnetwork.com%2Fnfl%2Fodds%2Flos-angeles-rams&groups=C0001%3A1%2CC0004%3A0%2CC0003%3A0%2CC0002%3A0",
+        "isGpcEnabled=0&datestamp=Fri+Jan+23+2026+16%3A41%3A18+GMT-0300+(hora+est%C3%A1ndar+de+Argentina)&version=202506.1.0&browserGpcFlag=0&isIABGlobal=false&hosts=&consentId=589fa36d-8b1c-4548-9204-ed6e8192a9c0&interactionCount=0&isAnonUser=1&landingPath=https%3A%2F%2Fwww.actionnetwork.com%2Fnba%2Fodds%2Fnew-orleans-pelicans&groups=C0001%3A1%2CC0004%3A0%2CC0003%3A0%2CC0002%3A0"
+      ]
+    },
+    {
+      "name": "Domain",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "actionnetwork.com",
+        "actionnetwork.com",
+        "actionnetwork.com"
+      ]
+    },
+    {
+      "name": "Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "/",
+        "/",
+        "/"
+      ]
+    },
+    {
+      "name": "Expiration Time",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "364 Days",
+        "364 Days",
+        "364 Days"
+      ]
+    },
+    {
+      "name": "Secure",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "false",
+        "false",
+        "false"
+      ]
+    },
+    {
+      "name": "HttpOnly",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "false",
+        "false",
+        "false"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "file": "pages_with_blocked_resources.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://api.actionnetwork.com/web/v1/books",
+        "https://api.actionnetwork.com/web/v1/config/experimentation",
+        "https://api.actionnetwork.com/web/v1/services/ipgeolocate"
+      ]
+    }
+  ]
+}

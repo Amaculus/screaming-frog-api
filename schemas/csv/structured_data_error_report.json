@@ -1,0 +1,66 @@
+{
+  "file": "structured_data_error_report.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nba",
+        "https://www.actionnetwork.com/nba",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/missouri/how-to-bet-on-super-bowl"
+      ]
+    },
+    {
+      "name": "Name",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "foundingDate",
+        "Country",
+        "applicationCategory"
+      ]
+    },
+    {
+      "name": "Format",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "JSON-LD",
+        "JSON-LD",
+        "JSON-LD"
+      ]
+    },
+    {
+      "name": "Issue Severity",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Warning",
+        "Warning",
+        "Warning"
+      ]
+    },
+    {
+      "name": "Validation Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Google Organization",
+        "Google Organization",
+        "Google Software App"
+      ]
+    },
+    {
+      "name": "Issue Message",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "'http://schema.org/foundingDate' is recommended to be of type 'http://schema.org/Date' in 'Organization' [currently='2018']",
+        "'http://schema.org/addressCountry' is recommended to be of type 'ISO 3166-1 alpha-2 code' in 'PostalAddress' [currently='Country']",
+        "'http://schema.org/applicationCategory' is recommended to be 'GameApplication' or 'SocialNetworkingApplication' or 'TravelApplication' or 'ShoppingApplication' or 'SportsApplication' or 'LifestyleApplication' or 'BusinessApplication' or 'DesignApplication' or 'DeveloperApplication' or 'DriverApplication' or 'EducationalApplication' or 'HealthApplication' or 'FinanceApplication' or 'SecurityApplication' or 'BrowserApplication' or 'CommunicationApplication' or 'DesktopEnhancementApplication' or 'EntertainmentApplication' or 'MultimediaApplication' or 'HomeApplication' or 'UtilitiesApplication' or 'ReferenceApplication' in 'SoftwareApplication'"
+      ]
+    }
+  ]
+}

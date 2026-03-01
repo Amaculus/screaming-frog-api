@@ -1,0 +1,140 @@
+{
+  "file": "blocked_by_robots_txt_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Misc",
+        "Misc",
+        "Misc"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/sharp-report",
+        "https://www.actionnetwork.com/odds",
+        "https://www.actionnetwork.com/nfl/odds"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://api.actionnetwork.com/web/v1/content/items/categories/nfl?limit=4&type=article",
+        "https://api.actionnetwork.com/web/v1/content/items/categories/nfl?limit=4&type=article",
+        "https://api.actionnetwork.com/web/v1/content/items/categories/nfl?limit=4&type=article"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Anchor",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Blocked by robots.txt",
+        "Blocked by robots.txt",
+        "Blocked by robots.txt"
+      ]
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Rel",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "N/A",
+        "N/A",
+        "N/A"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/main/div[1]/div[@id='article']/div[@class='contentBody__main']/div[@id='article-body']/div[18]/div/a[@class='social-sharing__icon'][1]",
+        "//body/div[@id='__next']/div[2]/main/div[1]/div[@id='article']/div[@class='contentBody__main']/div[@id='article-body']/div[6]/div/a[@class='social-sharing__icon'][1]",
+        "//head/script[46]"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Head"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Dynamically Loaded",
+        "Dynamically Loaded",
+        "Dynamically Loaded"
+      ]
+    }
+  ]
+}

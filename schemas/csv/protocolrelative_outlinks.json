@@ -1,0 +1,58 @@
+{
+  "file": "protocolrelative_outlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "JavaScript",
+        "JavaScript",
+        "JavaScript"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/mma/ufc-contender-series-week-4-odds-picks-predictions-tuesday-september-3"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://static.yieldmo.com/ym.0.js",
+        "https://static.yieldmo.com/ym.2.js",
+        "https://static.yieldmo.com/ym.0.js"
+      ]
+    },
+    {
+      "name": "Anchor Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Protocol-Relative",
+        "Protocol-Relative",
+        "Protocol-Relative"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "file": "response_codes_internal_blocked_by_robots_txt.csv",
+  "rows_sampled": 29,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/upgrade?intcmp=ArticleNavBarLoggedOut&intcid=604056362",
+        "https://www.actionnetwork.com/upgrade?intcmp=ArticleNavBarLoggedOut&intcid=604040828",
+        "https://www.actionnetwork.com/general/article/sports-betting-for-beginners-10-things-to-know?mod=inline"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Blocked by robots.txt",
+        "Blocked by robots.txt",
+        "Blocked by robots.txt"
+      ]
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "2"
+      ]
+    },
+    {
+      "name": "Matched Robots.txt Line",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Line:8 /*?*",
+        "Line:8 /*?*",
+        "Line:8 /*?*"
+      ]
+    }
+  ]
+}

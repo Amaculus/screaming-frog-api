@@ -1,0 +1,144 @@
+{
+  "file": "internal_nofollow_outlinks.csv",
+  "rows_sampled": 19,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Hyperlink",
+        "Hyperlink"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nba/celtics-vs-mavericks-odds-pick-nba-finals-game-4-predictions",
+        "https://www.actionnetwork.com/nba/celtics-vs-mavericks-odds-pick-nba-finals-game-4-predictions",
+        "https://www.actionnetwork.com/nhl/nhl-odds-preview-prediction-oilers-vs-panthers-game-5-tuesday-june-18"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nba/odds/boston-celtics",
+        "https://www.actionnetwork.com/nba/odds/dallas-mavericks",
+        "https://www.actionnetwork.com/nhl/odds/edmonton-oilers"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "283318",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Header First Logo",
+        "Header First Logo",
+        "Header First Logo"
+      ]
+    },
+    {
+      "name": "Anchor",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": true,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "false",
+        "false",
+        "false"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Rel",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "nofollow",
+        "nofollow",
+        "nofollow"
+      ]
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Absolute",
+        "Absolute",
+        "Absolute"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/main/div[1]/div[@id='article']/div[@class='contentBody__main']/div[@id='article-body']/div[5]/div/div[@class='subheader__logo-container']/div/a",
+        "//body/div[@id='__next']/div[2]/main/div[1]/div[@id='article']/div[@class='contentBody__main']/div[@id='article-body']/div[8]/div/div[@class='subheader__logo-container']/div/a",
+        "//body/div[@id='__next']/div[2]/main/div[1]/div[@id='article']/div[@class='contentBody__main']/div[@id='article-body']/div[5]/div/div[@class='subheader__logo-container']/div/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Header",
+        "Header",
+        "Header"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML"
+      ]
+    }
+  ]
+}

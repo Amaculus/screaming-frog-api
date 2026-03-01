@@ -1,0 +1,12 @@
+{
+  "file": "pagespeed_ensure_text_remains_visible_during_webfont_load.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

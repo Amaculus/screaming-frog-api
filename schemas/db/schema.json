@@ -1,0 +1,6515 @@
+{
+  "sf_version": null,
+  "tables": [
+    {
+      "name": "APP.AHREFS_API",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_STATUS_KEY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_ERROR_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "BACKLINKS_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REFDOMAINS_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AHREFS_RANK_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REF_PAGES_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PAGES_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TEXT_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IMAGE_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SITEWIDE_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOT_SITEWIDE_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NO_FOLLOW_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DO_FOLLOW_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REDIRECT_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CANONICAL_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GOV_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EDU_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HTML_PAGES_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKS_INTERNAL_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKES_EXTERNAL_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REFCLASS_C_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REF_IPS_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKED_ROOT_DOMAINS_EXACT",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TWITTER_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PINTEREST_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GPLUS_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_LIKES_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_SHARES_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_COMMENTS_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_CLICKS_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_COMMENTS_BOX_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTAL_SHARES_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MEDIAN_SHARES_EXACT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_TOP3",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_TOP10",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_TOP3",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_TOP10",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_TOP3",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_TOP10",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "BACKLINKS_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REFDOMAINS_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AHREFS_RANK_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REF_PAGES_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PAGES_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TEXT_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IMAGE_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SITEWIDE_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOT_SITEWIDE_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NO_FOLLOW_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DO_FOLLOW_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REDIRECT_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CANONICAL_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GOV_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EDU_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HTML_PAGES_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKS_INTERNAL_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKES_EXTERNAL_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REFCLASS_C_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REF_IPS_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKED_ROOT_DOMAINS_EXACT_HTTP_AND_HTTPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TWITTER_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PINTEREST_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GPLUS_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_LIKES_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_SHARES_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_COMMENTS_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_CLICKS_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FACEBOOK_COMMENTS_BOX_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTAL_SHARES_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MEDIAN_SHARES_EXACT_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_TOP3_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_TOP10_EXACT_HTTP_AND_HTTPS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_EXACT_HTTP_AND_HTTPS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_TOP3_EXACT_HTTP_AND_HTTPS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_TOP10_EXACT_HTTP_AND_HTTPS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_EXACT_HTTP_AND_HTTPS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_TOP3_EXACT_HTTP_AND_HTTPS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_TOP10_EXACT_HTTP_AND_HTTPS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "BACKLINKS_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REFDOMAINS_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REF_PAGES_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PAGES_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TEXT_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IMAGE_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SITEWIDE_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOT_SITEWIDE_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NO_FOLLOW_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DO_FOLLOW_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REDIRECT_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CANONICAL_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GOV_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EDU_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HTML_PAGES_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKS_INTERNAL_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKES_EXTERNAL_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REFCLASS_C_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REF_IPS_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKED_ROOT_DOMAINS_SUB_DOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_SUB_DOMAINS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_TOP3_SUB_DOMAINS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_TOP10_SUB_DOMAINS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_SUB_DOMAINS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_TOP3_SUB_DOMAINS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_TOP10_SUB_DOMAINS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_SUB_DOMAINS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_TOP3_SUB_DOMAINS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_TOP10_SUB_DOMAINS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "BACKLINKS_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REFDOMAINS_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DOMAIN_RATING",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AHREFS_TOP",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REF_PAGES_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PAGES_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TEXT_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IMAGE_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SITEWIDE_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOT_SITEWIDE_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NO_FOLLOW_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DO_FOLLOW_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REDIRECT_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CANONICAL_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GOV_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EDU_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HTML_PAGES_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKS_INTERNAL_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKES_EXTERNAL_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REFCLASS_C_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REF_IPS_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKED_ROOT_DOMAINS_DOMAIN",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_DOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_TOP3_DOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITIONS_TOP10_DOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_DOMAIN",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_TOP3_DOMAIN",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRAFFIC_TOP10_DOMAIN",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_DOMAIN",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_TOP3_DOMAIN",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COST_TOP10_DOMAIN",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000093-0df481ec-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.AI_ANTHROPIC",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SF_REQUEST_STATUS_KEY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_ERROR_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "PROMPT_INDEX",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CONTENT",
+          "type": "CLOB",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "AI_ANTHROPIC_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.AI_GEMINI",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SF_REQUEST_STATUS_KEY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_ERROR_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "PROMPT_INDEX",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CONTENT",
+          "type": "CLOB",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "AI_GEMINI_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.AI_OLLAMA",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SF_REQUEST_STATUS_KEY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_ERROR_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "PROMPT_INDEX",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CONTENT",
+          "type": "CLOB",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "AI_OLLAMA_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.AI_OPENAI",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SF_REQUEST_STATUS_KEY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_ERROR_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "PROMPT_INDEX",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CONTENT",
+          "type": "CLOB",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "AI_OPENAI_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.ALT_TEXT_OVER_X_CHARACTERS_TRACKER",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "BAD_SRC_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000108-c8a603d0-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.AMP_VALIDATION_DATA",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HAS_ERROR",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "DOCTYPE_IS_VALID",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CONTAINS_HEAD",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CONTAINS_BODY",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CONTAINS_CANONICAL",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CHARSET_IS_VALID",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "VIEWPORT_IS_VALID",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "AMP_SCRIPT_IS_VALID",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "AMP_BOILERPLATE_IS_VALID",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CONTAINS_DISALLOWED_TAGS",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "AMP_VALIDATION_DATA_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.AXE_CORE_RESULTS",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "COMPRESSED_JSON",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "OVERVIEW",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_BEST_PRACTICE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_WCAG2A",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_WCAG2AA",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_WCAG2AAA",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_WCAG21AA",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_WCAG22AA",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000110-349083f5-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.CHROME_CONSOLE_DATA",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "COMPRESSED_JSON",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_ERRORS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_WARNINGS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_INFO",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_DEBUG",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_ISSUES",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000084-e8f0c183-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.COSINE_SIMILARITY",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CLOSEST_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SCORE",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SIMILAR_URLS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "COSINE_SIMILARITY_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.CUSTOM_EXTRACTION",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EXTRACTOR_IDX",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "MATCHED",
+          "type": "CLOB",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "CUSTOM_EXTRACTION_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.CUSTOM_FILTER_MATCHES",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FILTER_IDX",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_MATCHES",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "CUSTOM_FILTER_MATCHES_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.CUSTOM_JAVASCRIPT",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EXTRACTOR_IDX",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "MATCHED",
+          "type": "CLOB",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "CUSTOM_JAVASCRIPT_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.DUPLICATES_H1",
+      "columns": [
+        {
+          "name": "DUPLICATE_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "DUPLICATES_H1_DUPLICATES_KEY_INDEX",
+        "DUPLICATES_H1_DUPLICATES_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.DUPLICATES_H2",
+      "columns": [
+        {
+          "name": "DUPLICATE_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "DUPLICATES_H2_DUPLICATES_KEY_INDEX",
+        "DUPLICATES_H2_DUPLICATES_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.DUPLICATES_META_DESCRIPTION",
+      "columns": [
+        {
+          "name": "DUPLICATE_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "DUPLICATES_META_DESCRIPTION_DUPLICATES_KEY_INDEX",
+        "DUPLICATES_META_DESCRIPTION_DUPLICATES_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.DUPLICATES_META_KEYWORD",
+      "columns": [
+        {
+          "name": "DUPLICATE_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "DUPLICATES_META_KEYWORD_DUPLICATES_KEY_INDEX",
+        "DUPLICATES_META_KEYWORD_DUPLICATES_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.DUPLICATES_TITLE",
+      "columns": [
+        {
+          "name": "DUPLICATE_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "DUPLICATES_TITLE_DUPLICATES_KEY_INDEX",
+        "DUPLICATES_TITLE_DUPLICATES_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.DUPLICATES_URL",
+      "columns": [
+        {
+          "name": "DUPLICATE_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "DUPLICATES_URL_DUPLICATES_KEY_INDEX",
+        "DUPLICATES_URL_DUPLICATES_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.GA4",
+      "columns": [
+        {
+          "name": "GA4_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "SESSIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SCREENPAGEVIEWS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENGAGEDSESSIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENGAGEMENTRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "KEYEVENTS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EVENTCOUNT",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTALREVENUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ADDTOCARTS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CHECKOUTS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ECOMMERCEPURCHASES",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMLISTCLICKEVENTS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMLISTCLICKTHROUGHRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMLISTVIEWEVENTS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMPROMOTIONCLICKTHROUGHRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PROMOTIONCLICKS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PROMOTIONVIEWS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMSPURCHASED",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMREVENUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMVIEWEVENTS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMSADDEDTOCART",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMSCHECKEDOUT",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMSCLICKEDINLIST",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMSCLICKEDINPROMOTION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMSVIEWED",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMSVIEWEDINLIST",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ITEMSVIEWEDINPROMOTION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PURCHASEREVENUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SHIPPINGAMOUNT",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TAXAMOUNT",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRANSACTIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TRANSACTIONSPERPURCHASER",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CONVERSIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EVENTCOUNTPERUSER",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EVENTVALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EVENTSPERSESSION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CARTTOVIEWRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PURCHASETOVIEWRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PURCHASERCONVERSIONRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PURCHASERRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTALADREVENUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SCREENPAGEVIEWSPERSESSION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PUBLISHERADIMPRESSIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PUBLISHERADCLICKS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ADUNITEXPOSURE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AVERAGEPURCHASEREVENUEPERPAYINGUSER",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AVERAGEREVENUEPERUSER",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AVERAGEPURCHASEREVENUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AVERAGEPURCHASEREVENUEPERUSER",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AVERAGESESSIONDURATION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "BOUNCERATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SESSIONCONVERSIONRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SESSIONKEYEVENTRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SESSIONSPERUSER",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTALUSERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NEWUSERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ACTIVE1DAYUSERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ACTIVE7DAYUSERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ACTIVE28DAYUSERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ACTIVEUSERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DAUPERMAU",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DAUPERWAU",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FIRSTTIMEPURCHASERCONVERSIONRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FIRSTTIMEPURCHASERRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FIRSTTIMEPURCHASERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FIRSTTIMEPURCHASERSPERNEWUSER",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTALPURCHASERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "USERCONVERSIONRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "USERKEYEVENTRATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "USERENGAGEMENTDURATION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "WAUPERMAU",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000087-165101b8-019b-dba1-80db-000003a6c9f8",
+        "SQL0000000088-5ebf01b9-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.GOOGLE_ANALYTICS",
+      "columns": [
+        {
+          "name": "GA_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "GA_SESSIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA__NEW_SESSIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_USERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_NEW_USERS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_BOUNCE_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_PAGE_VIEWS_PER_SESSSION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_AVG_SESSION_DURATION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_CONVERSION_RATE_ALL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_COMPLETIONS_ALL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_VALUE_ALL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_1_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_2_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_3_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_4_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_5_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_6_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_7_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_8_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_9_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_10_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_11_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_12_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_13_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_14_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_15_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_16_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_17_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_18_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_19_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_20_COMPLETIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_1_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_2_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_3_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_4_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_5_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_6_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_7_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_8_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_9_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_10_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_11_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_12_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_13_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_14_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_15_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_16_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_17_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_18_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_19_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_20_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_1_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_2_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_3_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_4_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_5_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_6_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_7_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_8_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_9_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_10_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_11_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_12_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_13_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_14_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_15_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_16_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_17_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_18_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_19_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_GOAL_20_CONVERSION_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_PAGE_VIEWS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_UNIQUE_PAGE_VIEWS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_AVG_TIME_ON_PAGE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ENTRANCES",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ENTRANCE_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_EXITS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_EXIT_RATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_PAGE_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_TRANSACTIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_TRANSACTION_REVENUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_TRANSACTIONS_PER_SESSION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_REVENUE_PER_TRANSACTION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_IMPRESSIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_AD_CLICKS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_AD_COST",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_CPM",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_CPC",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_CTR",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_COST_PER_TRANSACTION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_COST_PER_GOAL_CONVERSION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_COST_PER_CONVERSION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ROAS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_AVG_PAGE_LOAD_TIME",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_AVG_REDIRECTION_TIME",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_AVG_SERVER_RESPONSE_TIME",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_AVG_PAGE_DOWNLOAD_TIME",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ADSENSE_REVENUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_AD_UNITES_VIEWED",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ADS_VIEWED",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ADSENSE_ADS_CLICKED",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ADSENSE_PAGE_IMPRESSIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ADSENSE_EXITS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ADSENSE_VIEWABLE_IMPRESSIONS_",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ADSENSE_COVERAGE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ADSENSE_CTR",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_ADSENSE_ECPM",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_SOCIAL_ACTIVITIES",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GA_SOCIAL_INTERACTIONS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000085-a06741aa-019b-dba1-80db-000003a6c9f8",
+        "SQL0000000086-78d1c1ab-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.GOOGLE_SEARCH_CONSOLE",
+      "columns": [
+        {
+          "name": "GSC_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "CLICKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CLICKTHROUGH_RATE",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IMPRESSIONS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "POSITION",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000089-4c6bc1c6-019b-dba1-80db-000003a6c9f8",
+        "SQL0000000090-44dd41c7-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.H1_STRING_SET",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000104-80b6835c-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.H2_STRING_SET",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000105-52014367-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.HTML_VALIDATION_DATA",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "INVALID_ELEMENTS_IN_HEAD",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "HEAD_NOT_FIRST_ELEMENT",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "MISSING_HEAD",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "MULTIPLE_HEADS",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "MISSING_BODY",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "MULTIPLE_BODIES",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "BODY_ELEMENT_PRECEDING_HTML",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "TITLE_OUTSIDE_HEAD",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "META_DESCRIPTION_OUTSIDE_HEAD",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "META_ROBOTS_OUTSIDE_HEAD",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CANONICAL_OUTSIDE_HEAD",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "HREFLANG_OUTSIDE_HEAD",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CONTAINS_UNSUPPORTED_PLUGIN",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CANONICAL_CONTAINS_INVALID_ATTRIBUTE",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CANONICAL_CONTAINS_FRAGMENT_URL",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "HTML_VALIDATION_DATA_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.INLINK_COUNTS",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_HYPER_LINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_UNIQUE_HYPER_LINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_JS_UNIQUE_HYPER_LINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_IMAGE_LINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "INLINK_COUNTSENCODED_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.LANGUAGE_ERROR",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "LANGUAGE_ERROR_DATA",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LANGUAGE_CODE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SPELLING_ERRORS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GRAMMAR_ERRORS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000083-fcd90178-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.LANGUAGE_ERROR_COUNTS",
+      "columns": [
+        {
+          "name": "SEGMENT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "ID_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ERROR_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "URLS_AFFECTED",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SAMPLE_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "LANGUAGE_ERROR_COUNTSKEY_INDEX",
+        "LANGUAGE_ERROR_COUNTSSEGMENT_INDEX"
+      ]
+    },
+    {
+      "name": "APP.LINKS",
+      "columns": [
+        {
+          "name": "LINK_TYPE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SCOPE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "ORIGIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "PATH_TYPE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "ELEMENT_PATH",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SRC_ID",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "DST_ID",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "ELEMENT_POSITION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ALT_TEXT",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINK_TEXT",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HREF_LANG",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOFOLLOW",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "UGC",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SPONSORED",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TARGET",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOOPENER",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOREFERRER",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IMAGE_DISPLAY_WIDTH",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "IMAGE_DISPLAY_HEIGHT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "IMAGE_WIDTH_ATTRIBUTE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "IMAGE_HEIGHT_ATTRIBUTE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "LINKS_DST_INDEX",
+        "LINKS_SRC_INDEX"
+      ]
+    },
+    {
+      "name": "APP.LINK_SCORE",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINKSCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "LINK_SCORE_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.LOADED_RESOURCES",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADED_RESOURCE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "LOADED_RESOURCES_ENCODED_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.LOW_RELEVANCE",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SCORE",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "LOW_RELEVANCE_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MAJESTIC_API_V2",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SF_REQUEST_STATUS_KEY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_ERROR_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "GETINDEXITEMINFO_EXTBACKLINKS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_REFDOMAINS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TRUSTFLOW",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_CITATIONFLOW",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_REFIPS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_REFSUBNETS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_INDEXEDURLS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_EXTBACKLINKSEDU",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_EXTBACKLINKSGOV",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_REFDOMAINSEDU",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_REFDOMAINSGOV",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_0",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_0",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_1",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_2",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_3",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_3",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_4",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_4",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT0",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS0",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS1",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS2",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT3",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS3",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT4",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS4",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT5",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS5",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT6",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS6",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT7",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS7",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT8",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS8",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_ANCHORTEXT9",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETANCHORTEXT_REFDOMAINS9",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPIC0",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPIC1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPIC2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPIC3",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPIC4",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKS0",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKS1",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKS2",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKS3",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKS4",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPICALTRUSTFLOW0",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPICALTRUSTFLOW1",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPICALTRUSTFLOW2",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPICALTRUSTFLOW3",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_TOPICALTRUSTFLOW4",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKSFROMREFDOMAINS0",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKSFROMREFDOMAINS1",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKSFROMREFDOMAINS2",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKSFROMREFDOMAINS3",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_LINKSFROMREFDOMAINS4",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_REFDOMAINS0",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_REFDOMAINS1",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_REFDOMAINS2",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_REFDOMAINS3",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_REFDOMAINS4",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_PAGES0",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_PAGES1",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_PAGES2",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_PAGES3",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GETTOPICS_PAGES4",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MAJESTIC_API_V2_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.META_DESCRIPTION_STRING_SET",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000102-3e7bc346-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.META_KEYWORD_STRING_SET",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000103-df8a0351-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.MISSING_ALT_ATTRIBUTE_TRACKER",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "BAD_SRC_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000107-063a83c5-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.MISSING_ALT_TEXT_TRACKER",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "BAD_SRC_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000106-83ed43ba-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.MISSING_SIZE_ATTRIBUTES",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "BAD_SRC_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000109-fb2fc3db-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.MOZ_API",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_STATUS_KEY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_ERROR_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "PAGE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PAGE_AUTHORITY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LAST_CRAWLED",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EXTERNAL_PAGES_TO_PAGE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FOLLOW_EXTERNAL_PAGES_TO_PAGE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOFOLLOW_EXTERNAL_PAGES_TO_PAGE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ROOT_DOMAINS_TO_PAGE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FOLLOW_ROOT_DOMAINS_TO_PAGE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOFOLLOW_ROOT_DOMAINS_TO_PAGE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EXTERNAL_PAGES_TO_SUBDOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FOLLOW_EXTERNAL_PAGES_TO_SUBDOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOFOLLOW_EXTERNAL_PAGES_TO_SUBDOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ROOT_DOMAINS_TO_SUBDOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FOLLOW_ROOT_DOMAINS_TO_SUBDOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOFOLLOW_ROOT_DOMAINS_TO_SUBDOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DOMAIN_AUTHORITY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LINK_PROPENSITY",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SPAM_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "BRAND_AUTHORITY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EXTERNAL_PAGES_TO_ROOT_DOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FOLLOW_EXTERNAL_PAGES_TO_ROOT_DOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOFOLLOW_EXTERNAL_PAGES_TO_ROOT_DOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ROOT_DOMAINS_TO_ROOT_DOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FOLLOW_ROOT_DOMAINS_TO_ROOT_DOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NOFOLLOW_ROOT_DOMAINS_TO_ROOT_DOMAIN",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000092-cfcc41df-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_AMP_HTML_MISSING_NON_AMP_CANONICAL",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_AMP_HTML_MISSING_NON_AMP_CANONICAL_KEY_INDEX",
+        "MULTIMAP_AMP_HTML_MISSING_NON_AMP_CANONICAL_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_AMP_HTML_NON_CONFIRMATION_CANONICAL",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_AMP_HTML_NON_CONFIRMATION_CANONICAL_KEY_INDEX",
+        "MULTIMAP_AMP_HTML_NON_CONFIRMATION_CANONICAL_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_AMP_HTML_NON_INDEXABLE_CANONICAL",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_AMP_HTML_NON_INDEXABLE_CANONICAL_KEY_INDEX",
+        "MULTIMAP_AMP_HTML_NON_INDEXABLE_CANONICAL_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_CANONICALS_PENDING_LINK",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_CANONICALS_PENDING_LINK_KEY_INDEX",
+        "MULTIMAP_CANONICALS_PENDING_LINK_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_HREF_LANG_CANONICAL_CONFIRMATION",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_HREF_LANG_CANONICAL_CONFIRMATION_KEY_INDEX",
+        "MULTIMAP_HREF_LANG_CANONICAL_CONFIRMATION_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_HREF_LANG_INCONSISTENT_LANGUAGE_CONFIRMATION",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_HREF_LANG_INCONSISTENT_LANGUAGE_CONFIRMATION_KEY_INDEX",
+        "MULTIMAP_HREF_LANG_INCONSISTENT_LANGUAGE_CONFIRMATION_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_HREF_LANG_MISSING_CONFIRMATION",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_HREF_LANG_MISSING_CONFIRMATION_KEY_INDEX",
+        "MULTIMAP_HREF_LANG_MISSING_CONFIRMATION_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_HREF_LANG_NON_200_LINK",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_HREF_LANG_NON_200_LINK_KEY_INDEX",
+        "MULTIMAP_HREF_LANG_NON_200_LINK_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_HREF_LANG_NO_INDEX_CONFIRMATION",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_HREF_LANG_NO_INDEX_CONFIRMATION_KEY_INDEX",
+        "MULTIMAP_HREF_LANG_NO_INDEX_CONFIRMATION_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_JAVASCRIPT_PAGES_WITH_BLOCKED_RESOURCES",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_JAVASCRIPT_PAGES_WITH_BLOCKED_RESOURCES_KEY_INDEX",
+        "MULTIMAP_JAVASCRIPT_PAGES_WITH_BLOCKED_RESOURCES_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_PAGINATION_PENDING_LINK",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_PAGINATION_PENDING_LINK_KEY_INDEX",
+        "MULTIMAP_PAGINATION_PENDING_LINK_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.MULTIMAP_PAGINATION_SEQUENCE_ERROR",
+      "columns": [
+        {
+          "name": "MULTIMAP_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MULTIMAP_VALUE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "MULTIMAP_PAGINATION_SEQUENCE_ERROR_KEY_INDEX",
+        "MULTIMAP_PAGINATION_SEQUENCE_ERROR_VALUE_INDEX"
+      ]
+    },
+    {
+      "name": "APP.NEAR_DUPLICATE",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CLOSEST_MATCH_PERCENTAGE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUMBER_OF_NEAR_DUPLICATES",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NEAR_DUPLICATE_INSTANCES",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "NEAR_DUPLICATE_URL_INDEX"
+      ]
+    },
+    {
+      "name": "APP.PAGE_SPEED_API",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_STATUS_KEY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_ERROR_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "JSON_RESPONSE",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PERFORMANCE_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TIME_TO_FIRST_BYTE_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FIRST_CONTENTFUL_PAINT",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FIRST_CONTENTFUL_PAINT_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SPEED_INDEX",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SPEED_INDEX_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LARGEST_CONTENTFUL_PAINT",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LARGEST_CONTENTFUL_PAINT_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TIME_TO_INTERACTIVE",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TIME_TO_INTERACTIVE_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FIRST_MEANINGFUL_PAINT",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FIRST_MEANINGFUL_PAINT_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MAX_POTENTIAL_FIRST_INPUT_DELAY",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MAX_POTENTIAL_FIRST_INPUT_DELAY_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTAL_BLOCKING_TIME",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTAL_BLOCKING_TIME_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CUMULATIVE_LAYOUT_SHIFT",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CUMULATIVE_LAYOUT_SHIFT_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTAL_OPPORTUNITY_SAVINGS_BYTES",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTAL_OPPORTUNITY_SAVINGS_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTAL_REQUESTS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTAL_PAGE_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HTML_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HTML_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IMAGE_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IMAGE_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CSS_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CSS_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "JAVASCRIPT_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "JAVASCRIPT_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FONT_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FONT_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MEDIA_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MEDIA_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "OTHER_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "OTHER_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "THIRD_PARTY_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "THIRD_PARTY_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_SCORE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_LARGEST_CONTENTFUL_PAINT_TIME",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_LARGEST_CONTENTFUL_PAINT_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_INTERACTION_TO_NEXT_PAINT_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_INTERACTION_TO_NEXT_PAINT_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_CUMULATIVE_LAYOUT_SHIFT",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_CUMULATIVE_LAYOUT_SHIFT_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_FIRST_CONTENTFUL_PAINT_TIME",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_FIRST_CONTENTFUL_PAINT_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_TIME_TO_FIRST_BYTE_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LOADING_EXPERIENCE_TIME_TO_FIRST_BYTE_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_PERFORMANCE_SCORE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_LOADING_EXPERIENCE_LARGEST_CONTENTFUL_PAINT_TIME",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_LOADING_EXPERIENCE_LARGEST_CONTENTFUL_PAINT_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_LOADING_EXPERIENCE_INTERACTION_TO_NEXT_PAINT_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_LOADING_EXPERIENCE_INTERACTION_TO_NEXT_PAINT_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_LOADING_EXPERIENCE_CUMULATIVE_LAYOUT_SHIFT",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_LOADING_EXPERIENCE_CUMULATIVE_LAYOUT_SHIFT_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_FIRST_CONTENTFUL_PAINT",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_FIRST_CONTENTFUL_PAINT_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_LOADING_EXPERIENCE_TIME_TO_FIRST_BYTE_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGIN_LOADING_EXPERIENCE_TIME_TO_FIRST_BYTE_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ELIMINATE_RENDER_BLOCKING_RESOURCES",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DEFER_OFFSCREEN_IMAGES_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DEFER_OFFSCREEN_IMAGES_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EFFICIENTLY_ENCODE_IMAGES_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EFFICIENTLY_ENCODE_IMAGES_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PROPERLY_SIZE_IMAGES_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PROPERLY_SIZE_IMAGES_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MINIFY_CSS_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MINIFY_CSS_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MINIFY_JAVASCRIPT_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MINIFY_JAVASCRIPT_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REMOVE_UNUSED_CSS_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REMOVE_UNUSED_CSS_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REMOVE_UNUSED_JAVASCRIPT_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REMOVE_UNUSED_JAVASCRIPT_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NEXT_GEN_IMAGES_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NEXT_GEN_IMAGES_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TEXT_COMPRESSION_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TEXT_COMPRESSION_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PRECONNECT_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SERVER_RESPONSE_TIMES_SAVINGS_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SERVER_RESPONSE_TIMES_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REDIRECTS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PRELOAD",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "VIDEO_FORMAT_MS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "VIDEO_FORMAT_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TOTAL_IMAGE_OPTIMIZATION_SAVINGS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LEGACY_JAVASCRIPT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "EXCESSIVE_DOM_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "JS_EXECUTION_TIME",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "JS_EXECUTION_TIME_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "INEFFICIENT_CACHE_POLICY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MAIN_THREAD_WORK_MS",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MAIN_THREAD_WORK_CATEGORY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TEXT_VISIBLE_DURING_LOAD",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "UNSIZED_IMAGES",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LAYOUT_SHIFT_ELEMENTS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "VIEWPORT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TARGET_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CONTENT_WIDTH",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "FONT_DISPLAY_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ACCESSIBILITY_SCORE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000094-59c18204-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.SITEMAP_RESULTS",
+      "columns": [
+        {
+          "name": "SITEMAP_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SRC",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DST",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HREF_LANG",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PATH_TYPE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "ELEMENT_PATH",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "ELEMENT_POSITION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SITEMAP_RESULTS_SITEMAP_URL_INDEX",
+        "SITEMAP_RESULTS_SRC_INDEX"
+      ]
+    },
+    {
+      "name": "APP.TITLE_STRING_SET",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000101-6d8bc33b-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.UNIQUE_URLS",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "INTEGER",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000082-2faf0139-019b-dba1-80db-000003a6c9f8",
+        "UNIQUE_URLS_INDEX"
+      ]
+    },
+    {
+      "name": "APP.URLS",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "RESPONSE_MSG",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "RESPONSE_CODE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "RESPONSE_TIME_MS",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MD5SUM",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PAGE_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LAST_MODIFIED_DATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CRAWL_DEPTH",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IS_INTERNAL",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CONTENT_TYPE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ORIGINAL_CONTENT",
+          "type": "CLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "RENDERED_CONTENT",
+          "type": "CLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "WORD_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "WORD_COUNT_JS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SENTENCE_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AVG_WORDS_PER_SENTENCE",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "READABILITY_SCORE",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CRAWL_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REDIRECT_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CRAWL_IN_ESCAPED_FRAGMENT_FORM",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "BLOCKED_BY_ROBOTS_TXT",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "MATCHED_ROBOTS_TXT_LINE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ROOT_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TEXT_TO_HTML_RATIO",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_INTERNAL_OUTLINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_EXTERNAL_OUTLINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_UNIQUE_INTERNAL_OUTLINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_UNIQUE_EXTERNAL_OUTLINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_JS_UNIQUE_INTERNAL_OUTLINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_JS_UNIQUE_EXTERNAL_OUTLINKS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "LOADED_AS_A_RESOURCE",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "IS_AMP_HTML",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "HAS_HSTS_HEADER",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "HAS_CSP_HEADER",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "HAS_NOSNIFF_HEADER",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "HAS_FRAME_OPTIONS_HEADER",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "HAS_STRICT_REFERRER_POLICY",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "HTTP_VERSION",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "BOOKMARK_VALID",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "TIMESTAMP",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HTML_FORM_COLLECTION",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HTTP_REQUEST_HEADER_COLLECTION",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "HTTP_RESPONSE_HEADER_COLLECTION",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COOKIE_COLLECTION",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_TITLES",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "TITLE_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TITLE_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_TITLES_JS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "TITLE_JS_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "TITLE_JS_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_H1",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "H1_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "H1_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "H1_SOURCE_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "H1_SOURCE_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_H1_JS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "H1_JS_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "H1_JS_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "H1_JS_SOURCE_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "H1_JS_SOURCE_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_H2",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "H2_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "H2_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "H2_SOURCE_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "H2_SOURCE_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NUM_XROBOTS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "X_ROBOT_TAG_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_3",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_4",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_5",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_6",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_7",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_8",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_9",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_10",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_11",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_12",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_13",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_14",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_15",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_16",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_17",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_18",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_19",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "X_ROBOT_TAG_20",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SERIALISED_STRUCTURED_DATA",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PARSE_ERROR_MSG",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_META",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "META_NAME_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_3",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_4",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_5",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_6",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_7",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_8",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_9",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_10",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_11",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_12",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_13",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_14",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_15",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_16",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_17",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_18",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_19",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_20",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_3",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_4",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_5",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_6",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_7",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_8",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_9",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_10",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_11",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_12",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_13",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_14",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_15",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_16",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_17",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_18",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_19",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_20",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_META_JS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "META_NAME_JS_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_3",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_4",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_5",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_6",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_7",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_8",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_9",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_10",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_11",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_12",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_13",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_14",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_15",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_16",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_17",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_18",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_19",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_NAME_JS_20",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_3",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_4",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_5",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_6",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_7",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_8",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_9",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_10",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_11",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_12",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_13",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_14",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_15",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_16",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_17",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_18",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_19",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_CONTENT_JS_20",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "NUM_METAREFRESH",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "METAREFRESH_CONTENT_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "METAREFRESH_CONTENT_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_FULL_URL_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "META_FULL_URL_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "METAREFRESH_PATH_TYPE_1",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "METAREFRESH_PATH_TYPE_2",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "METAREFRESH_ELEMENT_PATH_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "METAREFRESH_ELEMENT_PATH_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "METAREFRESH_ELEMENT_POSITION_1",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "METAREFRESH_ELEMENT_POSITION_2",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "METAREFRESH_SCOPE_1",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "METAREFRESH_SCOPE_2",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "IS_REDIRECT",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "IS_SELF_REF_META_REFRESH",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "IS_CANONICALISED",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SIMILARITY_MATCH_PERCENTAGE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "PDF_SUBJECT",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PDF_AUTHOR",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PDF_CREATION_DATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PDF_MODIFIED_DATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PDF_PAGE_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "IMAGE_WIDTH",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "IMAGE_HEIGHT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SEGMENTS",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "IS_SOFT_404",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "LOREM_IPSUM_OCCURRENCES",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "PAGE_TRANSFER_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "TOTAL_PAGE_TRANSFER_SIZE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NON_SEQUENTIAL_H1",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "NON_SEQUENTIAL_H2",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SOFTWARE_VERSION",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LANG_CODE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "SCRAPED_FILE_NAME",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "CO2",
+          "type": "DOUBLE",
+          "pk": false,
+          "nullable": false
+        },
+        {
+          "name": "WARC_POSITION",
+          "type": "BIGINT",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000081-97e00100-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.URL_FILTER_KEYMAP_NORMAL",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "MAPPED_ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_NEW_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_REMOVED_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_MISSING_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_ADDED_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_PREVIOUS_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_PARITY_CURRENT_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_PARITY_PREVIOUS_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000097-8afa430f-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.URL_FILTER_KEYMAP_POST_CRAWL_ANALYSIS",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "MAPPED_ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_NEW_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_REMOVED_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_MISSING_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_ADDED_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_PREVIOUS_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_PARITY_CURRENT_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_PARITY_PREVIOUS_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000098-fb71431a-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.URL_FILTER_KEYMAP_SPELLING_AND_GRAMMAR",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "MAPPED_ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_NEW_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_REMOVED_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_MISSING_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_ADDED_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_PREVIOUS_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_PARITY_CURRENT_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DIFF_PARITY_PREVIOUS_ENUM_MAP",
+          "type": "CHAR () FOR BIT DATA",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000099-7c068325-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.URL_INSPECTION",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "SF_REQUEST_STATUS_KEY",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SF_REQUEST_ERROR_KEY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "SUMMARY",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "COVERAGE_STATE",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "LAST_CRAWL_TIME",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "DAYS_SINCE_LAST_CRAWL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CRAWLED_AS",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ROBOTS_TXT_STATE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "PAGE_FETCH_STATE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "INDEXING_STATE",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "USER_CANONICAL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "GOOGLE_CANONICAL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MOBILE_USABILITY_VERDICT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "MOBILE_USABILITY_ISSUES",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AMP_RESULTS_VERDICT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "AMP_ISSUES",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "RICH_RESULTS_VERDICT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "RICH_RESULTS_TYPES",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "RICH_RESULTS_TYPE_ERRORS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "RICH_RESULTS_TYPE_WARNINGS",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "JSON",
+          "type": "BLOB",
+          "pk": false,
+          "nullable": true
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000091-c2b781d4-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.URL_STRING_SET",
+      "columns": [
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000100-3cba0330-019b-dba1-80db-000003a6c9f8"
+      ]
+    },
+    {
+      "name": "APP.WAITING_URLS",
+      "columns": [
+        {
+          "name": "LEVEL",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ENCODED_URL",
+          "type": "VARCHAR",
+          "pk": true,
+          "nullable": false
+        },
+        {
+          "name": "ROOT_URL",
+          "type": "VARCHAR",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "CRAWL_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "REDIRECT_COUNT",
+          "type": "INTEGER",
+          "pk": false,
+          "nullable": true
+        },
+        {
+          "name": "ESCAPED_FORM",
+          "type": "BOOLEAN",
+          "pk": false,
+          "nullable": false
+        }
+      ],
+      "foreign_keys": [],
+      "indexes": [
+        "SQL0000000095-34a282fc-019b-dba1-80db-000003a6c9f8",
+        "WAITING_URLS_LEVEL_INDEX"
+      ]
+    }
+  ],
+  "relationships": {}
+}

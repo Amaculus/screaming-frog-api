@@ -1,0 +1,46 @@
+{
+  "file": "images_over_x_kb_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Image",
+        "Image",
+        "Image"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/education",
+        "https://www.actionnetwork.com/boxing/mario-barrios-vs-manny-pacquiao-prediction-odds-boxing-picks-saturday-july-19",
+        "https://www.actionnetwork.com/boxing/deontay-wilder-exclusive-interview"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/761154_line.png",
+        "https://images.actionnetwork.com/blog/2025/12/USATSI_19392548-scaled.jpg",
+        "https://images.actionnetwork.com/blog/2025/12/USATSI_19392548-scaled.jpg"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "364261",
+        "425609",
+        "425609"
+      ]
+    }
+  ]
+}

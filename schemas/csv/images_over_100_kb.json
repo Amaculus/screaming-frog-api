@@ -1,0 +1,72 @@
+{
+  "file": "images_over_100_kb.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/761154_line.png",
+        "https://images.actionnetwork.com/blog/2025/12/USATSI_19392548-scaled.jpg",
+        "https://assets.actionnetwork.com/629365_Rectangle1253.png"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "image/png",
+        "image/jpeg",
+        "image/png"
+      ]
+    },
+    {
+      "name": "Size (bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "364261",
+        "425609",
+        "2366284"
+      ]
+    },
+    {
+      "name": "IMG Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "15",
+        "2"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Dimensions",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "350x254",
+        "1280x720",
+        "1280x720"
+      ]
+    }
+  ]
+}

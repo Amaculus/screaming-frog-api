@@ -1,0 +1,40 @@
+{
+  "columns": [
+    {
+      "name": "GSC_KEY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "CLICKS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CLICKTHROUGH_RATE",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IMPRESSIONS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "POSITION",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "file": "external_client_error_(4xx)_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Misc",
+        "Misc",
+        "Misc"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/reviews/fanatics-sportsbook/refer-a-friend",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/fanatics-sportsbook-michigan",
+        "https://www.actionnetwork.com/online-sports-betting/reviews/fanatics-sportsbook-west-virginia"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://impressions.onelink.me/5kut?pid=bettercol6o_int&af_siteid=moarperformance&af_prt=moarperformance&utm_medium=&af_channel=BetterCollective&utm_channel=BetterCollective&utm_source=moarperformance&utm_campaign=ActionNetwork&c=ActionNetwork&af_ad=2000NSB_action2037&utm_content=2000NSB_action2037&af_adset=BC1",
+        "https://impressions.onelink.me/5kut?pid=bettercol6o_int&af_siteid=moarperformance&af_prt=moarperformance&utm_medium=&af_channel=BetterCollective&utm_channel=BetterCollective&utm_source=moarperformance&utm_campaign=ActionNetwork&c=ActionNetwork&af_ad=2000NSB_action2037&utm_content=2000NSB_action2037&af_adset=BC1",
+        "https://impressions.onelink.me/5kut?pid=bettercol6o_int&af_siteid=moarperformance&af_prt=moarperformance&utm_medium=&af_channel=BetterCollective&utm_channel=BetterCollective&utm_source=moarperformance&utm_campaign=ActionNetwork&c=ActionNetwork&af_ad=2000NSB_action2037&utm_content=2000NSB_action2037&af_adset=BC1"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "11",
+        "11",
+        "11"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "https://www.hollywoodcasinotoledo.com/",
+        "https://www.jackentertainment.com/cleveland/",
+        "https://www.hollywoodcasinoaurora.com/"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "400",
+        "400",
+        "400"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Aborted",
+        "Aborted",
+        "Aborted"
+      ]
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "_blank",
+        "_blank",
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noopener",
+        "noopener",
+        "noopener"
+      ]
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "N/A",
+        "N/A",
+        "N/A"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "//body/script[@id='gsi-client-id']",
+        "//body/script[@id='gsi-client-id']",
+        "//body/script[@id='gsi-client-id']"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Content"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Dynamically Loaded",
+        "Dynamically Loaded",
+        "Dynamically Loaded"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "columns": [
+    {
+      "name": "MULTIMAP_KEY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MULTIMAP_VALUE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

@@ -1,0 +1,150 @@
+{
+  "file": "links_internal_nofollow_outlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Canonicalised"
+      ]
+    },
+    {
+      "name": "Crawl Depth",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "1",
+        "2"
+      ]
+    },
+    {
+      "name": "Link Score",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "10",
+        "38",
+        "4"
+      ]
+    },
+    {
+      "name": "Unique Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "19",
+        "4"
+      ]
+    },
+    {
+      "name": "Unique JS Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "% of Total",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "0.170",
+        "1.610",
+        "0.340"
+      ]
+    },
+    {
+      "name": "Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "286",
+        "264",
+        "279"
+      ]
+    },
+    {
+      "name": "Unique Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "190",
+        "179",
+        "191"
+      ]
+    },
+    {
+      "name": "Unique JS Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "External Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "23",
+        "42",
+        "37"
+      ]
+    },
+    {
+      "name": "Unique External Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "22",
+        "35",
+        "33"
+      ]
+    },
+    {
+      "name": "Unique External JS Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "5",
+        "2"
+      ]
+    }
+  ]
+}

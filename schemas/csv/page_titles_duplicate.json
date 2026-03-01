@@ -1,0 +1,72 @@
+{
+  "file": "page_titles_duplicate.csv",
+  "rows_sampled": 26,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/pro-systems/system/1424912",
+        "https://www.actionnetwork.com/picks",
+        "https://www.actionnetwork.com/ncaaw/picks"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "Title 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Sports Betting Odds, Expert Insights and Premium Tools | The Action Network",
+        "Latest Betting Picks | The Action Network",
+        "Latest Betting Picks | The Action Network"
+      ]
+    },
+    {
+      "name": "Title 1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "75",
+        "41",
+        "41"
+      ]
+    },
+    {
+      "name": "Title 1 Pixel Width",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "684",
+        "366",
+        "366"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

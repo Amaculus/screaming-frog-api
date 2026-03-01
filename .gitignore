@@ -1,0 +1,65 @@
+# Screaming Frog crawl data files (can be very large)
+*.seospider
+*.dbseospider
+
+# Schema discovery data
+schema-discovery/*/crawl.*
+schema-discovery/actionnetwork_crawl/
+schema-discovery/benzinga_small/
+schema-discovery/nitafc_crawl/
+schema-discovery/nitafc_focus/
+schema-discovery/tmp_crawl/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.pytest-tmp/
+
+# Derby database
+derby.log
+tmp_db/
+schemas/db/__tmp_extract__/
+schemas/db/__tmp_extract_derby__/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local credentials / secrets
+*tokens*.json
+*.env
+*.env.*
+secrets/
+credentials/
+
+# Local scratch and temp
+.tmp_*/
+tmp_*.py
+tmp_*.txt
+replay_pid*.log

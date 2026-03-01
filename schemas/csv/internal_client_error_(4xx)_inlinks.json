@@ -1,0 +1,146 @@
+{
+  "file": "internal_client_error_(4xx)_inlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Hyperlink",
+        "Hyperlink"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/louisiana",
+        "https://www.actionnetwork.com/online-sports-betting/ohio",
+        "https://www.actionnetwork.com/online-sports-betting/ohio"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/legal-online-sports-betting/louisiana-daily-fantasy-rollout-online-sports-betting-legalization",
+        "https://www.actionnetwork.com/legal-online-sports-betting/ohio-sportsbook-promos-net-3500-in-bonuses-for-chargers-vs-lions-nfl-hall-of-fame-game",
+        "https://www.actionnetwork.com/legal-online-sports-betting/ohio-sportsbook-promos-net-3500-in-bonuses-for-chargers-vs-lions-nfl-hall-of-fame-game"
+      ]
+    },
+    {
+      "name": "Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "156947",
+        "157007",
+        "157007"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Ohio Sportsbook Promos: Net Up To $3,500 in Bonus Bets for NFL Hall of Fame Game article feature image",
+        "Ohio Sportsbook Promos: Net $3,500 in Bonuses for Chargers vs. Lions NFL Hall of Fame Game article feature image",
+        "BetRivers Bonus Code: $500 2nd Chance Bet for Sunday NFL Week 9 article feature image"
+      ]
+    },
+    {
+      "name": "Anchor",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "DFS apps are now deemed legal in Louisiana",
+        "Ohio Sportsbook Promos: Net Up To $3,500 in Bonus Bets for NFL Hall of Fame Game",
+        "Ohio Sportsbook Promos: Net $3,500 in Bonuses for Chargers vs. Lions NFL Hall of Fame Game The NFL Hall of Fame Game marks a prime time to sign up with Ohio sportsbook promos and pocket up to $3,500 in bonuses. Register now with the best"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "410",
+        "410",
+        "410"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Follow",
+      "dtype": "boolean",
+      "nullable": false,
+      "sample_values": [
+        "true",
+        "true",
+        "true"
+      ]
+    },
+    {
+      "name": "Target",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "_blank"
+      ]
+    },
+    {
+      "name": "Rel",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Absolute",
+        "Root-Relative",
+        "Root-Relative"
+      ]
+    },
+    {
+      "name": "Link Path",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[2]/div[2]/p[6]/span/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[6]/ul/li[4]/a",
+        "//body/div[@id='__next']/div[2]/main/div/div[1]/section[6]/ul/li[4]/h3/a"
+      ]
+    },
+    {
+      "name": "Link Position",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Content",
+        "Content",
+        "Content"
+      ]
+    },
+    {
+      "name": "Link Origin",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML",
+        "HTML & Rendered HTML"
+      ]
+    }
+  ]
+}

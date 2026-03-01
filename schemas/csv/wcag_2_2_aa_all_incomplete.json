@@ -1,0 +1,78 @@
+{
+  "file": "wcag_2_2_aa_all_incomplete.csv",
+  "rows_sampled": 1,
+  "columns": [
+    {
+      "name": "Issue",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Touch Targets Require Sufficient Size & Spacing"
+      ]
+    },
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/mlb"
+      ]
+    },
+    {
+      "name": "Location on Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "blockquote:nth-child(10) > p > a[rel=\"follow\"][target=\"_blank\"]:nth-child(1)"
+      ]
+    },
+    {
+      "name": "Guidelines",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "WCAG 2.2 AA"
+      ]
+    },
+    {
+      "name": "User Impact",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Serious"
+      ]
+    },
+    {
+      "name": "Priority",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "High"
+      ]
+    },
+    {
+      "name": "Issue Description",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "All touch targets must be 24px large, or leave sufficient space."
+      ]
+    },
+    {
+      "name": "How To Fix",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Ensure touch targets have sufficient size and space."
+      ]
+    },
+    {
+      "name": "Help URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://dequeuniversity.com/rules/axe/4.10/target-size?application=axeAPI"
+      ]
+    }
+  ]
+}

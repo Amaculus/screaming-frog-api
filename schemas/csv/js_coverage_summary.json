@@ -1,0 +1,66 @@
+{
+  "file": "js_coverage_summary.csv",
+  "rows_sampled": 70,
+  "columns": [
+    {
+      "name": "Resource",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://cdn.cookielaw.org/scripttemplates/202506.1.0/otBannerSdk.js",
+        "https://sdk.mrf.io/statics/marfeel-sdk.js?id=6677",
+        "https://connect.facebook.net/en_US/fbevents.js"
+      ]
+    },
+    {
+      "name": "Total Bytes",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "122308",
+        "57221",
+        "93819"
+      ]
+    },
+    {
+      "name": "Average Unused Bytes",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "69149",
+        "23231",
+        "32417"
+      ]
+    },
+    {
+      "name": "Average Unused Percentage",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "56.54",
+        "40.60",
+        "34.55"
+      ]
+    },
+    {
+      "name": "Affected URLs",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "714",
+        "699",
+        "699"
+      ]
+    },
+    {
+      "name": "Unused URLs",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    }
+  ]
+}

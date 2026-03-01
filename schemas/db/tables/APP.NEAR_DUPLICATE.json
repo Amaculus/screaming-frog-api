@@ -1,0 +1,28 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CLOSEST_MATCH_PERCENTAGE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NUMBER_OF_NEAR_DUPLICATES",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NEAR_DUPLICATE_INSTANCES",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "file": "serp_summary.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Title",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Eastern Michigan Eagles Odds | The Action Network",
+        "Los Angeles Rams Odds & Betting Lines | Action Network",
+        "New Orleans Pelicans Odds & Betting Lines | Action Network"
+      ]
+    },
+    {
+      "name": "Character Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "169",
+        "169",
+        "147"
+      ]
+    },
+    {
+      "name": "Pixel Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1106",
+        "1106",
+        "957"
+      ]
+    },
+    {
+      "name": "Description",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Don\u2019t miss any Eastern Michigan Eagles news with the Action Network. Find team information and game odds like Eastern Michigan spreads, moneylines, and betting analysis.",
+        "Visit the Action Network for the latest Los Angeles Rams odds. Get weekly Rams spreads, moneylines, and betting options for the 2025-26 NFL season.",
+        "Get the latest New Orleans Pelicans odds. Visit the Action Network for Pelicans spreads, moneylines, and totals for the 2022 season before placing a wager."
+      ]
+    },
+    {
+      "name": "Character Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "169",
+        "169",
+        "147"
+      ]
+    },
+    {
+      "name": "Pixel Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1106",
+        "1106",
+        "957"
+      ]
+    }
+  ]
+}

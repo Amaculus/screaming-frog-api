@@ -1,0 +1,62 @@
+{
+  "file": "external_unknown.csv",
+  "rows_sampled": 82,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://api.actionnetwork.com/web/v1/content/items/categories/nfl?limit=4&type=article",
+        "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.actionnetwork.com%2Fncaab%2Fcollege-basketball-best-bets-3-ncaab-picks-predictions-friday-january-23",
+        "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.actionnetwork.com%2Ftennis%2Fben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Blocked by robots.txt",
+        "Blocked by robots.txt",
+        "Blocked by robots.txt"
+      ]
+    },
+    {
+      "name": "Crawl Depth",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2",
+        "2",
+        "2"
+      ]
+    },
+    {
+      "name": "Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "1",
+        "1"
+      ]
+    }
+  ]
+}

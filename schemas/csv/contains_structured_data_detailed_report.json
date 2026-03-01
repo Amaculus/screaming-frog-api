@@ -1,0 +1,270 @@
+{
+  "file": "contains_structured_data_detailed_report.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/casino/rng-random-number-generator",
+        "https://www.actionnetwork.com/casino/rng-random-number-generator",
+        "https://www.actionnetwork.com/casino/rng-random-number-generator"
+      ]
+    },
+    {
+      "name": "Subject",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "subject0",
+        "subject0",
+        "subject0"
+      ]
+    },
+    {
+      "name": "Predicate",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "JSON-LD",
+        "JSON-LD",
+        "JSON-LD"
+      ]
+    },
+    {
+      "name": "Object",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "subject1",
+        "subject15",
+        "subject4"
+      ]
+    },
+    {
+      "name": "Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Warnings",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Validation Type 1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Google Event"
+      ]
+    },
+    {
+      "name": "Severity 1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Warning"
+      ]
+    },
+    {
+      "name": "Issue 1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "'http://schema.org/image' property is recommended for 'SportsEvent'"
+      ]
+    },
+    {
+      "name": "Validation Type 2",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Google Event"
+      ]
+    },
+    {
+      "name": "Severity 2",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Warning"
+      ]
+    },
+    {
+      "name": "Issue 2",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "'http://schema.org/offers' property is recommended for 'SportsEvent'"
+      ]
+    },
+    {
+      "name": "Validation Type 3",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Google Event"
+      ]
+    },
+    {
+      "name": "Severity 3",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Warning"
+      ]
+    },
+    {
+      "name": "Issue 3",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "'http://schema.org/organizer' property is recommended for 'SportsEvent'"
+      ]
+    },
+    {
+      "name": "Validation Type 4",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Google Event"
+      ]
+    },
+    {
+      "name": "Severity 4",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Warning"
+      ]
+    },
+    {
+      "name": "Issue 4",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "'http://schema.org/performer' property is recommended for 'SportsEvent'"
+      ]
+    },
+    {
+      "name": "Validation Type 5",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Severity 5",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Issue 5",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Validation Type 6",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Severity 6",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Issue 6",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Validation Type 7",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Severity 7",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Issue 7",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Validation Type 8",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Severity 8",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Issue 8",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Validation Type 9",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Severity 9",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Issue 9",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Validation Type 10",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Severity 10",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Issue 10",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

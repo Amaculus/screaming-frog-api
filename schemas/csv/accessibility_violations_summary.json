@@ -1,0 +1,86 @@
+{
+  "file": "accessibility_violations_summary.csv",
+  "rows_sampled": 33,
+  "columns": [
+    {
+      "name": "Issue",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Text Requires Higher Color Contrast to Background",
+        "Text Requires Higher Color Contrast Ratio",
+        "Links Require Discernible Text"
+      ]
+    },
+    {
+      "name": "Guidelines",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "WCAG 2.0 AA",
+        "WCAG 2.0 AAA",
+        "WCAG 2.0 A"
+      ]
+    },
+    {
+      "name": "User Impact",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Serious",
+        "Serious",
+        "Serious"
+      ]
+    },
+    {
+      "name": "Priority",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "High",
+        "High",
+        "High"
+      ]
+    },
+    {
+      "name": "Total URLs Crawled",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1178",
+        "1178",
+        "1178"
+      ]
+    },
+    {
+      "name": "Number of URLs with Violations",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1178",
+        "1178",
+        "1176"
+      ]
+    },
+    {
+      "name": "% URLs in Violation",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "100.000",
+        "100.000",
+        "99.830"
+      ]
+    },
+    {
+      "name": "Sample Affected URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles"
+      ]
+    }
+  ]
+}

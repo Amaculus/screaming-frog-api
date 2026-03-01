@@ -1,0 +1,18 @@
+{
+  "file": "form_url_insecure.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Source",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Form Action Link",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

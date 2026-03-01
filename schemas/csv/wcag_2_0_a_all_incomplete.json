@@ -1,0 +1,96 @@
+{
+  "file": "wcag_2_0_a_all_incomplete.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Issue",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "ARIA Attributes Require Valid Values",
+        "ARIA Attributes Require Valid Values",
+        "ARIA Attributes Require Valid Values"
+      ]
+    },
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/online-sports-betting/colorado",
+        "https://www.actionnetwork.com/online-sports-betting/oklahoma",
+        "https://www.actionnetwork.com/online-sports-betting/alaska"
+      ]
+    },
+    {
+      "name": "Location on Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "span[aria-describedby=\"sk-tooltip-5368\"]",
+        "span[aria-describedby=\"sk-tooltip-5368\"]",
+        "span[aria-describedby=\"sk-tooltip-5368\"]"
+      ]
+    },
+    {
+      "name": "Guidelines",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "WCAG 2.0 A",
+        "WCAG 2.0 A",
+        "WCAG 2.0 A"
+      ]
+    },
+    {
+      "name": "User Impact",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Critical",
+        "Critical",
+        "Critical"
+      ]
+    },
+    {
+      "name": "Priority",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "High",
+        "High",
+        "High"
+      ]
+    },
+    {
+      "name": "Issue Description",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "ARIA attributes must conform to valid values.",
+        "ARIA attributes must conform to valid values.",
+        "ARIA attributes must conform to valid values."
+      ]
+    },
+    {
+      "name": "How To Fix",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Ensure all ARIA attributes have valid values.",
+        "Ensure all ARIA attributes have valid values.",
+        "Ensure all ARIA attributes have valid values."
+      ]
+    },
+    {
+      "name": "Help URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://dequeuniversity.com/rules/axe/4.10/aria-valid-attr-value?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/aria-valid-attr-value?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/aria-valid-attr-value?application=axeAPI"
+      ]
+    }
+  ]
+}

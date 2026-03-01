@@ -1,0 +1,72 @@
+{
+  "file": "meta_description_below_400_pixels.csv",
+  "rows_sampled": 29,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nba/nba-mvp-award-odds-predictions",
+        "https://www.actionnetwork.com/ncaab/teams",
+        "https://www.actionnetwork.com/about"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "Meta Description 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Updated NBA MVP odds for the 2025\u201326 season.",
+        "Team Hub Page Description",
+        "About Us - Action Network"
+      ]
+    },
+    {
+      "name": "Meta Description 1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "44",
+        "25",
+        "25"
+      ]
+    },
+    {
+      "name": "Meta Description 1 Pixel Width",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "314",
+        "178",
+        "167"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

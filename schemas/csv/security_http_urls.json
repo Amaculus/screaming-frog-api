@@ -1,0 +1,180 @@
+{
+  "file": "security_http_urls.csv",
+  "rows_sampled": 4,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "http://www.actionnetwork.com/nfl/odds/atlanta-falcons",
+        "http://actionnetwork.com/nfl",
+        "http://actionnetwork.com/nba/odds/atlanta-hawks"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html",
+        "text/html",
+        "text/html"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "301",
+        "301",
+        "301"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Moved Permanently",
+        "Moved Permanently",
+        "Moved Permanently"
+      ]
+    },
+    {
+      "name": "HTTP Version",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Non-Indexable",
+        "Non-Indexable",
+        "Non-Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Redirected",
+        "Redirected",
+        "Redirected"
+      ]
+    },
+    {
+      "name": "Canonical Link Element 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Meta Robots 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "X-Robots-Tag 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Response Header: Connection",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "keep-alive",
+        "keep-alive",
+        "keep-alive"
+      ]
+    },
+    {
+      "name": "Response Header: Content-Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "167",
+        "167",
+        "167"
+      ]
+    },
+    {
+      "name": "Response Header: Date",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Fri, 23 Jan 2026 21:07:41 GMT",
+        "Fri, 23 Jan 2026 20:56:15 GMT",
+        "Fri, 23 Jan 2026 21:08:29 GMT"
+      ]
+    },
+    {
+      "name": "Response Header: Location",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nfl/odds/atlanta-falcons",
+        "https://actionnetwork.com/nfl",
+        "https://actionnetwork.com/nba/odds/atlanta-hawks"
+      ]
+    },
+    {
+      "name": "Response Header: Server",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "CloudFront",
+        "CloudFront",
+        "CloudFront"
+      ]
+    },
+    {
+      "name": "Response Header: Via",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "1.1 6a7fea13bc8f4f961f7c600b92fa54f4.cloudfront.net (CloudFront)",
+        "1.1 696635cf833abca6a2d638840ebb6d7c.cloudfront.net (CloudFront)",
+        "1.1 1a1559065207edcf078749cb321e7868.cloudfront.net (CloudFront)"
+      ]
+    },
+    {
+      "name": "Response Header: X-Amz-Cf-Id",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "jno7OnyKHMY-CW-ietgTzW8DD5rQD7MedGoggKfCXBvts20y9GNREA==",
+        "xz65cYFES8AMjCWCflKWLSnSV9-UN16zABeX7sjeqbFMtuZFqpraBQ==",
+        "4kUD7VyfvMF5hxNiRuPVsY0hp37o4TQPLOied1Uo7TqywMKZP24Tww=="
+      ]
+    },
+    {
+      "name": "Response Header: X-Amz-Cf-Pop",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "EZE50-P7",
+        "EZE50-P7",
+        "EZE50-P7"
+      ]
+    },
+    {
+      "name": "Response Header: X-Cache",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Redirect from cloudfront",
+        "Redirect from cloudfront",
+        "Redirect from cloudfront"
+      ]
+    }
+  ]
+}

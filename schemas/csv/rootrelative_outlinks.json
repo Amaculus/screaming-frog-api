@@ -1,0 +1,62 @@
+{
+  "file": "rootrelative_outlinks.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hyperlink",
+        "Hyperlink",
+        "Hyperlink"
+      ]
+    },
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles"
+      ]
+    },
+    {
+      "name": "Destination",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/",
+        "https://www.actionnetwork.com/odds",
+        "https://www.actionnetwork.com/picks"
+      ]
+    },
+    {
+      "name": "Anchor Text",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Odds",
+        "Picks",
+        "US Betting"
+      ]
+    },
+    {
+      "name": "Alt Text",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Path Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Root-Relative",
+        "Root-Relative",
+        "Root-Relative"
+      ]
+    }
+  ]
+}

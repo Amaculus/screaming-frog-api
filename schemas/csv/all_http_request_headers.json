@@ -1,0 +1,66 @@
+{
+  "file": "all_http_request_headers.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://assets.actionnetwork.com/118654_utrgv.png",
+        "https://assets.actionnetwork.com/761154_line.png",
+        "https://c.bing.com/c.gif?ctsa=mr&CtsSyncId=7714DE1EEF7449B1B4DA9B6C48007741&RedC=c.clarity.ms&MXFR=033F389088B064AF17D52E7A8CB06ACA"
+      ]
+    },
+    {
+      "name": "accept",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+      ]
+    },
+    {
+      "name": "accept-encoding",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "gzip",
+        "gzip",
+        "gzip"
+      ]
+    },
+    {
+      "name": "cache-control",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "no-cache",
+        "no-cache",
+        "no-cache"
+      ]
+    },
+    {
+      "name": "pragma",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "no-cache",
+        "no-cache",
+        "no-cache"
+      ]
+    },
+    {
+      "name": "user-agent",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Screaming Frog SEO Spider/22.2",
+        "Screaming Frog SEO Spider/22.2",
+        "Screaming Frog SEO Spider/22.2"
+      ]
+    }
+  ]
+}

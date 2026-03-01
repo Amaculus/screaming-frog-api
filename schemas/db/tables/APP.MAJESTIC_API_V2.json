@@ -1,0 +1,448 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SF_REQUEST_STATUS_KEY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SF_REQUEST_ERROR_KEY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "GETINDEXITEMINFO_EXTBACKLINKS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_REFDOMAINS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TRUSTFLOW",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_CITATIONFLOW",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_REFIPS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_REFSUBNETS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_INDEXEDURLS",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_EXTBACKLINKSEDU",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_EXTBACKLINKSGOV",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_REFDOMAINSEDU",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_REFDOMAINSGOV",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_0",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_0",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_1",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_2",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_3",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_3",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_TOPIC_4",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETINDEXITEMINFO_TOPICALTRUSTFLOW_VALUE_4",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT0",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS0",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS1",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS2",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT3",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS3",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT4",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS4",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT5",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS5",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT6",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS6",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT7",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS7",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT8",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS8",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_ANCHORTEXT9",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETANCHORTEXT_REFDOMAINS9",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPIC0",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPIC1",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPIC2",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPIC3",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPIC4",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKS0",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKS1",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKS2",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKS3",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKS4",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPICALTRUSTFLOW0",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPICALTRUSTFLOW1",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPICALTRUSTFLOW2",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPICALTRUSTFLOW3",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_TOPICALTRUSTFLOW4",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKSFROMREFDOMAINS0",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKSFROMREFDOMAINS1",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKSFROMREFDOMAINS2",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKSFROMREFDOMAINS3",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_LINKSFROMREFDOMAINS4",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_REFDOMAINS0",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_REFDOMAINS1",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_REFDOMAINS2",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_REFDOMAINS3",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_REFDOMAINS4",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_PAGES0",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_PAGES1",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_PAGES2",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_PAGES3",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "GETTOPICS_PAGES4",
+      "type": "BIGINT",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

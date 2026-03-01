@@ -1,0 +1,66 @@
+{
+  "file": "css_coverage_summary.csv",
+  "rows_sampled": 3,
+  "columns": [
+    {
+      "name": "Resource",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "#onetrust-banner-sdk .onetrust-vendors-list-handler{cursor:pointer;color:#1f96db;font-size:inherit; \u2026 } \u2026",
+        "https://www.youtube.com/s/player/c9168c90/www-player.css",
+        "https://www.youtube.com/s/embeds/7f51e957/embed_ui_css.css"
+      ]
+    },
+    {
+      "name": "Total Bytes",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "19095",
+        "60385",
+        "32149"
+      ]
+    },
+    {
+      "name": "Average Unused Bytes",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "18775",
+        "59881",
+        "32072"
+      ]
+    },
+    {
+      "name": "Average Unused Percentage",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "98.32",
+        "99.17",
+        "99.76"
+      ]
+    },
+    {
+      "name": "Affected URLs",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "4",
+        "4",
+        "4"
+      ]
+    },
+    {
+      "name": "Unused URLs",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,496 @@
+{
+  "file": "pagespeed_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "PSI Request Status",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Success",
+        "Success",
+        "Success"
+      ]
+    },
+    {
+      "name": "Performance Score",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "56",
+        "75",
+        "54"
+      ]
+    },
+    {
+      "name": "First Contentful Paint Time (ms)",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "1832.411",
+        "1242.004",
+        "1089.001"
+      ]
+    },
+    {
+      "name": "Speed Index Time (ms)",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "3968.690",
+        "2789.874",
+        "3341.524"
+      ]
+    },
+    {
+      "name": "Largest Contentful Paint Time (ms)",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "4950.792",
+        "1975.742",
+        "5078.728"
+      ]
+    },
+    {
+      "name": "Time to Interactive (ms)",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "15001.387",
+        "16505.670",
+        "15938.478"
+      ]
+    },
+    {
+      "name": "Total Blocking Time (ms)",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "559.500",
+        "1197.000",
+        "1367.500"
+      ]
+    },
+    {
+      "name": "Cumulative Layout Shift",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "0.188",
+        "0.013",
+        "0.069"
+      ]
+    },
+    {
+      "name": "Total Size Savings (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "295279",
+        "291635",
+        "266012"
+      ]
+    },
+    {
+      "name": "Total Time Savings (ms)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "300",
+        "0",
+        "300"
+      ]
+    },
+    {
+      "name": "Total Requests",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "170",
+        "160",
+        "167"
+      ]
+    },
+    {
+      "name": "Total Page Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1913950",
+        "1968278",
+        "1920061"
+      ]
+    },
+    {
+      "name": "HTML Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "54298",
+        "76966",
+        "60366"
+      ]
+    },
+    {
+      "name": "HTML Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "Image Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "289775",
+        "353398",
+        "317970"
+      ]
+    },
+    {
+      "name": "Image Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "31",
+        "26",
+        "33"
+      ]
+    },
+    {
+      "name": "CSS Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1966",
+        "1894",
+        "1966"
+      ]
+    },
+    {
+      "name": "CSS Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "JavaScript Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1203250",
+        "1201940",
+        "1203095"
+      ]
+    },
+    {
+      "name": "JavaScript Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "85",
+        "85",
+        "85"
+      ]
+    },
+    {
+      "name": "Font Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "8510",
+        "8490",
+        "8510"
+      ]
+    },
+    {
+      "name": "Font Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "Media Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Media Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Other Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "356151",
+        "325590",
+        "328154"
+      ]
+    },
+    {
+      "name": "Other Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "51",
+        "46",
+        "46"
+      ]
+    },
+    {
+      "name": "Third Party Size (Bytes)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1779195",
+        "1810892",
+        "1779304"
+      ]
+    },
+    {
+      "name": "Third Party Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "154",
+        "144",
+        "151"
+      ]
+    },
+    {
+      "name": "Core Web Vitals Assessment",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Pass",
+        "Fail",
+        "Pass"
+      ]
+    },
+    {
+      "name": "CrUX Largest Contentful Paint Time (ms)",
+      "dtype": "float",
+      "nullable": true,
+      "sample_values": [
+        "621.000",
+        "1103.000",
+        "761.000"
+      ]
+    },
+    {
+      "name": "CrUX Interaction to Next Paint (ms)",
+      "dtype": "integer",
+      "nullable": true,
+      "sample_values": [
+        "115",
+        "565",
+        "184"
+      ]
+    },
+    {
+      "name": "CrUX Cumulative Layout Shift",
+      "dtype": "float",
+      "nullable": true,
+      "sample_values": [
+        "0.020",
+        "0.030",
+        "0.000"
+      ]
+    },
+    {
+      "name": "CrUX First Contentful Paint Time (ms)",
+      "dtype": "float",
+      "nullable": true,
+      "sample_values": [
+        "550.000",
+        "871.000",
+        "623.000"
+      ]
+    },
+    {
+      "name": "Eliminate Render-Blocking Resources Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Defer Offscreen Images Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Efficiently Encode Images Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Properly Size Images Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Minify CSS Savings (ms)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Minify JavaScript Savings (ms)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Reduce Unused CSS Savings (ms)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Reduce Unused JavaScript Savings (ms)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "300",
+        "0",
+        "300"
+      ]
+    },
+    {
+      "name": "Serve Images in Next-Gen Formats Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Enable Text Compression Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Preconnect to Required Origins Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Server Response Times (TTFB) (ms)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Multiple Redirects Savings (ms)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Preload Key Requests Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Use Video Format for Animated Images Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Total Image Optimization Savings (ms)",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Avoid Serving Legacy JavaScript to Modern Browsers Savings (ms)",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Image Elements Do Not Have Explicit Width & Height",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "1 resource found",
+        "29 resources found",
+        "6 resources found"
+      ]
+    },
+    {
+      "name": "Avoid Large Layout Shifts",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "2 layout shifts found",
+        "2 layout shifts found",
+        "3 layout shifts found"
+      ]
+    }
+  ]
+}

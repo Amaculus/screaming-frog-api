@@ -1,0 +1,147 @@
+Queued URLs
+Links:All Inlinks
+Links:All Outlinks
+Links:All Anchor Text
+Links:External Links
+Links:Internal Nofollow Outlinks
+Links:Internal Outlinks With No Anchor Text
+Links:Non-Descriptive Anchor Text In Internal Outlinks
+Links:Follow & Nofollow Internal Inlinks To Page
+Links:Internal Nofollow Inlinks Only
+Links:Outlinks To Localhost
+Web:Screenshots
+Web:Archived Website
+Web:All Page Source
+Web:All Page Text
+Web:All PDF Documents
+Web:All PDF Content
+Web:All HTTP Request Headers
+Web:All HTTP Response Headers
+Web:All Cookies
+Path Type:Absolute
+Path Type:Protocol-Relative
+Path Type:Root-Relative
+Path Type:Path-Relative
+Security:HTTP URLs Inlinks
+Security:HTTPS URLs Inlinks
+Security:Mixed Content
+Security:Form URL Insecure
+Security:Unsafe Cross-Origin Links
+Security:Protocol-Relative Outlinks
+Response Codes:Internal & External:Blocked by Robots.txt Inlinks
+Response Codes:Internal & External:Blocked Resource Inlinks
+Response Codes:Internal & External:No Response Inlinks
+Response Codes:Internal & External:Success (2xx) Inlinks
+Response Codes:Internal & External:Redirection (3xx) Inlinks
+Response Codes:Internal & External:Redirection (JavaScript) Inlinks
+Response Codes:Internal & External:Redirection (Meta Refresh) Inlinks
+Response Codes:Internal & External:Client Error (4xx) Inlinks
+Response Codes:Internal & External:Server Error (5xx) Inlinks
+Response Codes:Internal:Internal Blocked by Robots.txt Inlinks
+Response Codes:Internal:Internal Blocked Resource Inlinks
+Response Codes:Internal:Internal No Response Inlinks
+Response Codes:Internal:Internal Success (2xx) Inlinks
+Response Codes:Internal:Internal Redirection (3xx) Inlinks
+Response Codes:Internal:Internal Redirection (JavaScript) Inlinks
+Response Codes:Internal:Internal Redirection (Meta Refresh) Inlinks
+Response Codes:Internal:Internal Redirect Chain Inlinks
+Response Codes:Internal:Internal Redirect Loop Inlinks
+Response Codes:Internal:Internal Client Error (4xx) Inlinks
+Response Codes:Internal:Internal Server Error (5xx) Inlinks
+Response Codes:External:External Blocked by Robots.txt Inlinks
+Response Codes:External:External Blocked Resource Inlinks
+Response Codes:External:External No Response Inlinks
+Response Codes:External:External Success (2xx) Inlinks
+Response Codes:External:External Redirection (3xx) Inlinks
+Response Codes:External:External Redirection (JavaScript) Inlinks
+Response Codes:External:External Redirection (Meta Refresh) Inlinks
+Response Codes:External:External Client Error (4xx) Inlinks
+Response Codes:External:External Server Error (5xx) Inlinks
+Content:Exact Duplicates
+Content:Near Duplicates
+Content:Semantically Similar
+Content:Soft 404 Inlinks
+Content:Spelling & Grammar Errors
+Content:Spelling & Grammar Errors Summary
+Images:All Image Inlinks
+Images:Images Missing Alt Text Inlinks
+Images:Images Missing Alt Attribute Inlinks
+Images:Images Missing Alt Attribute & Text Inlinks
+Images:Images Over X KB Inlinks
+Images:Images with Alt Text Over X Characters
+Images:Incorrectly Sized Images
+Images:Missing Size Attributes
+Canonicals:Contains Canonical Inlinks
+Canonicals:Self Referencing Inlinks
+Canonicals:Canonicalised Inlinks
+Canonicals:Missing Inlinks
+Canonicals:Multiple Inlinks
+Canonicals:Multiple Conflicting Inlinks
+Canonicals:Non-Indexable Canonical Inlinks
+Canonicals:Canonical Is Relative Inlinks
+Canonicals:Unlinked Inlinks
+Canonicals:Invalid Attribute In Annotation Inlinks
+Canonicals:Contains Fragment URL Inlinks
+Canonicals:Outside <head> Inlinks
+Directives:Index Inlinks
+Directives:Noindex Inlinks
+Directives:Follow Inlinks
+Directives:Nofollow Inlinks
+Directives:None Inlinks
+Directives:NoArchive Inlinks
+Directives:NoSnippet Inlinks
+Directives:Max-Snippet Inlinks
+Directives:Max-Image-Preview Inlinks
+Directives:Max-Video-Preview Inlinks
+Directives:NoODP Inlinks
+Directives:NoYDIR Inlinks
+Directives:NoImageIndex Inlinks
+Directives:NoTranslate Inlinks
+Directives:Unavailable_After Inlinks
+Directives:Refresh Inlinks
+Directives:Outside <head> Inlinks
+JavaScript:Pages with Blocked Resources
+JavaScript:Contains JavaScript Links
+JavaScript:Pages with JavaScript Issues
+AMP:All Inlinks
+AMP:Non-200 Response Inlinks
+AMP:Missing Non-AMP Return Link Inlinks
+AMP:Missing Canonical to Non-AMP Inlinks
+AMP:Non-Indexable Canonical Inlinks
+AMP:Indexable Inlinks
+AMP:Non-Indexable Inlinks
+Structured Data:Contains Structured Data
+Structured Data:Validation Errors
+Structured Data:Validation Warnings
+Structured Data:JSON-LD URLs
+Structured Data:Microdata URLs
+Structured Data:RDFa URLs
+Sitemaps:URLs in Sitemap Inlinks
+Sitemaps:Orphan URLs Inlinks
+Sitemaps:Non-Indexable URLs in Sitemap Inlinks
+Sitemaps:URLs in Multiple Sitemaps Inlinks
+Custom Search:All Inlinks
+Custom Extraction:All Inlinks
+URL Inspection:Rich Results
+URL Inspection:Referring Pages
+URL Inspection:Sitemaps
+Accessibility:All Violations
+Accessibility:All Incomplete
+Accessibility:Best Practice:All Violations
+Accessibility:Best Practice:All Incomplete
+Accessibility:WCAG 2.0 A:All Violations
+Accessibility:WCAG 2.0 A:All Incomplete
+Accessibility:WCAG 2.0 AA:All Violations
+Accessibility:WCAG 2.0 AA:All Incomplete
+Accessibility:WCAG 2.0 AAA:All Violations
+Accessibility:WCAG 2.0 AAA:All Incomplete
+Accessibility:WCAG 2.1 AA:All Violations
+Accessibility:WCAG 2.1 AA:All Incomplete
+Accessibility:WCAG 2.2 AA:All Violations
+Accessibility:WCAG 2.2 AA:All Incomplete
+Issues:All
+Issues:Issue
+Issues:Warning
+Issues:Opportunity
+AI:Images
+AI:Text to Speech Audio

@@ -1,0 +1,40 @@
+{
+  "columns": [
+    {
+      "name": "LEVEL",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "ROOT_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CRAWL_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REDIRECT_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ESCAPED_FORM",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    }
+  ]
+}

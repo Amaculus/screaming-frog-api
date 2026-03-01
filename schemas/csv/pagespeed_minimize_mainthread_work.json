@@ -1,0 +1,12 @@
+{
+  "file": "pagespeed_minimize_mainthread_work.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

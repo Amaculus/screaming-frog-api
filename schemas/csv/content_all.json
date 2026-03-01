@@ -1,0 +1,172 @@
+{
+  "file": "content_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Word Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2020",
+        "4297",
+        "2343"
+      ]
+    },
+    {
+      "name": "Sentence Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "306",
+        "1248",
+        "444"
+      ]
+    },
+    {
+      "name": "Average Words Per Sentence",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "6.601",
+        "3.443",
+        "5.277"
+      ]
+    },
+    {
+      "name": "Flesch Reading Ease Score",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "84.249",
+        "97.812",
+        "86.260"
+      ]
+    },
+    {
+      "name": "Readability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Easy",
+        "Very Easy",
+        "Easy"
+      ]
+    },
+    {
+      "name": "Closest Near Duplicate Match",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "No. Near Duplicates",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Closest Semantically Similar Address",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Semantic Similarity Score",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "No. Semantically Similar",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Semantic Relevance Score",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Total Language Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "36",
+        "166",
+        "68"
+      ]
+    },
+    {
+      "name": "Spelling Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "27",
+        "121",
+        "60"
+      ]
+    },
+    {
+      "name": "Grammar Errors",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "9",
+        "45",
+        "8"
+      ]
+    },
+    {
+      "name": "Language",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "en-US",
+        "en-US",
+        "en-US"
+      ]
+    },
+    {
+      "name": "Hash",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "446b52db35b4600061d33edd2d75b10e",
+        "72c55b2ca3306eae87acccba6852df94",
+        "2f471b9fae1562e0da39a2241fcbcc83"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noindex",
+        "noindex",
+        "noindex"
+      ]
+    }
+  ]
+}

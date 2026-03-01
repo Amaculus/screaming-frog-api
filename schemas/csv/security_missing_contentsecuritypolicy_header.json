@@ -1,0 +1,208 @@
+{
+  "file": "security_missing_contentsecuritypolicy_header.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Content Type",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8",
+        "text/html; charset=utf-8"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "HTTP Version",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "2.0",
+        "2.0",
+        "2.0"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "noindex",
+        "noindex",
+        "noindex"
+      ]
+    },
+    {
+      "name": "Canonical Link Element 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Meta Robots 1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "max-image-preview:large",
+        "max-image-preview:large",
+        "max-image-preview:large"
+      ]
+    },
+    {
+      "name": "X-Robots-Tag 1",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "Response Header: age",
+      "dtype": "integer",
+      "nullable": true,
+      "sample_values": [
+        "186349",
+        "7476",
+        "132054"
+      ]
+    },
+    {
+      "name": "Response Header: cache-control",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "s-maxage=60, stale-while-revalidate=31535940",
+        "s-maxage=60, stale-while-revalidate=31535940",
+        "s-maxage=60, stale-while-revalidate=31535940"
+      ]
+    },
+    {
+      "name": "Response Header: content-encoding",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "gzip",
+        "gzip",
+        "gzip"
+      ]
+    },
+    {
+      "name": "Response Header: date",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Wed, 21 Jan 2026 16:33:25 GMT",
+        "Fri, 23 Jan 2026 18:54:41 GMT",
+        "Fri, 23 Jan 2026 19:41:13 GMT"
+      ]
+    },
+    {
+      "name": "Response Header: etag",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "W/\"9vwacns8f76geb\"",
+        "W/\"10l3w3kqi0geab1\"",
+        "W/\"6jlbeygqui6l2u\""
+      ]
+    },
+    {
+      "name": "Response Header: vary",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Accept-Encoding",
+        "Accept-Encoding",
+        "Accept-Encoding"
+      ]
+    },
+    {
+      "name": "Response Header: via",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "1.1 c1587f6ce637b4ac2dbf07cc0b839ea6.cloudfront.net (CloudFront)",
+        "1.1 7a1a22438cd1a2a169a97235366bc326.cloudfront.net (CloudFront)",
+        "1.1 cfd1413b816afd1cf638de6b0a8f9dfc.cloudfront.net (CloudFront)"
+      ]
+    },
+    {
+      "name": "Response Header: x-amz-cf-id",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "UFAQ6GAV52GhdkVutLvKmslKtQofcK_BQQkaKtejNP8596JVXqfPJg==",
+        "U5mdjGZyaPowU7GOX8FmerugrpzOu04Sl2KZOT8fvs2C32Ey9atW1Q==",
+        "-ao8bUs3JOad9l-lVZCkQD-cj6z6ujU0wNNSPxj0_OeMU1w3YEoQ4A=="
+      ]
+    },
+    {
+      "name": "Response Header: x-amz-cf-pop",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "EZE50-P7",
+        "EZE50-P7",
+        "EZE50-P7"
+      ]
+    },
+    {
+      "name": "Response Header: x-cache",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Hit from cloudfront",
+        "Hit from cloudfront",
+        "Miss from cloudfront"
+      ]
+    },
+    {
+      "name": "Response Header: x-nextjs-cache",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "STALE",
+        "STALE",
+        "STALE"
+      ]
+    }
+  ]
+}

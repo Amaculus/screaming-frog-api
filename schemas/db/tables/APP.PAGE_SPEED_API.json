@@ -1,0 +1,640 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "SF_REQUEST_STATUS_KEY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SF_REQUEST_ERROR_KEY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "JSON_RESPONSE",
+      "type": "BLOB",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PERFORMANCE_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TIME_TO_FIRST_BYTE_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FIRST_CONTENTFUL_PAINT",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FIRST_CONTENTFUL_PAINT_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SPEED_INDEX",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SPEED_INDEX_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LARGEST_CONTENTFUL_PAINT",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LARGEST_CONTENTFUL_PAINT_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TIME_TO_INTERACTIVE",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TIME_TO_INTERACTIVE_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FIRST_MEANINGFUL_PAINT",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FIRST_MEANINGFUL_PAINT_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MAX_POTENTIAL_FIRST_INPUT_DELAY",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MAX_POTENTIAL_FIRST_INPUT_DELAY_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TOTAL_BLOCKING_TIME",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TOTAL_BLOCKING_TIME_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CUMULATIVE_LAYOUT_SHIFT",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CUMULATIVE_LAYOUT_SHIFT_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TOTAL_OPPORTUNITY_SAVINGS_BYTES",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TOTAL_OPPORTUNITY_SAVINGS_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TOTAL_REQUESTS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TOTAL_PAGE_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HTML_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HTML_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IMAGE_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "IMAGE_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CSS_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CSS_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "JAVASCRIPT_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "JAVASCRIPT_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FONT_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FONT_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MEDIA_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MEDIA_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "OTHER_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "OTHER_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "THIRD_PARTY_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "THIRD_PARTY_COUNT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_SCORE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_LARGEST_CONTENTFUL_PAINT_TIME",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_LARGEST_CONTENTFUL_PAINT_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_INTERACTION_TO_NEXT_PAINT_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_INTERACTION_TO_NEXT_PAINT_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_CUMULATIVE_LAYOUT_SHIFT",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_CUMULATIVE_LAYOUT_SHIFT_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_FIRST_CONTENTFUL_PAINT_TIME",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_FIRST_CONTENTFUL_PAINT_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_TIME_TO_FIRST_BYTE_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LOADING_EXPERIENCE_TIME_TO_FIRST_BYTE_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_PERFORMANCE_SCORE",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_LOADING_EXPERIENCE_LARGEST_CONTENTFUL_PAINT_TIME",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_LOADING_EXPERIENCE_LARGEST_CONTENTFUL_PAINT_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_LOADING_EXPERIENCE_INTERACTION_TO_NEXT_PAINT_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_LOADING_EXPERIENCE_INTERACTION_TO_NEXT_PAINT_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_LOADING_EXPERIENCE_CUMULATIVE_LAYOUT_SHIFT",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_LOADING_EXPERIENCE_CUMULATIVE_LAYOUT_SHIFT_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_FIRST_CONTENTFUL_PAINT",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_FIRST_CONTENTFUL_PAINT_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_LOADING_EXPERIENCE_TIME_TO_FIRST_BYTE_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ORIGIN_LOADING_EXPERIENCE_TIME_TO_FIRST_BYTE_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ELIMINATE_RENDER_BLOCKING_RESOURCES",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DEFER_OFFSCREEN_IMAGES_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DEFER_OFFSCREEN_IMAGES_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EFFICIENTLY_ENCODE_IMAGES_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EFFICIENTLY_ENCODE_IMAGES_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PROPERLY_SIZE_IMAGES_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PROPERLY_SIZE_IMAGES_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MINIFY_CSS_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MINIFY_CSS_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MINIFY_JAVASCRIPT_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MINIFY_JAVASCRIPT_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REMOVE_UNUSED_CSS_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REMOVE_UNUSED_CSS_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REMOVE_UNUSED_JAVASCRIPT_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REMOVE_UNUSED_JAVASCRIPT_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NEXT_GEN_IMAGES_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "NEXT_GEN_IMAGES_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TEXT_COMPRESSION_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TEXT_COMPRESSION_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PRECONNECT_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SERVER_RESPONSE_TIMES_SAVINGS_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SERVER_RESPONSE_TIMES_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "REDIRECTS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "PRELOAD",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "VIDEO_FORMAT_MS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "VIDEO_FORMAT_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TOTAL_IMAGE_OPTIMIZATION_SAVINGS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LEGACY_JAVASCRIPT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "EXCESSIVE_DOM_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "JS_EXECUTION_TIME",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "JS_EXECUTION_TIME_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "INEFFICIENT_CACHE_POLICY",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MAIN_THREAD_WORK_MS",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "MAIN_THREAD_WORK_CATEGORY",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TEXT_VISIBLE_DURING_LOAD",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "UNSIZED_IMAGES",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "LAYOUT_SHIFT_ELEMENTS",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "VIEWPORT",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "TARGET_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CONTENT_WIDTH",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "FONT_DISPLAY_SIZE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ACCESSIBILITY_SCORE",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

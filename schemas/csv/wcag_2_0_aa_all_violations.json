@@ -1,0 +1,96 @@
+{
+  "file": "wcag_2_0_aa_all_violations.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Issue",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Text Requires Higher Color Contrast to Background",
+        "Text Requires Higher Color Contrast to Background",
+        "Text Requires Higher Color Contrast to Background"
+      ]
+    },
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles"
+      ]
+    },
+    {
+      "name": "Location on Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        ".user-component__get-app-mobile",
+        ".summary__featured-stat-container.css-1koxlbv.e13npg6i0:nth-child(1) > dt",
+        ".summary__featured-stat-container.css-1koxlbv.e13npg6i0:nth-child(2) > dt"
+      ]
+    },
+    {
+      "name": "Guidelines",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "WCAG 2.0 AA",
+        "WCAG 2.0 AA",
+        "WCAG 2.0 AA"
+      ]
+    },
+    {
+      "name": "User Impact",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Serious",
+        "Serious",
+        "Serious"
+      ]
+    },
+    {
+      "name": "Priority",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "High",
+        "High",
+        "High"
+      ]
+    },
+    {
+      "name": "Issue Description",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Elements must meet minimum color contrast ratio thresholds.",
+        "Elements must meet minimum color contrast ratio thresholds.",
+        "Elements must meet minimum color contrast ratio thresholds."
+      ]
+    },
+    {
+      "name": "How To Fix",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds.",
+        "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds.",
+        "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds."
+      ]
+    },
+    {
+      "name": "Help URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=axeAPI",
+        "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=axeAPI"
+      ]
+    }
+  ]
+}

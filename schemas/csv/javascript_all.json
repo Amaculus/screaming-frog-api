@@ -1,0 +1,282 @@
+{
+  "file": "javascript_all.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Status Code",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "200",
+        "200",
+        "200"
+      ]
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "HTML Word Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1470",
+        "3747",
+        "1793"
+      ]
+    },
+    {
+      "name": "Rendered HTML Word Count",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "2020",
+        "4297",
+        "2343"
+      ]
+    },
+    {
+      "name": "Word Count Change",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "550",
+        "550",
+        "550"
+      ]
+    },
+    {
+      "name": "JS Word Count %",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "27.228",
+        "12.800",
+        "23.474"
+      ]
+    },
+    {
+      "name": "HTML Title",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Eastern Michigan Eagles Odds | The Action Network",
+        "Los Angeles Rams Odds & Betting Lines | Action Network",
+        "New Orleans Pelicans Odds & Betting Lines | Action Network"
+      ]
+    },
+    {
+      "name": "Rendered HTML Title",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Eastern Michigan Eagles Odds | The Action Network",
+        "Los Angeles Rams Odds & Betting Lines | Action Network",
+        "New Orleans Pelicans Odds & Betting Lines | Action Network"
+      ]
+    },
+    {
+      "name": "HTML H1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Eastern Michigan Eagles Odds",
+        "Los Angeles Rams Odds",
+        "New Orleans Pelicans Odds"
+      ]
+    },
+    {
+      "name": "Rendered HTML H1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Eastern Michigan Eagles Odds",
+        "Los Angeles Rams Odds",
+        "New Orleans Pelicans Odds"
+      ]
+    },
+    {
+      "name": "HTML Meta Description",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Don\u2019t miss any Eastern Michigan Eagles news with the Action Network. Find team information and game odds like Eastern Michigan spreads, moneylines, and betting analysis.",
+        "Visit the Action Network for the latest Los Angeles Rams odds. Get weekly Rams spreads, moneylines, and betting options for the 2025-26 NFL season.",
+        "Get the latest New Orleans Pelicans odds. Visit the Action Network for Pelicans spreads, moneylines, and totals for the 2022 season before placing a wager."
+      ]
+    },
+    {
+      "name": "Rendered HTML Meta Description",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Don\u2019t miss any Eastern Michigan Eagles news with the Action Network. Find team information and game odds like Eastern Michigan spreads, moneylines, and betting analysis.",
+        "Visit the Action Network for the latest Los Angeles Rams odds. Get weekly Rams spreads, moneylines, and betting options for the 2025-26 NFL season.",
+        "Get the latest New Orleans Pelicans odds. Visit the Action Network for Pelicans spreads, moneylines, and totals for the 2022 season before placing a wager."
+      ]
+    },
+    {
+      "name": "HTML Canonical",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Rendered HTML Canonical",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Unique Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "14",
+        "34",
+        "20"
+      ]
+    },
+    {
+      "name": "Unique JS Inlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "2",
+        "1"
+      ]
+    },
+    {
+      "name": "Unique Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "196",
+        "209",
+        "186"
+      ]
+    },
+    {
+      "name": "Unique JS Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "0",
+        "0"
+      ]
+    },
+    {
+      "name": "Unique External Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "19",
+        "29",
+        "19"
+      ]
+    },
+    {
+      "name": "Unique External JS Outlinks",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "HTML Meta Robots 1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "max-image-preview:large",
+        "max-image-preview:large",
+        "max-image-preview:large"
+      ]
+    },
+    {
+      "name": "Rendered HTML Meta Robots 1",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "max-image-preview:large",
+        "max-image-preview:large",
+        "max-image-preview:large"
+      ]
+    },
+    {
+      "name": "Pretty URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "Ugly URL",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams",
+        "https://www.actionnetwork.com/nba/odds/new-orleans-pelicans"
+      ]
+    },
+    {
+      "name": "JS Error",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "JS Warning",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "JS Info",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "JS Debug",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    },
+    {
+      "name": "JS Issue",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": true,
+      "nullable": false
+    },
+    {
+      "name": "MAPPED_ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DIFF_NEW_ENUM_MAP",
+      "type": "CHAR () FOR BIT DATA",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DIFF_REMOVED_ENUM_MAP",
+      "type": "CHAR () FOR BIT DATA",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DIFF_MISSING_ENUM_MAP",
+      "type": "CHAR () FOR BIT DATA",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DIFF_ADDED_ENUM_MAP",
+      "type": "CHAR () FOR BIT DATA",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "ENUM_MAP",
+      "type": "CHAR () FOR BIT DATA",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DIFF_PREVIOUS_ENUM_MAP",
+      "type": "CHAR () FOR BIT DATA",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DIFF_PARITY_CURRENT_ENUM_MAP",
+      "type": "CHAR () FOR BIT DATA",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "DIFF_PARITY_PREVIOUS_ENUM_MAP",
+      "type": "CHAR () FOR BIT DATA",
+      "pk": false,
+      "nullable": true
+    }
+  ]
+}

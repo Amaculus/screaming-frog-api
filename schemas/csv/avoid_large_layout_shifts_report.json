@@ -1,0 +1,46 @@
+{
+  "file": "avoid_large_layout_shifts_report.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Source Page",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/ncaaf/odds/eastern-michigan-eagles",
+        "https://www.actionnetwork.com/nfl/odds/los-angeles-rams"
+      ]
+    },
+    {
+      "name": "Label",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Eagles Injuries\nAll NCAAF Injuries\n\nThere are no injuries for this team current\u2026",
+        "Eagles Injuries\nAll NCAAF Injuries\n\nThere are no injuries for this team current\u2026",
+        "Next Rams Game\nGame Details \n@ Seattle Seahawks\nSeattle\nSun 1/25\n3:30 PM\nSeahaw\u2026"
+      ]
+    },
+    {
+      "name": "Snippet",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "<section class=\"team-container__injuries--mobile e1ykcrvf0 css-1p56a9k e13npg6i0\" data-default-spacing=\"true\">",
+        "<section class=\"team-container__injuries--mobile e1ykcrvf0 css-1p56a9k e13npg6i0\" data-default-spacing=\"true\">",
+        "<section class=\"team-container__next-game--mobile ev4ao700 css-w6rg7t e13npg6i0\" data-default-spacing=\"true\" data-default-padding=\"true\">"
+      ]
+    },
+    {
+      "name": "CLS Contribution",
+      "dtype": "float",
+      "nullable": false,
+      "sample_values": [
+        "0.188",
+        "0.055",
+        "0.013"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "file": "javascript_uses_old_ajax_crawling_scheme_meta_fragment_tag.csv",
+  "rows_sampled": 0,
+  "columns": [
+    {
+      "name": "Pretty URL",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Ugly URL",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Status Code",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    },
+    {
+      "name": "Status",
+      "dtype": "unknown",
+      "nullable": false,
+      "sample_values": []
+    }
+  ]
+}

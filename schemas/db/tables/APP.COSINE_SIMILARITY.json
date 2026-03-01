@@ -1,0 +1,28 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "CLOSEST_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "SCORE",
+      "type": "DOUBLE",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "SIMILAR_URLS",
+      "type": "INTEGER",
+      "pk": false,
+      "nullable": false
+    }
+  ]
+}

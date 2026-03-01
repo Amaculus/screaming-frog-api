@@ -1,0 +1,72 @@
+{
+  "file": "page_titles_over_561_pixels.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/nhl-game/sharks-lightning-score-odds-january-20-2026/260728",
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "Title 1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Sharks vs Lightning Odds & Live Scores - January 20, 2026 | The Action Network",
+        "Ben Shelton vs Valentin Vacherot Prediction, Pick, Odds for Australian Open Third Round",
+        "College Football Odds, Predictions: Week 8 Over/Under Bets for Nebraska vs Indiana, South Carolina vs Oklahoma"
+      ]
+    },
+    {
+      "name": "Title 1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "78",
+        "87",
+        "110"
+      ]
+    },
+    {
+      "name": "Title 1 Pixel Width",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "705",
+        "778",
+        "1002"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

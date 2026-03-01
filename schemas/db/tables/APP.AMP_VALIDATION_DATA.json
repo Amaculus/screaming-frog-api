@@ -1,0 +1,70 @@
+{
+  "columns": [
+    {
+      "name": "ENCODED_URL",
+      "type": "VARCHAR",
+      "pk": false,
+      "nullable": true
+    },
+    {
+      "name": "HAS_ERROR",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "DOCTYPE_IS_VALID",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CONTAINS_HEAD",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CONTAINS_BODY",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CONTAINS_CANONICAL",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CHARSET_IS_VALID",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "VIEWPORT_IS_VALID",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "AMP_SCRIPT_IS_VALID",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "AMP_BOILERPLATE_IS_VALID",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    },
+    {
+      "name": "CONTAINS_DISALLOWED_TAGS",
+      "type": "BOOLEAN",
+      "pk": false,
+      "nullable": false
+    }
+  ]
+}

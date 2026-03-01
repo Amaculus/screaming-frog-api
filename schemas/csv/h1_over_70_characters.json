@@ -1,0 +1,62 @@
+{
+  "file": "h1_over_70_characters.csv",
+  "rows_sampled": 100,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/tennis/ben-shelton-vs-valentin-vacherot-prediction-pick-odds-australian-open-third-round",
+        "https://www.actionnetwork.com/ncaaf/college-football-odds-predictions-over-under-bets-nebraska-vs-indiana-south-carolina-vs-oklahoma-week-8",
+        "https://www.actionnetwork.com/mma/ufc-contender-series-week-4-odds-picks-predictions-tuesday-september-3"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "1",
+        "1"
+      ]
+    },
+    {
+      "name": "H1-1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Ben Shelton vs Valentin Vacherot Prediction, Pick, Odds for Australian Open Third Round",
+        "College Football Odds, Predictions: Week 8 Over/Under Bets for Nebraska vs Indiana, South Carolina vs Oklahoma",
+        "UFC Contender Series Week 4 Odds, Picks & Predictions for Tuesday, September 3"
+      ]
+    },
+    {
+      "name": "H1-1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "87",
+        "110",
+        "78"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}

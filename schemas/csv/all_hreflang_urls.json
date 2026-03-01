@@ -1,0 +1,36 @@
+{
+  "file": "all_hreflang_urls.csv",
+  "rows_sampled": 3,
+  "columns": [
+    {
+      "name": "Source",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/",
+        "https://www.actionnetwork.com/",
+        "https://www.actionnetwork.com/casino"
+      ]
+    },
+    {
+      "name": "hreflang Alternate",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ca",
+        "https://www.actionnetwork.com/",
+        "https://www.actionnetwork.com/casino"
+      ]
+    },
+    {
+      "name": "hreflang",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "en-CA",
+        "x-default",
+        "x-default"
+      ]
+    }
+  ]
+}

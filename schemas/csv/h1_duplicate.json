@@ -1,0 +1,82 @@
+{
+  "file": "h1_duplicate.csv",
+  "rows_sampled": 83,
+  "columns": [
+    {
+      "name": "Address",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "https://www.actionnetwork.com/ncaab/odds/memphis-tigers",
+        "https://www.actionnetwork.com/ncaaf/odds/memphis-tigers",
+        "https://www.actionnetwork.com/pro-systems/system/1424912"
+      ]
+    },
+    {
+      "name": "Occurrences",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "1",
+        "2",
+        "1"
+      ]
+    },
+    {
+      "name": "H1-1",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Memphis Tigers Odds",
+        "Memphis Tigers Odds",
+        "Loading..."
+      ]
+    },
+    {
+      "name": "H1-1 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "19",
+        "19",
+        "10"
+      ]
+    },
+    {
+      "name": "H1-2",
+      "dtype": "text",
+      "nullable": true,
+      "sample_values": [
+        "Memphis Tigers Football",
+        "Pittsburgh Panthers 2025 Season Preview",
+        "Navy Midshipmen Football 2025"
+      ]
+    },
+    {
+      "name": "H1-2 Length",
+      "dtype": "integer",
+      "nullable": false,
+      "sample_values": [
+        "0",
+        "23",
+        "0"
+      ]
+    },
+    {
+      "name": "Indexability",
+      "dtype": "text",
+      "nullable": false,
+      "sample_values": [
+        "Indexable",
+        "Indexable",
+        "Indexable"
+      ]
+    },
+    {
+      "name": "Indexability Status",
+      "dtype": "unknown",
+      "nullable": true,
+      "sample_values": []
+    }
+  ]
+}
