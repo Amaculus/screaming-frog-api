@@ -35,6 +35,9 @@ derby = [
   "jaydebeapi>=1.2.3",
   "JPype1>=1.5.0"
 ]
+config = [
+  "sf-config-builder>=0.1.6"
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

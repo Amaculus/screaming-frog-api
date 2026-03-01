@@ -293,12 +293,32 @@ patches.add_custom_javascript(
 patch_json = patches.to_json()
 ```
 
+Apply patches directly to a `.seospiderconfig` file (requires `sf-config-builder`):
+
+```python
+from screamingfrog import ConfigPatches, write_seospider_config
+
+patches = ConfigPatches().set("mCrawlConfig.mMaxUrls", 5000)
+
+write_seospider_config(
+    "base.seospiderconfig",
+    "alpha.seospiderconfig",
+    patches,
+)
+```
+
 ## Derby requirements
 
 To work with `.dbseospider` crawl files (Apache Derby), install optional deps and set the Derby jar path:
 
 ```bash
 python -m pip install -e .[derby]
+```
+
+To enable `.seospiderconfig` writing through `sf-config-builder`:
+
+```bash
+python -m pip install -e .[config]
 ```
 
 Bundled Derby jars are included with this package (Apache Derby 10.17.1.0), so
