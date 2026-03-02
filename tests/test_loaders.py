@@ -15,8 +15,14 @@ def _derby_available() -> bool:
     except Exception:
         return False
     try:
-        from screamingfrog.db.derby import resolve_derby_jars, resolve_java_executable
+        from screamingfrog.db.derby import (
+            ensure_java_home,
+            resolve_derby_jars,
+            resolve_java_executable,
+        )
 
+        # Mirror runtime behavior: infer JAVA_HOME from common SF installs.
+        ensure_java_home()
         resolve_derby_jars()
         resolve_java_executable()
     except Exception:
