@@ -24,6 +24,9 @@ classifiers = [
 ]
 
 dependencies = [
+  "jaydebeapi>=1.2.3",
+  "JPype1>=1.5.0",
+  "sf-config-builder>=0.1.6",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +39,11 @@ derby = [
   "JPype1>=1.5.0"
 ]
 config = [
+  "sf-config-builder>=0.1.6"
+]
+alpha = [
+  "jaydebeapi>=1.2.3",
+  "JPype1>=1.5.0",
   "sf-config-builder>=0.1.6"
 ]
 

@@ -7,7 +7,7 @@ SQLite databases, Derby-based `.dbseospider` files, and `.seospider` crawl files
 - Backend interface + Internal-only CSV/DB backends
 - Unified `Crawl` loader
 - Schema discovery utilities (CSV + SQLite)
-- Derby-backed .dbseospider support (requires Java + derby.jar)
+- Derby-backed .dbseospider support (requires Java runtime; Derby jars are bundled)
 
 ## Quick start
 
@@ -293,7 +293,7 @@ patches.add_custom_javascript(
 patch_json = patches.to_json()
 ```
 
-Apply patches directly to a `.seospiderconfig` file (requires `sf-config-builder`):
+Apply patches directly to a `.seospiderconfig` file:
 
 ```python
 from screamingfrog import ConfigPatches, write_seospider_config
@@ -307,19 +307,15 @@ write_seospider_config(
 )
 ```
 
-## Derby requirements
+## Installation (single install)
 
-To work with `.dbseospider` crawl files (Apache Derby), install optional deps and set the Derby jar path:
-
-```bash
-python -m pip install -e .[derby]
-```
-
-To enable `.seospiderconfig` writing through `sf-config-builder`:
+Derby support (`.dbseospider`) and `.seospiderconfig` writing are included in the base install:
 
 ```bash
-python -m pip install -e .[config]
+python -m pip install -e .
 ```
+
+Optional extras still exist (`[derby]`, `[config]`, `[alpha]`) but are no longer required.
 
 Bundled Derby jars are included with this package (Apache Derby 10.17.1.0), so
 `DERBY_JAR` is optional. Set `DERBY_JAR` if you want to override the bundled jars
