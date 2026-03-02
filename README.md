@@ -321,6 +321,32 @@ Bundled Derby jars are included with this package (Apache Derby 10.17.1.0), so
 `DERBY_JAR` is optional. Set `DERBY_JAR` if you want to override the bundled jars
 or use a different Derby install.
 
+### Java runtime setup (for .dbseospider)
+
+The Derby driver jars are bundled, but you still need a Java runtime (`java.exe` / `java`) available.
+
+If Java is missing, Derby loads raise:
+
+`RuntimeError: Java runtime not found. Set JAVA_HOME or add java to PATH.`
+
+Quick checks and fixes:
+
+```bash
+java -version
+```
+
+- If Screaming Frog desktop is installed, this library already tries these paths automatically:
+  - `C:\Program Files (x86)\Screaming Frog SEO Spider\jre`
+  - `C:\Program Files\Screaming Frog SEO Spider\jre`
+- Otherwise install a JRE/JDK and set `JAVA_HOME` (or add Java to `PATH`).
+
+Windows PowerShell example:
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
+$env:Path = "$env:JAVA_HOME\\bin;$env:Path"
+```
+
 Third-party notices for Apache Derby are included in `screamingfrog/vendor/derby/NOTICE`.
 
 Derby tab mapping uses `schemas/mapping.json`. Set `SCREAMINGFROG_MAPPING` if
