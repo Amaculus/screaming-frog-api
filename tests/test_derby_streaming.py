@@ -1,0 +1,89 @@
+from __future__ import annotations
+
+from typing import Any
+
+from screamingfrog.backends.derby_backend import DerbyBackend, _iter_cursor_rows
+
+
+class _FakeCursor:
+    def __init__(self, columns: list[str], rows: list[tuple[Any, ...]]) -> None:
+        self.description = [(col,) for col in columns]
+        self._rows = list(rows)
+        self._index = 0
+        self.fetchall_called = 0
+        self.fetchmany_calls: list[int] = []
+        self.executed_sql: str | None = None
+        self.executed_params: list[Any] | None = None
+
+    def execute(self, sql: str, params: list[Any] | None = None) -> None:
+        self.executed_sql = sql
+        self.executed_params = list(params or [])
+
+    def fetchmany(self, size: int) -> list[tuple[Any, ...]]:
+        self.fetchmany_calls.append(size)
+        if self._index >= len(self._rows):
+            return []
+        end = min(self._index + size, len(self._rows))
+        chunk = self._rows[self._index : end]
+        self._index = end
+        return chunk
+
+    def fetchall(self) -> list[tuple[Any, ...]]:
+        self.fetchall_called += 1
+        return []
+
+
+class _FakeConnection:
+    def __init__(self, cursor: _FakeCursor) -> None:
+        self._cursor = cursor
+
+    def cursor(self) -> _FakeCursor:
+        return self._cursor
+
+
+def test_iter_cursor_rows_uses_fetchmany_chunks() -> None:
+    cursor = _FakeCursor(
+        ["A"],
+        [(1,), (2,), (3,), (4,), (5,)],
+    )
+
+    rows = list(_iter_cursor_rows(cursor, batch_size=2))
+
+    assert rows == [(1,), (2,), (3,), (4,), (5,)]
+    assert cursor.fetchall_called == 0
+    assert cursor.fetchmany_calls == [2, 2, 2, 2]
+
+
+def test_get_internal_streams_rows_without_fetchall() -> None:
+    cursor = _FakeCursor(
+        ["ENCODED_URL", "RESPONSE_CODE"],
+        [
+            ("https://example.com/", 200),
+            ("https://example.com/missing", 404),
+        ],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._table = "APP.URLS"
+    backend._conn = _FakeConnection(cursor)
+    backend._column_map = {}
+    backend._internal_columns = ["ENCODED_URL", "RESPONSE_CODE"]
+    backend._internal_expr_selects = [
+        ("SF_EXPR_0", "Indexability", "CASE WHEN 1=1 THEN 'Indexable' END")
+    ]
+    backend._internal_alias_map = {
+        "Address": "ENCODED_URL",
+        "Status Code": "RESPONSE_CODE",
+    }
+    backend._internal_header_extract_map = {}
+
+    pages = list(backend.get_internal())
+
+    assert len(pages) == 2
+    assert pages[0].address == "https://example.com/"
+    assert pages[0].status_code == 200
+    assert pages[1].address == "https://example.com/missing"
+    assert pages[1].status_code == 404
+    assert pages[0].data["Status Code"] == 200
+    assert pages[1].data["Status Code"] == 404
+    assert cursor.fetchall_called == 0
+    assert len(cursor.fetchmany_calls) >= 1

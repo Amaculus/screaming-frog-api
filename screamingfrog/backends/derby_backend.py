@@ -30,6 +30,7 @@ _CHAIN_TAB_KEYS = {
     "redirects.csv",
 }
 _CHAIN_MAX_HOPS = 10
+_FETCH_BATCH_SIZE = 1000
 
 
 class DerbyBackend(CrawlBackend):
@@ -72,27 +73,43 @@ class DerbyBackend(CrawlBackend):
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
         columns = [desc[0] for desc in cursor.description or self._internal_columns]
-        for row in cursor.fetchall():
+        column_set = {str(col) for col in columns}
+        active_expr_aliases = [
+            (alias, csv_col)
+            for alias, csv_col, _ in self._internal_expr_selects
+            if alias in column_set
+        ]
+        active_aliases = [
+            (csv_col, db_col)
+            for csv_col, db_col in self._internal_alias_map.items()
+            if db_col in column_set
+        ]
+        header_blob_col = None
+        if "HTTP_RESPONSE_HEADER_COLLECTION" in column_set:
+            header_blob_col = "HTTP_RESPONSE_HEADER_COLLECTION"
+        elif "http_response_header_collection" in column_set:
+            header_blob_col = "http_response_header_collection"
+
+        for row in _iter_cursor_rows(cursor):
             data = {col: val for col, val in zip(columns, row)}
-            for alias, csv_col, _ in self._internal_expr_selects:
-                if csv_col not in data and alias in data:
-                    data[csv_col] = data.get(alias)
-                data.pop(alias, None)
+            for alias, csv_col in active_expr_aliases:
+                value = data.pop(alias, None)
+                data.setdefault(csv_col, value)
             # Expose CSV-style aliases (e.g., "Status Code") for mapped direct columns.
-            for csv_col, db_col in self._internal_alias_map.items():
-                if csv_col not in data and db_col in data:
-                    data[csv_col] = data[db_col]
+            for csv_col, db_col in active_aliases:
+                data.setdefault(csv_col, data.get(db_col))
             if self._internal_header_extract_map:
-                headers = _headers_from_blob(
-                    data.get("HTTP_RESPONSE_HEADER_COLLECTION")
-                    or data.get("http_response_header_collection")
-                )
-                links = _parse_link_headers(headers.get("link", [])) if headers else []
+                headers = {}
+                links: list[dict[str, Any]] = []
+                header_blob = data.get(header_blob_col) if header_blob_col else None
+                if header_blob:
+                    headers = _headers_from_blob(header_blob)
+                    links = _parse_link_headers(headers.get("link", [])) if headers else []
                 for csv_col, extract in self._internal_header_extract_map.items():
                     if csv_col in data:
                         continue
-                    data[csv_col] = _extract_header_value(extract, headers or {}, links or [])
-            yield InternalPage.from_db_row(list(data.keys()), tuple(data.values()))
+                    data[csv_col] = _extract_header_value(extract, headers, links)
+            yield InternalPage.from_data(data, copy_data=False)
 
     def get_inlinks(self, url: str) -> Iterator[Link]:
         url_id = self._resolve_unique_url_id(url)
@@ -125,7 +142,7 @@ class DerbyBackend(CrawlBackend):
     def _iter_links(self, sql: str, params: list[Any]) -> Iterator[Link]:
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
-        for row in cursor.fetchall():
+        for row in _iter_cursor_rows(cursor):
             yield Link.from_row(_link_row_to_dict(row))
 
     def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
@@ -245,7 +262,7 @@ class DerbyBackend(CrawlBackend):
 
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
-        for row in cursor.fetchall():
+        for row in _iter_cursor_rows(cursor):
             headers = None
             links = None
             if header_index is not None:
@@ -278,14 +295,14 @@ class DerbyBackend(CrawlBackend):
         cursor = self._conn.cursor()
         cursor.execute(f"SELECT * FROM {table}")
         columns = [desc[0] for desc in cursor.description or []]
-        for row in cursor.fetchall():
+        for row in _iter_cursor_rows(cursor):
             yield {col: val for col, val in zip(columns, row)}
 
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
         cursor = self._conn.cursor()
         cursor.execute(query, list(params or []))
         columns = [desc[0] for desc in cursor.description or []]
-        for row in cursor.fetchall():
+        for row in _iter_cursor_rows(cursor):
             yield {col: val for col, val in zip(columns, row)}
 
     def _get_chain_tab(
@@ -989,6 +1006,21 @@ def _fetch_column_names(conn, table: str) -> list[str]:
     cursor = conn.cursor()
     cursor.execute(f"SELECT * FROM {table} FETCH FIRST 1 ROWS ONLY")
     return [col[0] for col in cursor.description]
+
+
+def _iter_cursor_rows(cursor, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:
+    """Yield cursor rows in chunks to avoid loading full result sets into memory."""
+    fetchmany = getattr(cursor, "fetchmany", None)
+    if not callable(fetchmany):
+        for row in cursor.fetchall():
+            yield row
+        return
+    while True:
+        rows = fetchmany(batch_size)
+        if not rows:
+            break
+        for row in rows:
+            yield row
 
 
 def zipfile_is_zip(path: Path) -> bool:
