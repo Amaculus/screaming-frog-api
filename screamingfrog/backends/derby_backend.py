@@ -54,6 +54,9 @@ class DerbyBackend(CrawlBackend):
         self._derby_jars = resolve_derby_jars(derby_jar)
         self._conn = _connect_derby(self._db_root, self._derby_jars)
         self._internal_columns = _fetch_column_names(self._conn, self._table)
+        self._internal_is_internal_col = _resolve_column_name(
+            self._internal_columns, "IS_INTERNAL"
+        )
         self._internal_alias_map = _resolve_internal_alias_map(
             self._mapping, self._table, self._internal_columns
         )
@@ -66,10 +69,17 @@ class DerbyBackend(CrawlBackend):
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         sql = f"SELECT * FROM {self._table}"
+        where_parts: list[str] = []
         params: list[Any] = []
+        internal_clause = self._internal_only_clause()
+        if internal_clause:
+            where_parts.append(internal_clause)
         if filters:
-            where, params = _build_where(filters, self._column_map)
-            sql = f"{sql} WHERE {where}"
+            where, filter_params = _build_where(filters, self._column_map)
+            where_parts.append(where)
+            params.extend(filter_params)
+        if where_parts:
+            sql = f"{sql} WHERE {' AND '.join(where_parts)}"
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
         columns = [desc[0] for desc in cursor.description or self._internal_columns]
@@ -149,10 +159,17 @@ class DerbyBackend(CrawlBackend):
         if table != "internal":
             raise NotImplementedError("Derby backend only supports 'internal' in Phase 1")
         sql = f"SELECT COUNT(*) FROM {self._table}"
+        where_parts: list[str] = []
         params: list[Any] = []
+        internal_clause = self._internal_only_clause()
+        if internal_clause:
+            where_parts.append(internal_clause)
         if filters:
-            where, params = _build_where(filters, self._column_map)
-            sql = f"{sql} WHERE {where}"
+            where, filter_params = _build_where(filters, self._column_map)
+            where_parts.append(where)
+            params.extend(filter_params)
+        if where_parts:
+            sql = f"{sql} WHERE {' AND '.join(where_parts)}"
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
         return int(cursor.fetchone()[0])
@@ -164,9 +181,22 @@ class DerbyBackend(CrawlBackend):
         if func not in {"COUNT", "SUM", "AVG", "MIN", "MAX"}:
             raise ValueError(f"Unsupported aggregation: {func}")
         sql = f"SELECT {func}({column}) FROM {self._table}"
+        internal_clause = self._internal_only_clause()
+        if internal_clause:
+            sql = f"{sql} WHERE {internal_clause}"
         cursor = self._conn.cursor()
         cursor.execute(sql)
         return cursor.fetchone()[0]
+
+    def _internal_only_clause(self) -> str | None:
+        column = getattr(self, "_internal_is_internal_col", None)
+        if not column:
+            column = _resolve_column_name(
+                getattr(self, "_internal_columns", []), "IS_INTERNAL"
+            )
+        if not column:
+            return None
+        return f"{column} = TRUE"
 
     def list_tabs(self) -> list[str]:
         return sorted(_normalize_tab_name(name) for name in self._mapping.keys())
@@ -1006,6 +1036,14 @@ def _fetch_column_names(conn, table: str) -> list[str]:
     cursor = conn.cursor()
     cursor.execute(f"SELECT * FROM {table} FETCH FIRST 1 ROWS ONLY")
     return [col[0] for col in cursor.description]
+
+
+def _resolve_column_name(columns: Sequence[str], target: str) -> str | None:
+    target_norm = str(target).strip().lower()
+    for column in columns:
+        if str(column).strip().lower() == target_norm:
+            return str(column)
+    return None
 
 
 def _iter_cursor_rows(cursor, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:

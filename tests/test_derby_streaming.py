@@ -10,7 +10,9 @@ class _FakeCursor:
         self.description = [(col,) for col in columns]
         self._rows = list(rows)
         self._index = 0
+        self._fetchone_index = 0
         self.fetchall_called = 0
+        self.fetchone_called = 0
         self.fetchmany_calls: list[int] = []
         self.executed_sql: str | None = None
         self.executed_params: list[Any] | None = None
@@ -31,6 +33,14 @@ class _FakeCursor:
     def fetchall(self) -> list[tuple[Any, ...]]:
         self.fetchall_called += 1
         return []
+
+    def fetchone(self) -> tuple[Any, ...] | None:
+        self.fetchone_called += 1
+        if self._fetchone_index >= len(self._rows):
+            return None
+        row = self._rows[self._fetchone_index]
+        self._fetchone_index += 1
+        return row
 
 
 class _FakeConnection:
@@ -56,17 +66,18 @@ def test_iter_cursor_rows_uses_fetchmany_chunks() -> None:
 
 def test_get_internal_streams_rows_without_fetchall() -> None:
     cursor = _FakeCursor(
-        ["ENCODED_URL", "RESPONSE_CODE"],
+        ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL"],
         [
-            ("https://example.com/", 200),
-            ("https://example.com/missing", 404),
+            ("https://example.com/", 200, True),
+            ("https://example.com/missing", 404, True),
         ],
     )
     backend = DerbyBackend.__new__(DerbyBackend)
     backend._table = "APP.URLS"
     backend._conn = _FakeConnection(cursor)
     backend._column_map = {}
-    backend._internal_columns = ["ENCODED_URL", "RESPONSE_CODE"]
+    backend._internal_columns = ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL"]
+    backend._internal_is_internal_col = "IS_INTERNAL"
     backend._internal_expr_selects = [
         ("SF_EXPR_0", "Indexability", "CASE WHEN 1=1 THEN 'Indexable' END")
     ]
@@ -85,5 +96,52 @@ def test_get_internal_streams_rows_without_fetchall() -> None:
     assert pages[1].status_code == 404
     assert pages[0].data["Status Code"] == 200
     assert pages[1].data["Status Code"] == 404
+    assert cursor.executed_sql == "SELECT * FROM APP.URLS WHERE IS_INTERNAL = TRUE"
+    assert cursor.executed_params == []
     assert cursor.fetchall_called == 0
     assert len(cursor.fetchmany_calls) >= 1
+
+
+def test_get_internal_combines_internal_clause_with_filters() -> None:
+    cursor = _FakeCursor(
+        ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL"],
+        [("https://example.com/missing", 404, True)],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._table = "APP.URLS"
+    backend._conn = _FakeConnection(cursor)
+    backend._column_map = {"status_code": "RESPONSE_CODE"}
+    backend._internal_columns = ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL"]
+    backend._internal_is_internal_col = "IS_INTERNAL"
+    backend._internal_expr_selects = []
+    backend._internal_alias_map = {
+        "Address": "ENCODED_URL",
+        "Status Code": "RESPONSE_CODE",
+    }
+    backend._internal_header_extract_map = {}
+
+    _ = list(backend.get_internal(filters={"status_code": 404}))
+
+    assert cursor.executed_sql == (
+        "SELECT * FROM APP.URLS WHERE IS_INTERNAL = TRUE AND RESPONSE_CODE = ?"
+    )
+    assert cursor.executed_params == [404]
+
+
+def test_count_applies_internal_clause_and_filters() -> None:
+    cursor = _FakeCursor(["COUNT"], [(7,)])
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._table = "APP.URLS"
+    backend._conn = _FakeConnection(cursor)
+    backend._column_map = {"status_code": "RESPONSE_CODE"}
+    backend._internal_columns = ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL"]
+    backend._internal_is_internal_col = "IS_INTERNAL"
+
+    count = backend.count("internal", filters={"status_code": 404})
+
+    assert count == 7
+    assert cursor.executed_sql == (
+        "SELECT COUNT(*) FROM APP.URLS WHERE IS_INTERNAL = TRUE AND RESPONSE_CODE = ?"
+    )
+    assert cursor.executed_params == [404]
+    assert cursor.fetchone_called == 1
