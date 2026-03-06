@@ -126,6 +126,28 @@ for link in crawl.inlinks("https://example.com/page"):
         print(link.source, "->", link.destination, link.data.get("Rel"))
 ```
 
+## Chain helpers (redirect/canonical)
+
+Dedicated chain helpers are available on `Crawl`:
+
+```python
+from screamingfrog import Crawl
+
+crawl = Crawl.load("./crawl.dbseospider")
+
+# Redirect chains with 3+ hops and no loop
+for row in crawl.redirect_chains(min_hops=3, loop=False):
+    print(row["Address"], row.get("Number of Redirects"))
+
+# Canonical chains
+for row in crawl.canonical_chains(min_hops=2):
+    print(row["Address"], row.get("Number of Canonicals"))
+
+# Mixed redirect+canonical chains
+for row in crawl.redirect_and_canonical_chains(min_hops=4):
+    print(row["Address"], row.get("Number of Redirects/Canonicals"))
+```
+
 ## Escape hatches (raw SQL)
 
 Mapped fields are stable and documented. Raw access is available for advanced users

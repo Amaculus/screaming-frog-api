@@ -17,6 +17,9 @@ This file lists the current callable API in `sf-alpha`.
 - `crawl.tabs -> list[str]`
 - `crawl.inlinks(url) -> Iterator[Link]`
 - `crawl.outlinks(url) -> Iterator[Link]`
+- `crawl.redirect_chains(min_hops=None, max_hops=None, loop=None) -> Iterator[dict[str, Any]]`
+- `crawl.canonical_chains(min_hops=None, max_hops=None, loop=None) -> Iterator[dict[str, Any]]`
+- `crawl.redirect_and_canonical_chains(min_hops=None, max_hops=None, loop=None) -> Iterator[dict[str, Any]]`
 - `crawl.tab_filters(name) -> list[str]`
 - `crawl.tab_filter_defs(name) -> list[Any]`
 - `crawl.tab_columns(name) -> list[str]`
@@ -130,16 +133,29 @@ This file lists the current callable API in `sf-alpha`.
 
 ---
 
-## 6) Current chain-report access (via tab API)
+## 6) Chain report helpers
 
-There are no dedicated `crawl.redirect_chains()` helper methods yet.
-Use tab access:
+Dedicated helpers are available:
+
+- `crawl.redirect_chains(...)`
+- `crawl.canonical_chains(...)`
+- `crawl.redirect_and_canonical_chains(...)`
+
+They use the same underlying tab data and add ergonomic filtering by hop count and loop flag.
+
+Equivalent tab access remains available:
 
 - `crawl.tab("redirect_chains")`
 - `crawl.tab("canonical_chains")`
 - `crawl.tab("redirect_and_canonical_chains")`
 
-Example (filter chains >3 hops in Python):
+Example (chain helper):
+
+```python
+rows = list(crawl.redirect_chains(min_hops=4, loop=False))
+```
+
+Example (raw tab style):
 
 ```python
 rows = [

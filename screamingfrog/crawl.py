@@ -489,6 +489,54 @@ class Crawl:
         """Return outlinks for a given URL (backend-dependent support)."""
         return self._backend.get_outlinks(url)
 
+    def redirect_chains(
+        self,
+        *,
+        min_hops: int | None = None,
+        max_hops: int | None = None,
+        loop: bool | None = None,
+    ) -> Iterator[dict[str, Any]]:
+        """Return redirect chain rows with optional hop/loop filtering."""
+        return self._iter_chain_tab(
+            "redirect_chains",
+            hop_column="Number of Redirects",
+            min_hops=min_hops,
+            max_hops=max_hops,
+            loop=loop,
+        )
+
+    def canonical_chains(
+        self,
+        *,
+        min_hops: int | None = None,
+        max_hops: int | None = None,
+        loop: bool | None = None,
+    ) -> Iterator[dict[str, Any]]:
+        """Return canonical chain rows with optional hop/loop filtering."""
+        return self._iter_chain_tab(
+            "canonical_chains",
+            hop_column="Number of Canonicals",
+            min_hops=min_hops,
+            max_hops=max_hops,
+            loop=loop,
+        )
+
+    def redirect_and_canonical_chains(
+        self,
+        *,
+        min_hops: int | None = None,
+        max_hops: int | None = None,
+        loop: bool | None = None,
+    ) -> Iterator[dict[str, Any]]:
+        """Return mixed redirect/canonical chain rows with optional hop/loop filtering."""
+        return self._iter_chain_tab(
+            "redirect_and_canonical_chains",
+            hop_column="Number of Redirects/Canonicals",
+            min_hops=min_hops,
+            max_hops=max_hops,
+            loop=loop,
+        )
+
     def tab_filters(self, name: str) -> list[str]:
         """List available GUI filter names for a tab."""
         return [filt.name for filt in list_gui_filters(name)]
@@ -651,6 +699,34 @@ class Crawl:
             redirect_changes=redirect_changes,
             field_changes=field_changes,
         )
+
+    def _iter_chain_tab(
+        self,
+        tab_name: str,
+        *,
+        hop_column: str,
+        min_hops: int | None,
+        max_hops: int | None,
+        loop: bool | None,
+    ) -> Iterator[dict[str, Any]]:
+        if min_hops is not None and min_hops < 0:
+            raise ValueError("min_hops must be >= 0")
+        if max_hops is not None and max_hops < 0:
+            raise ValueError("max_hops must be >= 0")
+        if min_hops is not None and max_hops is not None and min_hops > max_hops:
+            raise ValueError("min_hops cannot be greater than max_hops")
+
+        for row in self.tab(tab_name):
+            hops = _safe_int(row.get(hop_column))
+            if min_hops is not None and (hops is None or hops < min_hops):
+                continue
+            if max_hops is not None and (hops is None or hops > max_hops):
+                continue
+            if loop is not None:
+                loop_value = _to_bool(row.get("Loop"))
+                if loop_value is None or loop_value != loop:
+                    continue
+            yield row
 
     @property
     def tabs(self) -> list[str]:
@@ -911,6 +987,21 @@ def _safe_int(value: Any) -> Optional[int]:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _to_bool(value: Any) -> Optional[bool]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y"}:
+        return True
+    if text in {"0", "false", "no", "n"}:
+        return False
+    return None
 
 
 def _resolve_redirect(
