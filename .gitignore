@@ -63,3 +63,6 @@ credentials/
 tmp_*.py
 tmp_*.txt
 replay_pid*.log
+
+# Social/content drafting assets (keep local only)
+examples/carbon_snippets/
