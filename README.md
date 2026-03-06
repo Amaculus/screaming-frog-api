@@ -3,6 +3,8 @@
 Python library for working with Screaming Frog SEO Spider crawl data via CSV exports,
 SQLite databases, Derby-based `.dbseospider` files, and `.seospider` crawl files.
 
+See `methods.md` for a complete method-level API reference.
+
 ## Phase 1 status
 - Backend interface + Internal-only CSV/DB backends
 - Unified `Crawl` loader
