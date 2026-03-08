@@ -8,7 +8,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse, urlunparse
 
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.derby import (
@@ -208,7 +208,8 @@ class DerbyBackend(CrawlBackend):
         gui_filter = filters.pop("__gui__", None)
         normalized = _normalize_tab_name(tab_name)
         if normalized in _CHAIN_TAB_KEYS:
-            return self._get_chain_tab(normalized, filters)
+            yield from self._get_chain_tab(normalized, filters)
+            return
         table, entries, gui_defs, supplementary = _resolve_tab_entries(
             self._mapping, tab_name, gui_filter
         )
@@ -448,7 +449,8 @@ class DerbyBackend(CrawlBackend):
             text = str(target).strip()
             if not text:
                 return None
-            return urljoin(base, text)
+            url = urljoin(base, text)
+            return _strip_default_port(url)
 
         def resolve_location(headers: dict[str, list[str]]) -> Optional[str]:
             if not headers:
@@ -1101,6 +1103,19 @@ def _headers_from_blob(blob: Any) -> dict[str, list[str]]:
                 continue
             headers.setdefault(name, []).append(str(value))
     return headers
+
+
+_DEFAULT_PORTS = {"http": "80", "https": "443"}
+
+
+def _strip_default_port(url: str) -> str:
+    """Remove default port from URL (e.g. :443 for https, :80 for http)."""
+    parsed = urlparse(url)
+    if parsed.port and str(parsed.port) == _DEFAULT_PORTS.get(parsed.scheme):
+        host = parsed.hostname or ""
+        new = parsed._replace(netloc=host)
+        return urlunparse(new)
+    return url
 
 
 def _split_link_header(value: str) -> list[str]:
