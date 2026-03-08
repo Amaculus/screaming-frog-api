@@ -5,6 +5,8 @@ import shutil
 import tempfile
 import zipfile
 from contextlib import nullcontext
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -200,3 +202,69 @@ def _project_dirs(root: Path) -> list[Path]:
         if (path / "DbSeoSpiderFileKey").exists():
             dirs.append(path)
     return dirs
+
+
+@dataclass(frozen=True)
+class CrawlInfo:
+    """Metadata for a DB-mode crawl stored in ProjectInstanceData."""
+
+    db_id: str
+    url: str
+    urls_crawled: int
+    percent_complete: float
+    modified: datetime
+    path: Path
+
+    def __str__(self) -> str:
+        date_str = self.modified.strftime("%Y-%m-%d %H:%M")
+        return f"{self.url} ({self.urls_crawled:,} URLs, {date_str}) [{self.db_id}]"
+
+
+def _parse_properties(path: Path) -> dict[str, str]:
+    """Parse a Java .properties-style file into a dict."""
+    props: dict[str, str] = {}
+    if not path.exists():
+        return props
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        key, _, value = line.partition("=")
+        props[key.strip()] = value.strip()
+    return props
+
+
+def list_crawls(
+    project_root: str | Path | None = None,
+) -> list[CrawlInfo]:
+    """List all DB-mode crawls in the ProjectInstanceData directory.
+
+    Returns a list of ``CrawlInfo`` objects sorted by modification time
+    (most recent first).
+    """
+    root = resolve_project_root(project_root)
+    results: list[CrawlInfo] = []
+    for project_dir in _project_dirs(root):
+        static = _parse_properties(project_dir / "DbSeoSpiderFileKey")
+        dynamic = _parse_properties(project_dir / "DbSeoSpiderFileKeyDynamic")
+
+        url = static.get("url", "").replace("\\:", ":")
+        if not url:
+            continue
+
+        modified_ts = int(dynamic.get("modifiedTime", "0"))
+        modified = datetime.fromtimestamp(modified_ts, tz=timezone.utc)
+
+        results.append(
+            CrawlInfo(
+                db_id=project_dir.name,
+                url=url,
+                urls_crawled=int(dynamic.get("urlsCrawled", "0")),
+                percent_complete=float(dynamic.get("percentComplete", "0")),
+                modified=modified,
+                path=project_dir,
+            )
+        )
+
+    results.sort(key=lambda c: c.modified, reverse=True)
+    return results
