@@ -24,7 +24,7 @@ for page in crawl.internal.filter(status_code=404):
 ## Loading crawl files
 
 ```python
-from screamingfrog import Crawl
+from screamingfrog import Crawl, list_crawls
 
 # CSV exports directory
 crawl = Crawl.load("./exports")
@@ -62,6 +62,10 @@ crawl = Crawl.load(
 
 # DB crawl ID (DB mode) loads Derby by default
 crawl = Crawl.load("138edb21-61d0-41cd-9e9b-725b592a471c", source_type="db_id")
+
+# Discover available DB crawls, then load one by ID
+latest = list_crawls()[0]
+crawl = Crawl.load(latest.db_id, source_type="db_id")
 ```
 
 ### Loader notes
@@ -77,6 +81,26 @@ crawl = Crawl.load("138edb21-61d0-41cd-9e9b-725b592a471c", source_type="db_id")
 - `export_profile="kitchen_sink"` uses bundled export lists captured from the SF UI.
 - Derby loads can auto-fallback to CSV exports for missing columns or GUI filters (`csv_fallback=True`, `csv_fallback_profile="kitchen_sink"`).
 - CSV fallback cache defaults to `csv_fallback_cache_dir` (next to the crawl); set `csv_fallback=False` to disable.
+
+### Discover DB crawls (`list_crawls`)
+
+Use `list_crawls()` to enumerate DB-mode crawls in your local Screaming Frog
+`ProjectInstanceData` directory, without opening Derby or starting Java.
+
+```python
+from screamingfrog import list_crawls
+
+for info in list_crawls():
+    print(info.db_id, info.url, info.urls_crawled, info.modified)
+```
+
+`list_crawls(project_root=...)` returns `CrawlInfo` objects with:
+- `db_id`: crawl UUID folder name
+- `url`: crawl start URL
+- `urls_crawled`: number of crawled URLs
+- `percent_complete`: crawl completion percentage
+- `modified`: last modified timestamp (UTC)
+- `path`: absolute path to the crawl folder
 
 ## Generic tab access
 

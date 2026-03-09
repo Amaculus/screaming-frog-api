@@ -5,6 +5,7 @@ This file lists the current callable API in `sf-alpha`.
 ## 1) Top-level API (`from screamingfrog import ...`)
 
 ### Crawl + analysis
+- `list_crawls(project_root=None) -> list[CrawlInfo]`
 - `Crawl.load(path, ..., source_type="auto", ...) -> Crawl`
 - `Crawl.from_exports(export_dir) -> Crawl`
 - `Crawl.from_database(db_path) -> Crawl`
@@ -40,6 +41,7 @@ This file lists the current callable API in `sf-alpha`.
 - `start_crawl(start_url, output_dir, ..., config=None, auth_config=None, export_tabs=None, bulk_exports=None, save_reports=None, ...) -> subprocess.CompletedProcess[str]`
 
 ### `.dbseospider` packaging helpers
+- `CrawlInfo` (dataclass)
 - `pack_dbseospider(project_dir, output_file) -> Path`
 - `pack_dbseospider_from_db_id(db_id, output_file, project_root=None) -> Path`
 - `unpack_dbseospider(dbseospider_file, output_dir) -> Path`
@@ -105,11 +107,13 @@ This file lists the current callable API in `sf-alpha`.
 
 ## `screamingfrog.db`
 - `connect(db_path) -> sqlite3.Connection`
+- `list_crawls(project_root=None) -> list[CrawlInfo]`
 - `pack_dbseospider(...)`
 - `pack_dbseospider_from_db_id(...)`
 - `unpack_dbseospider(...)`
 - `export_dbseospider_from_seospider(...)`
 - `load_seospider_db_project(...)`
+- dataclass: `CrawlInfo`
 - dataclass: `InternalRow`
 
 ---
