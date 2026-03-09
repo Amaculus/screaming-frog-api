@@ -1111,11 +1111,46 @@ _DEFAULT_PORTS = {"http": "80", "https": "443"}
 def _strip_default_port(url: str) -> str:
     """Remove default port from URL (e.g. :443 for https, :80 for http)."""
     parsed = urlparse(url)
-    if parsed.port and str(parsed.port) == _DEFAULT_PORTS.get(parsed.scheme):
-        host = parsed.hostname or ""
-        new = parsed._replace(netloc=host)
-        return urlunparse(new)
-    return url
+    default_port = _DEFAULT_PORTS.get(parsed.scheme.lower())
+    if not default_port:
+        return url
+
+    netloc = parsed.netloc
+    if not netloc:
+        return url
+
+    userinfo = ""
+    hostport = netloc
+    if "@" in hostport:
+        userinfo, hostport = hostport.rsplit("@", 1)
+        userinfo += "@"
+
+    if hostport.startswith("["):
+        end = hostport.find("]")
+        if end < 0:
+            return url
+        host = hostport[: end + 1]
+        remainder = hostport[end + 1 :]
+        if not remainder.startswith(":"):
+            return url
+        port_text = remainder[1:]
+        if not port_text.isdigit() or int(port_text) != int(default_port):
+            return url
+        new_netloc = f"{userinfo}{host}"
+    else:
+        if ":" not in hostport:
+            return url
+        host, sep, port_text = hostport.rpartition(":")
+        if not sep or not host:
+            return url
+        if not port_text.isdigit() or int(port_text) != int(default_port):
+            return url
+        new_netloc = f"{userinfo}{host}"
+
+    if new_netloc == netloc:
+        return url
+    new = parsed._replace(netloc=new_netloc)
+    return urlunparse(new)
 
 
 def _split_link_header(value: str) -> list[str]:
