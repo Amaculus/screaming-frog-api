@@ -44,12 +44,5 @@ def test_mapping_missing_columns_returns_true_when_base_missing(tmp_path: Path) 
     assert _mapping_missing_columns(primary, "Page Titles", "Missing", tmp_path) is True
 
 
-def test_gui_filter_supported_by_filter_specific_mapping_key() -> None:
-    mapping = {
-        "structured_data_jsonld_urls.csv": [
-            {"csv_column": "Address"},
-        ]
-    }
-    assert (
-        _gui_filter_supported("Structured Data", "JSON-LD URLs", mapping=mapping) is True
-    )
+def test_gui_filter_supported_for_jsonld_via_sql_filter() -> None:
+    assert _gui_filter_supported("Structured Data", "JSON-LD URLs") is True

@@ -80,11 +80,7 @@ class HybridBackend(CrawlBackend):
             if len(gui_filter) > 1:
                 return False
         if gui_filter:
-            if not _gui_filter_supported(
-                tab_name,
-                gui_filter,
-                mapping=getattr(self._primary, "_mapping", {}),
-            ):
+            if not _gui_filter_supported(tab_name, gui_filter):
                 return True
         return _mapping_missing_columns(self._primary, tab_name, gui_filter, self._schema_dir)
 
@@ -204,9 +200,7 @@ def _expected_csv_filename(tab_name: str, gui_filter: Any) -> str:
     return make_tab_filename(tab_name, gui)
 
 
-def _gui_filter_supported(
-    tab_name: str, gui_filter: Any, mapping: Optional[dict[str, Any]] = None
-) -> bool:
+def _gui_filter_supported(tab_name: str, gui_filter: Any) -> bool:
     if gui_filter is None:
         return True
     if isinstance(gui_filter, (list, tuple, set)):
@@ -221,12 +215,6 @@ def _gui_filter_supported(
         return False
     if filt.sql_where or filt.join_table:
         return True
-    if mapping:
-        csv_key = _expected_csv_filename(tab_name, name)
-        if csv_key in mapping:
-            return True
-        if "-" in csv_key and csv_key.replace("-", "") in mapping:
-            return True
     return normalize_name(filt.name) == "all"
 
 

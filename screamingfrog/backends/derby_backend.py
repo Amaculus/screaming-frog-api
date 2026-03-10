@@ -220,6 +220,8 @@ class DerbyBackend(CrawlBackend):
         entry_indexes: list[int | None] = []
         header_index: int | None = None
         encoded_url_index: int | None = None
+        blob_checks = _resolve_blob_checks(gui_defs)
+        blob_indexes: dict[str, int] = {}
 
         if supplementary and _table_supports_encoded_url(table):
             select_items.append("ENCODED_URL")
@@ -241,6 +243,17 @@ class DerbyBackend(CrawlBackend):
                 select_items.append(entry["db_column"])
             entry_indexes.append(len(select_items) - 1)
             csv_columns.append(entry["csv_column"])
+
+        for blob_column, _ in blob_checks:
+            if blob_column in blob_indexes:
+                continue
+            try:
+                idx = select_items.index(blob_column)
+            except ValueError:
+                select_items.append(blob_column)
+                idx = len(select_items) - 1
+            blob_indexes[blob_column] = idx
+
         select_cols = ", ".join(select_items)
         join_sql = ""
         where_parts: list[str] = []
@@ -294,6 +307,8 @@ class DerbyBackend(CrawlBackend):
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
         for row in _iter_cursor_rows(cursor):
+            if blob_checks and not _row_matches_blob_patterns(row, blob_checks, blob_indexes):
+                continue
             headers = None
             links = None
             if header_index is not None:
@@ -1031,6 +1046,20 @@ def _resolve_join(gui_defs: list[Any]) -> tuple[str | None, str | None, str]:
     return join_table, join_on, join_type
 
 
+def _resolve_blob_checks(gui_defs: list[Any]) -> list[tuple[str, bytes]]:
+    checks: list[tuple[str, bytes]] = []
+    for filt in gui_defs:
+        column = getattr(filt, "blob_column", None)
+        pattern = getattr(filt, "blob_pattern", None)
+        if not column or not pattern:
+            continue
+        if isinstance(pattern, bytes):
+            checks.append((str(column), pattern))
+        else:
+            checks.append((str(column), str(pattern).encode("utf-8")))
+    return checks
+
+
 def _preferred_tables(table_counts: dict[str, int]) -> list[str]:
     def score(item: tuple[str, int]) -> tuple[int, int]:
         name, count = item
@@ -1131,6 +1160,45 @@ def _headers_from_blob(blob: Any) -> dict[str, list[str]]:
                 continue
             headers.setdefault(name, []).append(str(value))
     return headers
+
+
+def _row_matches_blob_patterns(
+    row: tuple[Any, ...],
+    checks: list[tuple[str, bytes]],
+    indexes: dict[str, int],
+) -> bool:
+    for column, pattern in checks:
+        idx = indexes.get(column)
+        if idx is None:
+            return False
+        if not _blob_contains(row[idx], pattern):
+            return False
+    return True
+
+
+def _blob_contains(blob: Any, pattern: bytes) -> bool:
+    if blob is None:
+        return False
+    if not pattern:
+        return False
+    raw: bytes
+    if isinstance(blob, (bytes, bytearray, memoryview)):
+        raw = bytes(blob)
+    else:
+        try:
+            length = int(blob.length())
+        except Exception:
+            return False
+        if length <= 0:
+            return False
+        try:
+            raw = bytes(blob.getBytes(1, length))
+        except Exception:
+            return False
+    if not raw:
+        return False
+    sample = raw[:512]
+    return pattern.upper() in sample.upper()
 
 
 _DEFAULT_PORTS = {"http": "80", "https": "443"}

@@ -28,6 +28,21 @@ def test_structured_data_parse_errors_filter_uses_parse_error_column() -> None:
     assert parse_errors.sql_where == "PARSE_ERROR_MSG IS NOT NULL AND PARSE_ERROR_MSG <> ''"
 
 
+def test_structured_data_format_filters_define_blob_patterns() -> None:
+    jsonld = get_filter("Structured Data", "JSON-LD URLs")
+    microdata = get_filter("Structured Data", "Microdata URLs")
+    rdfa = get_filter("Structured Data", "RDFa URLs")
+
+    assert jsonld is not None and jsonld.blob_column == "SERIALISED_STRUCTURED_DATA"
+    assert microdata is not None and microdata.blob_column == "SERIALISED_STRUCTURED_DATA"
+    assert rdfa is not None and rdfa.blob_column == "SERIALISED_STRUCTURED_DATA"
+
+    assert jsonld.blob_pattern == b"JSONLD"
+    assert microdata.blob_pattern == b"MICRODATA"
+    assert rdfa.blob_pattern == b"RDFA"
+    assert jsonld.sql_where is not None and "LENGTH(SERIALISED_STRUCTURED_DATA) > 0" in jsonld.sql_where
+
+
 def test_images_background_and_incorrect_size_filters_have_sql() -> None:
     background = get_filter("Images", "Background Images")
     incorrect_size = get_filter("Images", "Incorrectly Sized Images")

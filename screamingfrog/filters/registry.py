@@ -15,6 +15,8 @@ class FilterDef:
     join_table: Optional[str] = None
     join_on: Optional[str] = None
     join_type: str = "LEFT"
+    blob_column: Optional[str] = None
+    blob_pattern: Optional[bytes] = None
     columns: List[str] = field(default_factory=list)
 
 

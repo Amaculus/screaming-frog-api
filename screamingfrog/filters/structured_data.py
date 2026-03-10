@@ -4,16 +4,17 @@ from screamingfrog.filters.registry import FilterDef, register_filter
 
 
 def register_structured_data_filters() -> None:
+    has_structured_data = (
+        "SERIALISED_STRUCTURED_DATA IS NOT NULL "
+        "AND LENGTH(SERIALISED_STRUCTURED_DATA) > 0"
+    )
     filters = [
         FilterDef(name="All", tab="Structured Data", description="All structured data entries."),
         FilterDef(
             name="Contains Structured Data",
             tab="Structured Data",
             description="URLs with structured data.",
-            sql_where=(
-                "SERIALISED_STRUCTURED_DATA IS NOT NULL "
-                "AND LENGTH(SERIALISED_STRUCTURED_DATA) > 0"
-            ),
+            sql_where=has_structured_data,
         ),
         FilterDef(
             name="Missing",
@@ -61,17 +62,26 @@ def register_structured_data_filters() -> None:
         FilterDef(
             name="Microdata URLs",
             tab="Structured Data",
-            description="URLs with Microdata (TODO: DB columns).",
+            description="URLs with Microdata.",
+            sql_where=has_structured_data,
+            blob_column="SERIALISED_STRUCTURED_DATA",
+            blob_pattern=b"MICRODATA",
         ),
         FilterDef(
             name="JSON-LD URLs",
             tab="Structured Data",
-            description="URLs with JSON-LD (TODO: DB columns).",
+            description="URLs with JSON-LD.",
+            sql_where=has_structured_data,
+            blob_column="SERIALISED_STRUCTURED_DATA",
+            blob_pattern=b"JSONLD",
         ),
         FilterDef(
             name="RDFa URLs",
             tab="Structured Data",
-            description="URLs with RDFa (TODO: DB columns).",
+            description="URLs with RDFa.",
+            sql_where=has_structured_data,
+            blob_column="SERIALISED_STRUCTURED_DATA",
+            blob_pattern=b"RDFA",
         ),
         FilterDef(
             name="Rich Result Feature Detected",
