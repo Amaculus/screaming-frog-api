@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from screamingfrog.backends.derby_backend import (
     _build_supplementary_map,
+    _normalize_select_expression,
     _resolve_tab_entries,
     _resolve_internal_alias_map,
     _resolve_internal_expression_selects,
@@ -127,6 +128,51 @@ def test_resolve_internal_expression_selects_returns_deduped_expr_aliases() -> N
         ),
         ("SF_EXPR_1", "Indexability Status", "CASE WHEN 1=1 THEN 'ok' END"),
     ]
+
+
+def test_normalize_select_expression_casts_bare_null_literal() -> None:
+    assert _normalize_select_expression("NULL") == "CAST(NULL AS VARCHAR(1))"
+    assert _normalize_select_expression(" null ") == "CAST(NULL AS VARCHAR(1))"
+    assert _normalize_select_expression("CAST(NULL AS INTEGER)") == "CAST(NULL AS INTEGER)"
+    assert _normalize_select_expression("CAST(NULL AS VARCHAR(1))") == "CAST(NULL AS VARCHAR(1))"
+    assert _normalize_select_expression("CAST(IMAGE_WIDTH AS VARCHAR(20))") == "TRIM(CHAR(IMAGE_WIDTH))"
+    assert _normalize_select_expression(
+        "CASE WHEN IMAGE_WIDTH IS NOT NULL THEN CAST(IMAGE_WIDTH AS VARCHAR(20)) ELSE NULL END"
+    ) == (
+        "CASE WHEN IMAGE_WIDTH IS NOT NULL THEN TRIM(CHAR(IMAGE_WIDTH)) "
+        "ELSE CAST(NULL AS VARCHAR(1)) END"
+    )
+    assert _normalize_select_expression("CASE WHEN IMAGE_WIDTH IS NOT NULL THEN IMAGE_WIDTH ELSE NULL END") == (
+        "CASE WHEN IMAGE_WIDTH IS NOT NULL THEN IMAGE_WIDTH ELSE NULL END"
+    )
+
+
+def test_resolve_tab_entries_tries_gui_key_without_hyphen() -> None:
+    mapping = {
+        "structured_data_jsonld_urls.csv": [
+            {
+                "csv_column": "Address JSONLD",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+            },
+        ],
+        "structured_data_all.csv": [
+            {
+                "csv_column": "Address All",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+            },
+        ],
+    }
+
+    table, entries, gui_defs, supplementary = _resolve_tab_entries(
+        mapping, "Structured Data", "JSON-LD URLs"
+    )
+
+    assert table == "APP.URLS"
+    assert [entry["csv_column"] for entry in entries] == ["Address JSONLD"]
+    assert gui_defs
+    assert supplementary == []
 
 
 def test_resolve_tab_entries_includes_supplementary_encoded_url_columns() -> None:

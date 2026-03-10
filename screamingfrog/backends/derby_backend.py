@@ -236,7 +236,7 @@ class DerbyBackend(CrawlBackend):
 
             expr = entry.get("db_expression")
             if expr:
-                select_items.append(str(expr))
+                select_items.append(_normalize_select_expression(expr))
             else:
                 select_items.append(entry["db_column"])
             entry_indexes.append(len(select_items) - 1)
@@ -825,9 +825,7 @@ def _resolve_internal_expression_selects(
         if csv_key in seen_csv:
             continue
         alias = f"SF_EXPR_{index}"
-        expr_str = str(expr).strip()
-        if expr_str.upper() == "NULL":
-            expr_str = "CAST(NULL AS VARCHAR(1))"
+        expr_str = _normalize_select_expression(expr)
         selects.append((alias, csv_col, expr_str))
         seen_csv.add(csv_key)
         index += 1
@@ -844,6 +842,8 @@ def _resolve_tab_entries(
     if not entries and gui_filter:
         filename = make_tab_filename(tab_name, str(_first_gui_name(gui_filter)))
         entries = mapping.get(filename)
+        if not entries and "-" in filename:
+            entries = mapping.get(filename.replace("-", ""))
     if not entries:
         alt = f"{_normalize_tab_name(tab_name).removesuffix('.csv')}_all.csv"
         entries = mapping.get(alt)
@@ -948,6 +948,34 @@ def _build_where_from_entries(
     }
     column_map: dict[str, str] = {k: v for k, v in csv_map.items() if v}
     return _build_where(filters, column_map)
+
+
+def _normalize_select_expression(expr: Any) -> str:
+    text = str(expr).strip()
+    if text.upper() == "NULL":
+        return "CAST(NULL AS VARCHAR(1))"
+
+    def _replace_numeric_cast(match: re.Match[str]) -> str:
+        token = match.group(1)
+        if token.upper() == "NULL":
+            return match.group(0)
+        return f"TRIM(CHAR({token}))"
+
+    text = re.sub(
+        r"(?i)CAST\(\s*([A-Z_][A-Z0-9_\.]*)\s+AS\s+VARCHAR\s*\(\s*\d+\s*\)\s*\)",
+        _replace_numeric_cast,
+        text,
+    )
+    upper = text.upper()
+    if "ELSE NULL END" in upper and (
+        "VARCHAR" in upper or "CHAR(" in upper or "||" in text
+    ):
+        return re.sub(
+            r"(?i)ELSE\s+NULL\s+END",
+            "ELSE CAST(NULL AS VARCHAR(1)) END",
+            text,
+        )
+    return text
 
 
 def _normalize_key(value: str) -> str:

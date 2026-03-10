@@ -10,13 +10,19 @@ def register_structured_data_filters() -> None:
             name="Contains Structured Data",
             tab="Structured Data",
             description="URLs with structured data.",
-            sql_where="SERIALISED_STRUCTURED_DATA IS NOT NULL",
+            sql_where=(
+                "SERIALISED_STRUCTURED_DATA IS NOT NULL "
+                "AND LENGTH(SERIALISED_STRUCTURED_DATA) > 0"
+            ),
         ),
         FilterDef(
             name="Missing",
             tab="Structured Data",
             description="Missing structured data.",
-            sql_where="SERIALISED_STRUCTURED_DATA IS NULL",
+            sql_where=(
+                "SERIALISED_STRUCTURED_DATA IS NULL "
+                "OR LENGTH(SERIALISED_STRUCTURED_DATA) = 0"
+            ),
         ),
         FilterDef(
             name="Validation Errors",
@@ -49,7 +55,8 @@ def register_structured_data_filters() -> None:
         FilterDef(
             name="Parse Errors",
             tab="Structured Data",
-            description="Structured data parse errors (TODO: DB columns).",
+            description="Structured data parse errors.",
+            sql_where="PARSE_ERROR_MSG IS NOT NULL AND PARSE_ERROR_MSG <> ''",
         ),
         FilterDef(
             name="Microdata URLs",
