@@ -16,6 +16,8 @@ class FilterDef:
     join_on: Optional[str] = None
     join_type: str = "LEFT"
     columns: List[str] = field(default_factory=list)
+    blob_column: Optional[str] = None
+    blob_pattern: Optional[bytes] = None
 
 
 class FilterRegistry:

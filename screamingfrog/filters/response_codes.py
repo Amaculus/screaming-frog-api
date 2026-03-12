@@ -20,7 +20,7 @@ def register_response_code_filters() -> None:
         FilterDef(
             name="Blocked Resource",
             tab="Response Codes",
-            description="Resource URLs blocked by robots.txt (TODO: verify).",
+            description="Resource URLs blocked by robots.txt.",
             sql_where="BLOCKED_BY_ROBOTS_TXT = 1 AND LOADED_AS_A_RESOURCE = 1",
             columns=["Blocked by Robots.txt"],
         ),
@@ -87,7 +87,7 @@ def register_response_code_filters() -> None:
         FilterDef(
             name="Internal Blocked Resource",
             tab="Response Codes",
-            description="Internal resources blocked by robots.txt (TODO: verify).",
+            description="Internal resources blocked by robots.txt.",
             sql_where="IS_INTERNAL = 1 AND BLOCKED_BY_ROBOTS_TXT = 1 AND LOADED_AS_A_RESOURCE = 1",
         ),
         FilterDef(
@@ -122,12 +122,13 @@ def register_response_code_filters() -> None:
         FilterDef(
             name="Internal Redirect Chain",
             tab="Response Codes",
-            description="Internal redirect chains (TODO: DB flag).",
+            description="Internal URLs that are an intermediate hop in a redirect chain.",
+            sql_where="IS_INTERNAL = true AND IS_REDIRECT = true AND REDIRECT_COUNT > 0",
         ),
         FilterDef(
             name="Internal Redirect Loop",
             tab="Response Codes",
-            description="Internal redirect loops (TODO: DB flag).",
+            description="Internal redirect loops (TODO: no DB column — detected at runtime by SF, not persisted).",
         ),
         FilterDef(
             name="Internal Client Error (4xx)",
@@ -157,7 +158,7 @@ def register_response_code_filters() -> None:
         FilterDef(
             name="External Blocked Resource",
             tab="Response Codes",
-            description="External resources blocked by robots.txt (TODO: verify).",
+            description="External resources blocked by robots.txt.",
             sql_where="IS_INTERNAL = 0 AND BLOCKED_BY_ROBOTS_TXT = 1 AND LOADED_AS_A_RESOURCE = 1",
         ),
         FilterDef(

@@ -236,11 +236,25 @@ class DerbyBackend(CrawlBackend):
 
             expr = entry.get("db_expression")
             if expr:
-                select_items.append(str(expr))
+                expr_sql = str(expr)
+                if expr_sql.strip().upper() == "NULL":
+                    expr_sql = "CAST(NULL AS VARCHAR(1))"
+                select_items.append(expr_sql)
             else:
                 select_items.append(entry["db_column"])
             entry_indexes.append(len(select_items) - 1)
             csv_columns.append(entry["csv_column"])
+        # Collect blob-pattern filters from gui_defs and add their columns to SELECT.
+        blob_col_indexes: dict[str, int] = {}
+        blob_patterns: list[tuple[int, bytes]] = []
+        for filt in gui_defs:
+            if filt.blob_column and filt.blob_pattern is not None:
+                col = filt.blob_column
+                if col not in blob_col_indexes:
+                    select_items.append(col)
+                    blob_col_indexes[col] = len(select_items) - 1
+                blob_patterns.append((blob_col_indexes[col], filt.blob_pattern))
+
         select_cols = ", ".join(select_items)
         join_sql = ""
         where_parts: list[str] = []
@@ -307,6 +321,9 @@ class DerbyBackend(CrawlBackend):
                     )
                 else:
                     output[column] = row[idx] if idx is not None else None
+
+            if blob_patterns and not _row_matches_blob_patterns(row, blob_patterns):
+                continue
 
             if supplementary_map and encoded_url_index is not None:
                 encoded_url = row[encoded_url_index]
@@ -844,6 +861,8 @@ def _resolve_tab_entries(
     if not entries and gui_filter:
         filename = make_tab_filename(tab_name, str(_first_gui_name(gui_filter)))
         entries = mapping.get(filename)
+        if not entries:
+            entries = mapping.get(filename.replace("-", ""))
     if not entries:
         alt = f"{_normalize_tab_name(tab_name).removesuffix('.csv')}_all.csv"
         entries = mapping.get(alt)
@@ -1068,6 +1087,29 @@ def zipfile_is_zip(path: Path) -> bool:
         return zipfile.is_zipfile(path)
     except OSError:
         return False
+
+
+def _blob_contains(blob: Any, pattern: bytes) -> bool:
+    """Return True if the raw bytes of a Derby BLOB contain *pattern*."""
+    if not blob:
+        return False
+    try:
+        length = int(blob.length())
+        if not length:
+            return False
+        raw = bytes(blob.getBytes(1, min(length, 512)))
+        return pattern in raw
+    except Exception:
+        return False
+
+
+def _row_matches_blob_patterns(
+    row: tuple, patterns: list[tuple[int, bytes]]
+) -> bool:
+    for idx, pattern in patterns:
+        if not _blob_contains(row[idx], pattern):
+            return False
+    return True
 
 
 def _headers_from_blob(blob: Any) -> dict[str, list[str]]:

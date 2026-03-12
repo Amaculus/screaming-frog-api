@@ -47,12 +47,33 @@ def register_image_filters() -> None:
         FilterDef(
             name="Background Images",
             tab="Images",
-            description="Background images (TODO: requires CSS/image data).",
+            description="Images loaded via CSS background-image (link type 23).",
+            sql_where=(
+                "CONTENT_TYPE LIKE 'image/%'"
+                " AND EXISTS ("
+                "SELECT 1 FROM APP.LINKS l"
+                " JOIN APP.UNIQUE_URLS u ON l.DST_ID = u.ID"
+                " WHERE u.ENCODED_URL = APP.URLS.ENCODED_URL"
+                " AND l.LINK_TYPE = 23"
+                ")"
+            ),
         ),
         FilterDef(
             name="Incorrectly Sized Images",
             tab="Images",
-            description="Incorrectly sized images (TODO: requires image data).",
+            description="Images rendered at dimensions that differ from their intrinsic size.",
+            sql_where=(
+                "CONTENT_TYPE LIKE 'image/%'"
+                " AND IMAGE_WIDTH > 0"
+                " AND EXISTS ("
+                "SELECT 1 FROM APP.LINKS l"
+                " JOIN APP.UNIQUE_URLS u ON l.DST_ID = u.ID"
+                " WHERE u.ENCODED_URL = APP.URLS.ENCODED_URL"
+                " AND l.IMAGE_DISPLAY_WIDTH > 0"
+                " AND (l.IMAGE_DISPLAY_WIDTH <> APP.URLS.IMAGE_WIDTH"
+                " OR l.IMAGE_DISPLAY_HEIGHT <> APP.URLS.IMAGE_HEIGHT)"
+                ")"
+            ),
         ),
         FilterDef(
             name="Missing Size Attributes",
