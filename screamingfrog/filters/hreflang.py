@@ -28,7 +28,11 @@ def register_hreflang_filters() -> None:
         FilterDef(
             name="Unlinked hreflang URLs",
             tab="Hreflang",
-            description="Unlinked hreflang URLs (TODO: DB columns).",
+            description=(
+                "Not implementable via Derby: SF identifies unlinked hreflang URLs "
+                "at the link level (APP.LINKS), not the URL level. "
+                "The FilterDef model is based on APP.URLS and cannot represent this result set."
+            ),
         ),
         FilterDef(
             name="Missing Return Links",
@@ -69,7 +73,10 @@ def register_hreflang_filters() -> None:
         FilterDef(
             name="Incorrect Language & Region Codes",
             tab="Hreflang",
-            description="Incorrect language/region codes (TODO: DB columns).",
+            description=(
+                "Not implementable via Derby: SF validates hreflang language/region codes "
+                "at runtime and does not persist the validation result in any Derby column or table."
+            ),
         ),
         FilterDef(
             name="Multiple Entries",
@@ -96,7 +103,22 @@ def register_hreflang_filters() -> None:
         FilterDef(
             name="Not Using Canonical",
             tab="Hreflang",
-            description="Not using canonical for hreflang (TODO: DB columns).",
+            description=(
+                "Pages with hreflang annotations pointing to a canonicalised URL "
+                "(i.e. the hreflang target has a canonical tag pointing elsewhere). "
+                "Requires a crawl containing canonicalised hreflang targets to verify."
+            ),
+            sql_where=(
+                "EXISTS ("
+                "SELECT 1 FROM APP.LINKS l"
+                " JOIN APP.UNIQUE_URLS u_src ON l.SRC_ID = u_src.ID"
+                " JOIN APP.UNIQUE_URLS u_dst ON l.DST_ID = u_dst.ID"
+                " JOIN APP.URLS ud ON ud.ENCODED_URL = u_dst.ENCODED_URL"
+                " WHERE u_src.ENCODED_URL = APP.URLS.ENCODED_URL"
+                " AND l.LINK_TYPE = 13"
+                " AND ud.IS_CANONICALISED = true"
+                ")"
+            ),
         ),
         FilterDef(
             name="Missing X-Default",
