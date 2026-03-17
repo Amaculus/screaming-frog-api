@@ -985,11 +985,38 @@ def _normalize_select_expression(expr: Any) -> str:
     if "ELSE NULL END" in upper and (
         "VARCHAR" in upper or "CHAR(" in upper or "||" in text
     ):
-        return re.sub(
+        text = re.sub(
             r"(?i)ELSE\s+NULL\s+END",
             "ELSE CAST(NULL AS VARCHAR(1)) END",
             text,
         )
+
+    # Derby rejects correlated outer-table references inside subquery JOIN ON clauses.
+    # The mapping uses patterns like:
+    #   FROM APP.URLS u JOIN APP.UNIQUE_URLS d ON d.ID = APP.LINKS.DST_ID
+    #   WHERE u.ENCODED_URL = d.ENCODED_URL
+    # which Derby raises: "Column 'APP.LINKS.DST_ID' is either not in any table in
+    # the FROM list of the subquery".
+    # Rewrite to a WHERE-only equivalent that moves the correlated reference out of
+    # the JOIN ON clause — correlated references in WHERE are supported by Derby:
+    #   FROM APP.URLS u
+    #   WHERE u.ENCODED_URL = (SELECT uu.ENCODED_URL FROM APP.UNIQUE_URLS uu
+    #                          WHERE uu.ID = APP.LINKS.DST_ID FETCH FIRST 1 ROWS ONLY)
+    for col_ref, col_name in (("DST_ID", "DST_ID"), ("SRC_ID", "SRC_ID")):
+        text = re.sub(
+            rf"(?i)FROM\s+APP\.URLS\s+(\w+)"
+            rf"\s+JOIN\s+APP\.UNIQUE_URLS\s+\w+"
+            rf"\s+ON\s+\w+\.ID\s*=\s*APP\.LINKS\.{col_ref}"
+            rf"\s+WHERE\s+\1\.ENCODED_URL\s*=\s*\w+\.ENCODED_URL",
+            lambda m, cn=col_name: (
+                f"FROM APP.URLS {m.group(1)} "
+                f"WHERE {m.group(1)}.ENCODED_URL = ("
+                f"SELECT uu.ENCODED_URL FROM APP.UNIQUE_URLS uu "
+                f"WHERE uu.ID = APP.LINKS.{cn} FETCH FIRST 1 ROWS ONLY)"
+            ),
+            text,
+        )
+
     return text
 
 
