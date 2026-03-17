@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from screamingfrog import Crawl
+from screamingfrog.backends.derby_backend import _normalize_select_expression
 
 
 @pytest.fixture()
@@ -91,3 +92,55 @@ def test_sqlite_tab_support(sample_db_path: Path) -> None:
     missing_meta = list(crawl.tab("meta_description_missing"))
     assert len(missing_meta) == 1
     assert missing_meta[0]["Address"] == "https://example.com/missing"
+
+
+# ── Tests for _normalize_select_expression Derby correlated-subquery fix ──────
+
+_DST_BROKEN = (
+    "(SELECT u.PAGE_SIZE FROM APP.URLS u "
+    "JOIN APP.UNIQUE_URLS d ON d.ID = APP.LINKS.DST_ID "
+    "WHERE u.ENCODED_URL = d.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+)
+_DST_FIXED = (
+    "(SELECT u.PAGE_SIZE FROM APP.URLS u "
+    "WHERE u.ENCODED_URL = ("
+    "SELECT uu.ENCODED_URL FROM APP.UNIQUE_URLS uu "
+    "WHERE uu.ID = APP.LINKS.DST_ID FETCH FIRST 1 ROWS ONLY) FETCH FIRST 1 ROWS ONLY)"
+)
+
+_SRC_BROKEN = (
+    "(SELECT u.SEGMENTS FROM APP.URLS u "
+    "JOIN APP.UNIQUE_URLS s ON s.ID = APP.LINKS.SRC_ID "
+    "WHERE u.ENCODED_URL = s.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+)
+_SRC_FIXED = (
+    "(SELECT u.SEGMENTS FROM APP.URLS u "
+    "WHERE u.ENCODED_URL = ("
+    "SELECT uu.ENCODED_URL FROM APP.UNIQUE_URLS uu "
+    "WHERE uu.ID = APP.LINKS.SRC_ID FETCH FIRST 1 ROWS ONLY) FETCH FIRST 1 ROWS ONLY)"
+)
+
+
+def test_normalize_rewrites_dst_id_join_pattern() -> None:
+    """Derby rejects APP.LINKS.DST_ID correlated ref inside a subquery JOIN ON clause.
+    _normalize_select_expression must rewrite it to a WHERE-only equivalent."""
+    result = _normalize_select_expression(_DST_BROKEN)
+    assert "JOIN APP.UNIQUE_URLS" not in result
+    assert "APP.LINKS.DST_ID" in result
+    assert "WHERE uu.ID = APP.LINKS.DST_ID" in result
+    assert result == _DST_FIXED
+
+
+def test_normalize_rewrites_src_id_join_pattern() -> None:
+    """Same fix for the SRC_ID variant used in Source Segments / source-side lookups."""
+    result = _normalize_select_expression(_SRC_BROKEN)
+    assert "JOIN APP.UNIQUE_URLS" not in result
+    assert "APP.LINKS.SRC_ID" in result
+    assert "WHERE uu.ID = APP.LINKS.SRC_ID" in result
+    assert result == _SRC_FIXED
+
+
+def test_normalize_leaves_unrelated_expressions_unchanged() -> None:
+    """Expressions that don't contain the broken pattern must pass through untouched."""
+    plain = "(SELECT s.ENCODED_URL FROM APP.UNIQUE_URLS s WHERE s.ID = APP.LINKS.SRC_ID FETCH FIRST 1 ROWS ONLY)"
+    assert _normalize_select_expression(plain) == plain
