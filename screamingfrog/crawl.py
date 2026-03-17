@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
 from urllib.parse import urljoin, urlsplit, urlunsplit
@@ -98,6 +98,104 @@ class TabView:
 
     def count(self) -> int:
         return sum(1 for _ in self.__iter__())
+
+
+@dataclass(frozen=True)
+class QueryView:
+    backend: CrawlBackend
+    table: str
+    select_columns: tuple[str, ...] = ("*",)
+    where_clauses: tuple[str, ...] = ()
+    where_params: tuple[Any, ...] = ()
+    group_by_columns: tuple[str, ...] = ()
+    having_clauses: tuple[str, ...] = ()
+    having_params: tuple[Any, ...] = ()
+    order_by_clauses: tuple[str, ...] = ()
+    limit_rows: int | None = None
+
+    def select(self, *columns: str) -> "QueryView":
+        if not columns:
+            raise ValueError("select() requires at least one column")
+        return replace(self, select_columns=tuple(str(col) for col in columns))
+
+    def where(self, clause: str, *params: Any) -> "QueryView":
+        text = str(clause).strip()
+        if not text:
+            raise ValueError("where() requires a non-empty SQL clause")
+        return replace(
+            self,
+            where_clauses=self.where_clauses + (text,),
+            where_params=self.where_params + tuple(params),
+        )
+
+    def group_by(self, *columns: str) -> "QueryView":
+        if not columns:
+            raise ValueError("group_by() requires at least one column")
+        return replace(self, group_by_columns=tuple(str(col) for col in columns))
+
+    def having(self, clause: str, *params: Any) -> "QueryView":
+        text = str(clause).strip()
+        if not text:
+            raise ValueError("having() requires a non-empty SQL clause")
+        return replace(
+            self,
+            having_clauses=self.having_clauses + (text,),
+            having_params=self.having_params + tuple(params),
+        )
+
+    def order_by(self, *clauses: str) -> "QueryView":
+        if not clauses:
+            raise ValueError("order_by() requires at least one clause")
+        return replace(self, order_by_clauses=tuple(str(clause) for clause in clauses))
+
+    def limit(self, rows: int | None) -> "QueryView":
+        if rows is None:
+            return replace(self, limit_rows=None)
+        value = int(rows)
+        if value <= 0:
+            raise ValueError("limit() requires a positive integer")
+        return replace(self, limit_rows=value)
+
+    def to_sql(self) -> tuple[str, list[Any]]:
+        select_sql = ", ".join(self.select_columns) if self.select_columns else "*"
+        sql = f"SELECT {select_sql} FROM {self.table}"
+        params: list[Any] = []
+
+        if self.where_clauses:
+            where_sql = " AND ".join(f"({clause})" for clause in self.where_clauses)
+            sql = f"{sql} WHERE {where_sql}"
+            params.extend(self.where_params)
+
+        if self.group_by_columns:
+            sql = f"{sql} GROUP BY {', '.join(self.group_by_columns)}"
+
+        if self.having_clauses:
+            having_sql = " AND ".join(f"({clause})" for clause in self.having_clauses)
+            sql = f"{sql} HAVING {having_sql}"
+            params.extend(self.having_params)
+
+        if self.order_by_clauses:
+            sql = f"{sql} ORDER BY {', '.join(self.order_by_clauses)}"
+
+        if self.limit_rows is not None:
+            if isinstance(self.backend, (DerbyBackend, HybridBackend)):
+                sql = f"{sql} FETCH FIRST {self.limit_rows} ROWS ONLY"
+            else:
+                sql = f"{sql} LIMIT {self.limit_rows}"
+
+        return sql, params
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        sql, params = self.to_sql()
+        return self.backend.sql(sql, params=params)
+
+    def collect(self) -> list[dict[str, Any]]:
+        return list(self.__iter__())
+
+    def first(self) -> Optional[dict[str, Any]]:
+        query = self if self.limit_rows == 1 else self.limit(1)
+        rows = query.collect()
+        return rows[0] if rows else None
 
 
 class Crawl:
@@ -592,6 +690,16 @@ class Crawl:
             "columns": self.tab_columns(name),
             "filters": self.tab_filters(name),
         }
+
+    def query(self, schema_or_table: str, table: str | None = None) -> QueryView:
+        """Build a chainable SQL query against a backend table."""
+        left = str(schema_or_table).strip()
+        right = str(table).strip() if table is not None else ""
+        resolved = f"{left}.{right}" if right else left
+        resolved = resolved.strip(".")
+        if not resolved:
+            raise ValueError("query() requires a table name")
+        return QueryView(self._backend, resolved)
 
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         """Return raw rows from a backend table (DB-backed only)."""

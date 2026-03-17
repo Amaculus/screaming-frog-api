@@ -133,6 +133,7 @@ Notes:
 - Hybrid Derby+CSV fallback is enabled by default for `Crawl.load` and will export missing tabs on demand.
 - SQLite backend supports only a small set of high-value tabs (response codes, titles, meta description, internal_all).
 - For exact GUI filter behavior, use CSV exports (e.g., `export_profile="kitchen_sink"`).
+- Derby now natively supports `Response Codes > Internal Redirect Chain` and `Hreflang > Not Using Canonical`.
 - HTTP canonical/rel fields in Derby are parsed from `HTTP_RESPONSE_HEADER_COLLECTION` when present.
 - Some link metrics (Link Score, % of Total, JS outlink counts) are not mapped in Derby yet.
 
@@ -197,6 +198,30 @@ for row in crawl.sql(
 Notes:
 - `raw()` / `sql()` are not supported for CSV/CLI export backends.
 - Raw column names may vary by backend and Screaming Frog version.
+
+## Query builder (chainable SQL)
+
+Use a chainable API for common SQL without writing full query strings:
+
+```python
+from screamingfrog import Crawl
+
+crawl = Crawl.load("./crawl.dbseospider", csv_fallback=False)
+
+rows = (
+    crawl.query("APP", "URLS")
+    .select("ENCODED_URL", "RESPONSE_CODE", "TITLE_1")
+    .where("RESPONSE_CODE >= ?", 400)
+    .order_by("RESPONSE_CODE DESC", "ENCODED_URL ASC")
+    .limit(100)
+    .collect()
+)
+```
+
+Notes:
+- `crawl.query(...)` uses the backend SQL engine (Derby/Hybrid/SQLite).
+- CSV/CLI export backends do not support SQL/query execution.
+- Use `.to_sql()` if you want to inspect the generated SQL + params.
 
 ## Crawl diff (crawl-over-crawl)
 

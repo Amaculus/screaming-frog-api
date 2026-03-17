@@ -96,7 +96,15 @@ def register_hreflang_filters() -> None:
         FilterDef(
             name="Not Using Canonical",
             tab="Hreflang",
-            description="Not using canonical for hreflang (TODO: DB columns).",
+            description="Hreflang points to URLs that are canonicalised elsewhere.",
+            sql_where=(
+                "EXISTS (SELECT 1 FROM APP.LINKS l "
+                "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+                "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+                "JOIN APP.URLS u ON u.ENCODED_URL = d.ENCODED_URL "
+                "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL "
+                "AND l.LINK_TYPE = 13 AND u.IS_CANONICALISED = 1)"
+            ),
         ),
         FilterDef(
             name="Missing X-Default",

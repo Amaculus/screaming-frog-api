@@ -9,6 +9,21 @@ def test_filter_registry_autoloads_definitions() -> None:
     assert filt.sql_where is not None
 
 
+def test_internal_redirect_chain_filter_is_backed_by_sql() -> None:
+    filt = get_filter("Response Codes", "Internal Redirect Chain")
+    assert filt is not None
+    assert filt.sql_where == "IS_INTERNAL = 1 AND IS_REDIRECT = 1 AND REDIRECT_COUNT > 0"
+
+
+def test_hreflang_not_using_canonical_filter_is_backed_by_sql() -> None:
+    filt = get_filter("Hreflang", "Not Using Canonical")
+    assert filt is not None
+    assert filt.sql_where is not None
+    assert "APP.LINKS" in filt.sql_where
+    assert "l.LINK_TYPE = 13" in filt.sql_where
+    assert "u.IS_CANONICALISED = 1" in filt.sql_where
+
+
 def test_structured_data_contains_and_missing_use_blob_length() -> None:
     contains = get_filter("Structured Data", "Contains Structured Data")
     missing = get_filter("Structured Data", "Missing")

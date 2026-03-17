@@ -1,6 +1,6 @@
 # Screaming Frog Python Library - Progress Overview
 
-Last updated: 2026-01-29
+Last updated: 2026-03-16
 
 ## Goals
 - Single Python API for all Screaming Frog crawl sources:
@@ -33,6 +33,7 @@ Last updated: 2026-01-29
 - Works for CSV exports and Derby (mapping-backed)
 - Derby inlinks/outlinks available via `crawl.inlinks(url)` / `crawl.outlinks(url)`
 - Raw escape hatches for DB backends: `crawl.raw("APP.URLS")` and `crawl.sql("SELECT ...")`
+- Chainable query builder for DB backends: `crawl.query(...).select(...).where(...).collect()`
 - Crawl-over-crawl diff available via `crawl.compare(other_crawl)` (status, title, redirect, and selected content/indexability signals)
 
 ### 4) Derby support without SF install
@@ -66,7 +67,7 @@ Last updated: 2026-01-29
 - GUI "tabs" are filtered views; only CSV exports guarantee identical filters.
 - .seospider conversion requires SF CLI and DB storage mode; helper can force storage.mode=DB.
 - .seospider auto-materialization overwrites `.dbseospider` by default; set `dbseospider_overwrite=False` to reuse.
-- Response Codes filters populated with SQL WHERE clauses (JS redirect/loop/chain still pending).
+- Response Codes filters populated with SQL WHERE clauses (JS redirect + loop still pending; internal redirect chain implemented).
 - Page Titles filters use duplicates table + length checks; pixel-width still pending.
 - Meta Description filters use meta-name/content expressions + duplicates table; pixel-width still pending.
 - H1/H2 filters use duplicates tables; H1 alt-text source now mapped; H2 alt-text still N/A.
@@ -75,7 +76,7 @@ Last updated: 2026-01-29
 - Pagination filters partially implemented via multimap tables (pending link + sequence error).
 - Structured Data filters include rich-result checks via URL Inspection; validation errors/warnings still pending.
 - Canonicals now map canonical link element via link-type subquery; filters for contains/missing/multiple/self-referencing now use link-type joins.
-- Hreflang columns now use link-type subqueries + sitemap results for HTML/sitemap fields; HTTP hreflang mapped via LINK_TYPE=12 where present; filters for contains/missing/multiple/self/x-default added.
+- Hreflang columns now use link-type subqueries + sitemap results for HTML/sitemap fields; HTTP hreflang mapped via LINK_TYPE=12 where present; filters for contains/missing/multiple/self/x-default and not-using-canonical added.
 - Pagination rel next/prev mapped via link types (LINK_TYPE=10 next, LINK_TYPE=8 prev) where present.
 - HTTP Canonical + HTTP rel next/prev now parsed from `HTTP_RESPONSE_HEADER_COLLECTION` (gzipped JSON blob).
 - GUI filter execution wired into tab queries (CSV uses filtered file; Derby uses SQL WHERE + optional JOIN).

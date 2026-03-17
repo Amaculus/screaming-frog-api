@@ -50,6 +50,25 @@ def test_escape_hatches_sqlite(tmp_path: Path) -> None:
     )
     assert rows == [{"address": "https://example.com/"}]
 
+    rows = (
+        crawl.query("internal")
+        .select("address", "status_code")
+        .where("status_code = ?", 200)
+        .order_by("address ASC")
+        .limit(1)
+        .collect()
+    )
+    assert rows == [{"address": "https://example.com/", "status_code": 200}]
+
+    sql, params = (
+        crawl.query("main", "internal")
+        .select("address")
+        .where("status_code = ?", 200)
+        .to_sql()
+    )
+    assert sql == "SELECT address FROM main.internal WHERE (status_code = ?)"
+    assert params == [200]
+
 
 def test_escape_hatches_csv_not_supported(tmp_path: Path) -> None:
     export_dir = _make_export_dir(tmp_path)
@@ -60,3 +79,6 @@ def test_escape_hatches_csv_not_supported(tmp_path: Path) -> None:
 
     with pytest.raises(NotImplementedError):
         list(crawl.sql("SELECT * FROM internal"))
+
+    with pytest.raises(NotImplementedError):
+        crawl.query("internal").select("Address").limit(1).collect()

@@ -122,7 +122,8 @@ def register_response_code_filters() -> None:
         FilterDef(
             name="Internal Redirect Chain",
             tab="Response Codes",
-            description="Internal redirect chains (TODO: DB flag).",
+            description="Internal redirect chains (multiple redirect hops).",
+            sql_where="IS_INTERNAL = 1 AND IS_REDIRECT = 1 AND REDIRECT_COUNT > 0",
         ),
         FilterDef(
             name="Internal Redirect Loop",
