@@ -62,3 +62,39 @@ def test_pagespeed_report_savings_map_to_pagespeed_api_columns() -> None:
             "db_column": db_column,
             "db_table": "APP.PAGE_SPEED_API",
         }
+
+
+def test_additional_pagespeed_report_mappings_use_verified_columns() -> None:
+    expected = {
+        ("preload_key_requests_report.csv", "Potential Savings (ms)"): "PRELOAD",
+        ("properly_size_images_report.csv", "Potential Savings (Bytes)"): "PROPERLY_SIZE_IMAGES_SIZE",
+    }
+
+    for (tab, csv_column), db_column in expected.items():
+        entry = _entry(tab, csv_column)
+        assert entry == {
+            "csv_column": csv_column,
+            "db_column": db_column,
+            "db_table": "APP.PAGE_SPEED_API",
+        }
+
+
+def test_mobile_pagespeed_tabs_map_request_status_expression() -> None:
+    expected_expr = (
+        "CASE WHEN SF_REQUEST_ERROR_KEY IS NOT NULL AND SF_REQUEST_ERROR_KEY <> '' "
+        "THEN SF_REQUEST_ERROR_KEY ELSE 'Success' END"
+    )
+    tabs = [
+        "mobile_content_not_sized_correctly.csv",
+        "mobile_illegible_font_size.csv",
+        "mobile_target_size.csv",
+        "mobile_viewport_not_set.csv",
+    ]
+
+    for tab in tabs:
+        entry = _entry(tab, "PSI Request Status")
+        assert entry == {
+            "csv_column": "PSI Request Status",
+            "db_expression": expected_expr,
+            "db_table": "APP.PAGE_SPEED_API",
+        }
