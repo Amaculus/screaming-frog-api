@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from scripts.suggest_mappings import generate_mapping_nulls_content
+
 
 def _mapping() -> dict[str, list[dict]]:
     return json.loads(Path("schemas/mapping.json").read_text(encoding="utf-8"))
@@ -305,6 +307,74 @@ def test_url_family_tabs_map_encoded_address_and_js_blocked_resources_maps_respo
         "db_column": "RESPONSE_TIME_MS",
         "db_table": "APP.URLS",
     }
+
+
+def test_url_family_tabs_map_length_from_encoded_address() -> None:
+    url_tabs = [
+        "url_all.csv",
+        "url_broken_bookmark.csv",
+        "url_contains_space.csv",
+        "url_ga_tracking_parameters.csv",
+        "url_internal_search.csv",
+        "url_multiple_slashes.csv",
+        "url_non_ascii_characters.csv",
+        "url_over_115_characters.csv",
+        "url_parameters.csv",
+        "url_repetitive_path.csv",
+        "url_underscores.csv",
+        "url_uppercase.csv",
+    ]
+    expected = {
+        "csv_column": "Length",
+        "db_expression": (
+            "CASE WHEN APP.URLS.ENCODED_URL IS NULL THEN NULL "
+            "ELSE LENGTH(APP.URLS.ENCODED_URL) END"
+        ),
+        "db_table": "APP.URLS",
+    }
+
+    for tab in url_tabs:
+        assert _entry(tab, "Length") == expected
+
+
+def test_ai_all_maps_crawl_timestamp_from_urls_table() -> None:
+    assert _entry("ai_all.csv", "Crawl Timestamp") == {
+        "csv_column": "Crawl Timestamp",
+        "db_column": "TIMESTAMP",
+        "db_table": "APP.URLS",
+    }
+
+
+def test_form_action_link_tabs_map_to_destination_url() -> None:
+    expected = {
+        "csv_column": "Form Action Link",
+        "db_expression": (
+            "(SELECT d.ENCODED_URL FROM APP.UNIQUE_URLS d "
+            "WHERE d.ID = APP.LINKS.DST_ID FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.LINKS",
+    }
+
+    assert _entry("form_url_insecure.csv", "Form Action Link") == expected
+    assert _entry("all_inlinks.csv", "Form Action Link") == expected
+
+
+def test_generate_mapping_nulls_only_counts_literal_null_placeholders() -> None:
+    content = generate_mapping_nulls_content(
+        {
+            "example.csv": [
+                {"csv_column": "Literal NULL", "db_expression": "NULL"},
+                {
+                    "csv_column": "Expression NULL",
+                    "db_expression": "CASE WHEN foo IS NULL THEN NULL ELSE 1 END",
+                },
+            ]
+        },
+        {"example.csv": []},
+    )
+
+    assert "- example.csv: Literal NULL" in content
+    assert "Expression NULL" not in content
 
 
 def test_readability_label_rollout_uses_flesch_score_bands() -> None:
