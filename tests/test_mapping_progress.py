@@ -771,6 +771,31 @@ def test_internal_tabs_map_cookie_counts_via_blob_extract() -> None:
         }
 
 
+def test_internal_tabs_map_folder_depth_via_derived_extract() -> None:
+    internal_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+
+    for tab in internal_tabs:
+        assert _entry(tab, "Folder Depth") == {
+            "csv_column": "Folder Depth",
+            "db_column": "ENCODED_URL",
+            "db_table": "APP.URLS",
+            "derived_extract": {"type": "folder_depth", "columns": ["ENCODED_URL"]},
+        }
+
+
 def test_pending_link_reports_map_unlinked_flags() -> None:
     expected = {
         "canonicals_nonindexable_canonicals.csv": "APP.MULTIMAP_CANONICALS_PENDING_LINK",

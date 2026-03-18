@@ -276,3 +276,38 @@ def test_get_tab_materializes_derived_redirect_url_from_meta_and_headers() -> No
         "SELECT ENCODED_URL, RESPONSE_CODE, NUM_METAREFRESH, META_FULL_URL_1, "
         "META_FULL_URL_2, HTTP_RESPONSE_HEADER_COLLECTION FROM APP.URLS"
     )
+
+
+def test_get_tab_materializes_folder_depth_from_encoded_url() -> None:
+    cursor = _FakeCursor(
+        ["ENCODED_URL"],
+        [
+            ("https://example.com/",),
+            ("https://example.com/section/page.html",),
+            ("https://example.com/a/b/",),
+        ],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _FakeConnection(cursor)
+    backend._mapping = {
+        "internal_all.csv": [
+            {
+                "csv_column": "Folder Depth",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+                "derived_extract": {
+                    "type": "folder_depth",
+                    "columns": ["ENCODED_URL"],
+                },
+            }
+        ]
+    }
+
+    rows = list(backend.get_tab("internal_all"))
+
+    assert rows == [
+        {"Folder Depth": 0},
+        {"Folder Depth": 1},
+        {"Folder Depth": 2},
+    ]
+    assert cursor.executed_sql == "SELECT ENCODED_URL FROM APP.URLS"

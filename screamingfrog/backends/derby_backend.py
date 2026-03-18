@@ -1994,6 +1994,12 @@ def _derived_extract_columns(entry: dict[str, Any]) -> list[str]:
 
 def _extract_derived_value(extract: dict[str, Any], values: dict[str, Any]) -> Any:
     kind = str(extract.get("type") or "").strip().lower()
+    if kind == "folder_depth":
+        address = _safe_text(values.get("ENCODED_URL"))
+        if not address:
+            return None
+        path = urlparse(address).path.lstrip("/")
+        return path.count("/") if path else 0
     if kind == "redirect_url":
         address = _safe_text(values.get("ENCODED_URL"))
         num_meta = _safe_int(values.get("NUM_METAREFRESH"))
