@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import gzip
 import json
-import re
 import os
+import re
 import tempfile
 import zipfile
+import zlib
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
 from urllib.parse import urljoin, urlparse, urlunparse
@@ -28,6 +30,30 @@ _CHAIN_TAB_KEYS = {
     "redirect_and_canonical_chains.csv",
     "canonical_chains.csv",
     "redirects.csv",
+}
+_COOKIE_TAB_KEYS = {
+    "all_cookies.csv",
+    "cookie_summary.csv",
+}
+_LANGUAGE_TAB_KEYS = {
+    "spelling_and_grammar_errors.csv",
+    "spelling_and_grammar_errors_report_summary.csv",
+}
+_STRUCTURED_DATA_TAB_KEYS = {
+    "structured_data_all.csv",
+    "structured_data_contains_structured_data.csv",
+    "structured_data_jsonld_urls.csv",
+    "structured_data_microdata_urls.csv",
+    "structured_data_missing.csv",
+    "structured_data_parse_errors.csv",
+    "structured_data_rdfa_urls.csv",
+    "structured_data_rich_result_feature_detected.csv",
+    "structured_data_rich_result_validation_errors.csv",
+    "structured_data_rich_result_validation_warnings.csv",
+    "structured_data_validation_errors.csv",
+    "structured_data_validation_warnings.csv",
+    "structured_data_parse_error_report.csv",
+    "contains_structured_data_detailed_report.csv",
 }
 _CHAIN_MAX_HOPS = 10
 _FETCH_BATCH_SIZE = 1000
@@ -68,7 +94,14 @@ class DerbyBackend(CrawlBackend):
         )
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
-        sql = f"SELECT * FROM {self._table}"
+        if self._internal_expr_selects:
+            select_parts = [f"{self._table}.*"]
+            select_parts.extend(
+                f"{expr} AS {alias}" for alias, _csv_col, expr in self._internal_expr_selects
+            )
+            sql = f"SELECT {', '.join(select_parts)} FROM {self._table}"
+        else:
+            sql = f"SELECT * FROM {self._table}"
         where_parts: list[str] = []
         params: list[Any] = []
         internal_clause = self._internal_only_clause()
@@ -94,11 +127,12 @@ class DerbyBackend(CrawlBackend):
             for csv_col, db_col in self._internal_alias_map.items()
             if db_col in column_set
         ]
-        header_blob_col = None
-        if "HTTP_RESPONSE_HEADER_COLLECTION" in column_set:
-            header_blob_col = "HTTP_RESPONSE_HEADER_COLLECTION"
-        elif "http_response_header_collection" in column_set:
-            header_blob_col = "http_response_header_collection"
+        header_blob_columns: dict[str, str] = {}
+        for extract in self._internal_header_extract_map.values():
+            blob_col = _header_extract_column(extract)
+            actual_col = _resolve_column_name(columns, blob_col)
+            if actual_col:
+                header_blob_columns[blob_col] = actual_col
 
         for row in _iter_cursor_rows(cursor):
             data = {col: val for col, val in zip(columns, row)}
@@ -109,15 +143,23 @@ class DerbyBackend(CrawlBackend):
             for csv_col, db_col in active_aliases:
                 data.setdefault(csv_col, data.get(db_col))
             if self._internal_header_extract_map:
-                headers = {}
-                links: list[dict[str, Any]] = []
-                header_blob = data.get(header_blob_col) if header_blob_col else None
-                if header_blob:
-                    headers = _headers_from_blob(header_blob)
-                    links = _parse_link_headers(headers.get("link", [])) if headers else []
+                parsed_headers: dict[str, dict[str, list[str]]] = {}
+                parsed_links: dict[str, list[dict[str, Any]]] = {}
                 for csv_col, extract in self._internal_header_extract_map.items():
                     if csv_col in data:
                         continue
+                    blob_col = _header_extract_column(extract)
+                    actual_col = header_blob_columns.get(blob_col)
+                    headers: dict[str, list[str]] = {}
+                    links: list[dict[str, Any]] = []
+                    if actual_col:
+                        if blob_col not in parsed_headers:
+                            parsed_headers[blob_col] = _headers_from_blob(data.get(actual_col))
+                            parsed_links[blob_col] = _parse_link_headers(
+                                parsed_headers[blob_col].get("link", [])
+                            ) if parsed_headers[blob_col] else []
+                        headers = parsed_headers.get(blob_col, {})
+                        links = parsed_links.get(blob_col, [])
                     data[csv_col] = _extract_header_value(extract, headers, links)
             yield InternalPage.from_data(data, copy_data=False)
 
@@ -210,6 +252,15 @@ class DerbyBackend(CrawlBackend):
         if normalized in _CHAIN_TAB_KEYS:
             yield from self._get_chain_tab(normalized, filters)
             return
+        if normalized in _COOKIE_TAB_KEYS:
+            yield from self._get_cookie_tab(normalized, filters)
+            return
+        if normalized in _LANGUAGE_TAB_KEYS:
+            yield from self._get_language_tab(normalized, filters)
+            return
+        if normalized in _STRUCTURED_DATA_TAB_KEYS:
+            yield from self._get_structured_data_tab(normalized, filters)
+            return
         table, entries, gui_defs, supplementary = _resolve_tab_entries(
             self._mapping, tab_name, gui_filter
         )
@@ -218,7 +269,7 @@ class DerbyBackend(CrawlBackend):
         select_items: list[str] = []
         csv_columns: list[str] = []
         entry_indexes: list[int | None] = []
-        header_index: int | None = None
+        header_indexes: dict[str, int] = {}
         encoded_url_index: int | None = None
         blob_checks = _resolve_blob_checks(gui_defs)
         blob_indexes: dict[str, int] = {}
@@ -229,9 +280,10 @@ class DerbyBackend(CrawlBackend):
 
         for entry in entries:
             if entry.get("header_extract"):
-                if header_index is None:
-                    select_items.append("HTTP_RESPONSE_HEADER_COLLECTION")
-                    header_index = len(select_items) - 1
+                blob_col = _header_extract_column(entry["header_extract"])
+                if blob_col not in header_indexes:
+                    select_items.append(blob_col)
+                    header_indexes[blob_col] = len(select_items) - 1
                 entry_indexes.append(None)
                 csv_columns.append(entry["csv_column"])
                 continue
@@ -309,16 +361,26 @@ class DerbyBackend(CrawlBackend):
         for row in _iter_cursor_rows(cursor):
             if blob_checks and not _row_matches_blob_patterns(row, blob_checks, blob_indexes):
                 continue
-            headers = None
-            links = None
-            if header_index is not None:
-                headers = _headers_from_blob(row[header_index])
-                links = _parse_link_headers(headers.get("link", [])) if headers else []
+            parsed_headers: dict[str, dict[str, list[str]]] = {}
+            parsed_links: dict[str, list[dict[str, Any]]] = {}
             output: dict[str, Any] = {}
             for entry, idx, column in zip(entries, entry_indexes, csv_columns):
                 if entry.get("header_extract"):
+                    blob_col = _header_extract_column(entry["header_extract"])
+                    if blob_col not in parsed_headers:
+                        blob_idx = header_indexes.get(blob_col)
+                        if blob_idx is None:
+                            parsed_headers[blob_col] = {}
+                            parsed_links[blob_col] = []
+                        else:
+                            parsed_headers[blob_col] = _headers_from_blob(row[blob_idx])
+                            parsed_links[blob_col] = _parse_link_headers(
+                                parsed_headers[blob_col].get("link", [])
+                            ) if parsed_headers[blob_col] else []
                     output[column] = _extract_header_value(
-                        entry["header_extract"], headers or {}, links or []
+                        entry["header_extract"],
+                        parsed_headers.get(blob_col, {}),
+                        parsed_links.get(blob_col, []),
                     )
                 else:
                     output[column] = row[idx] if idx is not None else None
@@ -350,6 +412,305 @@ class DerbyBackend(CrawlBackend):
         columns = [desc[0] for desc in cursor.description or []]
         for row in _iter_cursor_rows(cursor):
             yield {col: val for col, val in zip(columns, row)}
+
+    def _get_cookie_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+        address_values = _filter_values(norm_filters, "address")
+        cursor = self._conn.cursor()
+        sql = (
+            "SELECT ENCODED_URL, COOKIE_COLLECTION FROM APP.URLS "
+            "WHERE COOKIE_COLLECTION IS NOT NULL"
+        )
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" AND ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        if tab_key == "all_cookies.csv":
+            for encoded_url, cookie_blob in _iter_cursor_rows(cursor):
+                for row in _iter_cookie_rows(encoded_url, cookie_blob):
+                    if _row_matches_filters(row, norm_filters):
+                        yield {column: row.get(column) for column in columns}
+            return
+
+        summary_rows = _build_cookie_summary_rows(_iter_cursor_rows(cursor))
+        for row in summary_rows:
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
+    def _get_language_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+        detailed_rows = list(self._iter_language_error_rows(norm_filters))
+
+        if tab_key == "spelling_and_grammar_errors.csv":
+            for row in detailed_rows:
+                if _row_matches_filters(row, norm_filters):
+                    yield {column: row.get(column) for column in columns}
+            return
+
+        summary_rows = _build_language_error_summary_rows(detailed_rows)
+        for row in summary_rows:
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
+    def _iter_language_error_rows(
+        self, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "url", "address")
+        cursor = self._conn.cursor()
+        sql = (
+            "SELECT ENCODED_URL, LANGUAGE_CODE, SPELLING_ERRORS, GRAMMAR_ERRORS, "
+            "LANGUAGE_ERROR_DATA FROM APP.LANGUAGE_ERROR"
+        )
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        for encoded_url, language_code, spelling_errors, grammar_errors, error_blob in _iter_cursor_rows(cursor):
+            payload = _decode_gzip_json_blob(error_blob)
+            if not payload:
+                continue
+            errors = payload.get("errors") or []
+            if not isinstance(errors, list) or not errors:
+                continue
+
+            grouped: dict[tuple[Any, ...], dict[str, Any]] = {}
+            counts: dict[tuple[Any, ...], int] = defaultdict(int)
+            for raw_error in errors:
+                if not isinstance(raw_error, dict):
+                    continue
+                signature = _language_error_signature(raw_error)
+                grouped.setdefault(signature, raw_error)
+                counts[signature] += 1
+
+            lang = _safe_text(payload.get("langCode")) or _safe_text(language_code)
+            spelling_total = payload.get("numSpellingErrors")
+            grammar_total = payload.get("numGrammarErrors")
+            spelling_total = spelling_errors if spelling_total is None else spelling_total
+            grammar_total = grammar_errors if grammar_total is None else grammar_total
+
+            for signature, raw_error in grouped.items():
+                suggestions = raw_error.get("suggestions") or []
+                if not isinstance(suggestions, list):
+                    suggestions = [suggestions]
+                row = {
+                    "URL": encoded_url,
+                    "Lang": lang,
+                    "Spelling Errors": spelling_total,
+                    "Grammar Errors": grammar_total,
+                    "Error Type": _language_error_type(raw_error),
+                    "Error Count": counts.get(signature, 0),
+                    "Error": _safe_text(raw_error.get("ruleId"))
+                    or _safe_text(raw_error.get("error")),
+                    "Error with Context": None,
+                    "Error Detail": _safe_text(raw_error.get("error")),
+                    "Suggestions": ", ".join(
+                        str(item) for item in suggestions if item not in {None, ""}
+                    )
+                    or None,
+                    "Page Section": _language_page_section(raw_error.get("pageSection")),
+                }
+                yield row
+
+    def _get_structured_data_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+
+        if tab_key == "contains_structured_data_detailed_report.csv":
+            for row in self._iter_structured_data_detailed_rows(norm_filters):
+                if _row_matches_filters(row, norm_filters):
+                    yield {column: row.get(column) for column in columns}
+            return
+
+        for row in self._iter_structured_data_summary_rows(tab_key, norm_filters):
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
+    def _iter_structured_data_summary_rows(
+        self, tab_key: str, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = (
+            "SELECT u.ENCODED_URL, u.SERIALISED_STRUCTURED_DATA, u.PARSE_ERROR_MSG, "
+            "i.RICH_RESULTS_TYPES, i.RICH_RESULTS_TYPE_ERRORS, i.RICH_RESULTS_TYPE_WARNINGS "
+            "FROM APP.URLS u "
+            "LEFT JOIN APP.URL_INSPECTION i ON i.ENCODED_URL = u.ENCODED_URL"
+        )
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE u.ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        for encoded_url, data_blob, parse_error, rich_types, rich_errors, rich_warnings in _iter_cursor_rows(cursor):
+            blocks = _parse_structured_data_blocks(data_blob)
+            formats = [block["format"] for block in blocks if block.get("format")]
+            format_set = set(formats)
+            type_occurrences: list[str] = []
+            for block in blocks:
+                type_occurrences.extend(_extract_structured_data_types(block.get("text")))
+            unique_types = _ordered_unique(type_occurrences)
+            features = _parse_rich_result_features(rich_types)
+            if not features:
+                features = _derive_rich_result_features(type_occurrences)
+            rich_error_count = _safe_int(rich_errors) or 0
+            rich_warning_count = _safe_int(rich_warnings) or 0
+            parse_error_text = _safe_text(parse_error)
+            indexability, indexability_status = self._fetch_indexability_values(encoded_url)
+
+            row = {
+                "Address": encoded_url,
+                "Errors": rich_error_count,
+                "Warnings": rich_warning_count,
+                "Rich Result Errors": rich_error_count,
+                "Rich Result Warnings": rich_warning_count,
+                "Rich Result Features": len(features),
+                "Total Types": len(type_occurrences),
+                "Unique Types": len(unique_types),
+                "Indexability": indexability,
+                "Indexability Status": indexability_status,
+                "Parse Error": parse_error_text,
+            }
+            for index in range(6):
+                row[f"Feature-{index + 1}"] = features[index] if index < len(features) else None
+            for index in range(17):
+                row[f"Type-{index + 1}"] = (
+                    type_occurrences[index] if index < len(type_occurrences) else None
+                )
+
+            has_data = bool(blocks)
+            include = False
+            if tab_key in {"structured_data_all.csv", "structured_data_parse_error_report.csv"}:
+                include = True
+            elif tab_key == "structured_data_contains_structured_data.csv":
+                include = has_data
+            elif tab_key == "structured_data_jsonld_urls.csv":
+                include = "JSONLD" in format_set
+            elif tab_key == "structured_data_microdata_urls.csv":
+                include = "MICRODATA" in format_set
+            elif tab_key == "structured_data_rdfa_urls.csv":
+                include = "RDFA" in format_set
+            elif tab_key == "structured_data_missing.csv":
+                include = not has_data
+            elif tab_key == "structured_data_parse_errors.csv":
+                include = bool(parse_error_text)
+            elif tab_key == "structured_data_rich_result_feature_detected.csv":
+                include = bool(features)
+            elif tab_key in {
+                "structured_data_rich_result_validation_errors.csv",
+                "structured_data_validation_errors.csv",
+            }:
+                include = rich_error_count > 0
+            elif tab_key in {
+                "structured_data_rich_result_validation_warnings.csv",
+                "structured_data_validation_warnings.csv",
+            }:
+                include = rich_warning_count > 0
+
+            if not include:
+                continue
+
+            if tab_key == "structured_data_parse_error_report.csv":
+                yield {
+                    "Address": encoded_url,
+                    "Parse Error": parse_error_text,
+                }
+                continue
+
+            yield row
+
+    def _iter_structured_data_detailed_rows(
+        self, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = (
+            "SELECT ENCODED_URL, SERIALISED_STRUCTURED_DATA, PARSE_ERROR_MSG "
+            "FROM APP.URLS WHERE SERIALISED_STRUCTURED_DATA IS NOT NULL"
+        )
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" AND ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        for encoded_url, data_blob, _parse_error in _iter_cursor_rows(cursor):
+            blocks = _parse_structured_data_blocks(data_blob)
+            if not blocks:
+                continue
+            summary_features = []
+            warning_count = 0
+            error_count = 0
+            term_map: dict[str, str] = {}
+            term_index = 0
+            for block in blocks:
+                format_label = _structured_data_format_label(block.get("format"))
+                text = block.get("text")
+                if not text:
+                    continue
+                for subject, _predicate, object_value in _iter_structured_data_triples(text):
+                    if subject not in term_map:
+                        term_map[subject] = f"subject{term_index}"
+                        term_index += 1
+                    if object_value.startswith("_:") or object_value.startswith("<"):
+                        if object_value not in term_map:
+                            term_map[object_value] = f"subject{term_index}"
+                            term_index += 1
+                    normalized_object = term_map.get(
+                        object_value, _normalize_structured_object(object_value)
+                    )
+                    row = {
+                        "URL": encoded_url,
+                        "Subject": term_map[subject],
+                        "Predicate": format_label,
+                        "Object": normalized_object,
+                        "Errors": error_count,
+                        "Warnings": warning_count,
+                    }
+                    for index in range(10):
+                        row[f"Validation Type {index + 1}"] = (
+                            summary_features[index] if index < len(summary_features) else None
+                        )
+                        row[f"Severity {index + 1}"] = None
+                        row[f"Issue {index + 1}"] = None
+                    yield row
+
+    def _fetch_indexability_values(self, encoded_url: str) -> tuple[Any, Any]:
+        idx_expr = None
+        idx_status_expr = None
+        for entry in self._mapping.get(_INTERNAL_MAPPING_KEY, []):
+            if entry.get("csv_column") == "Indexability":
+                idx_expr = entry.get("db_expression")
+            if entry.get("csv_column") == "Indexability Status":
+                idx_status_expr = entry.get("db_expression")
+        if not idx_expr or not idx_status_expr:
+            return None, None
+        cursor = self._conn.cursor()
+        cursor.execute(
+            f"SELECT {idx_expr}, {idx_status_expr} FROM APP.URLS "
+            "WHERE ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY",
+            [encoded_url],
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None, None
+        return row[0], row[1]
 
     def _get_chain_tab(
         self, tab_key: str, filters: dict[str, Any]
@@ -1087,6 +1448,66 @@ def _resolve_blob_checks(gui_defs: list[Any]) -> list[tuple[str, bytes]]:
     return checks
 
 
+def _tab_columns(mapping: dict[str, Any], tab_key: str) -> list[str]:
+    return [
+        entry.get("csv_column")
+        for entry in mapping.get(tab_key, [])
+        if entry.get("csv_column")
+    ]
+
+
+def _normalize_filters(filters: dict[str, Any]) -> dict[str, Any]:
+    return {_normalize_key(str(key)): value for key, value in filters.items()}
+
+
+def _filter_values(norm_filters: dict[str, Any], *keys: str) -> list[Any]:
+    values: list[Any] = []
+    for key in keys:
+        expected = norm_filters.get(_normalize_key(key))
+        if expected is None:
+            continue
+        if isinstance(expected, (list, tuple, set)):
+            values.extend(list(expected))
+        else:
+            values.append(expected)
+    return values
+
+
+def _row_matches_filters(row: dict[str, Any], norm_filters: dict[str, Any]) -> bool:
+    if not norm_filters:
+        return True
+    row_lookup = {_normalize_key(str(key)): value for key, value in row.items()}
+    for key, expected in norm_filters.items():
+        actual = row_lookup.get(key)
+        if isinstance(expected, (list, tuple, set)):
+            if not any(_filter_value_matches(actual, item) for item in expected):
+                return False
+            continue
+        if not _filter_value_matches(actual, expected):
+            return False
+    return True
+
+
+def _filter_value_matches(actual: Any, expected: Any) -> bool:
+    if expected is None:
+        if actual is None:
+            return True
+        if isinstance(actual, str) and not actual.strip():
+            return True
+        return False
+    if actual is None:
+        return False
+    if isinstance(actual, bool) or isinstance(expected, bool):
+        actual_bool = _normalize_bool(actual)
+        expected_bool = _normalize_bool(expected)
+        return actual_bool is not None and actual_bool == expected_bool
+    actual_int = _safe_int(actual)
+    expected_int = _safe_int(expected)
+    if actual_int is not None and expected_int is not None:
+        return actual_int == expected_int
+    return str(actual).strip().lower() == str(expected).strip().lower()
+
+
 def _preferred_tables(table_counts: dict[str, int]) -> list[str]:
     def score(item: tuple[str, int]) -> tuple[int, int]:
         name, count = item
@@ -1154,19 +1575,37 @@ def zipfile_is_zip(path: Path) -> bool:
         return False
 
 
+def _blob_bytes(blob: Any) -> bytes:
+    if blob is None:
+        return b""
+    if isinstance(blob, (bytes, bytearray, memoryview)):
+        return bytes(blob)
+    try:
+        length = int(blob.length())
+    except Exception:
+        return b""
+    if length <= 0:
+        return b""
+    try:
+        return bytes(blob.getBytes(1, length))
+    except Exception:
+        return b""
+
+
+def _decode_gzip_json_blob(blob: Any) -> dict[str, Any]:
+    raw = _blob_bytes(blob)
+    if not raw:
+        return {}
+    try:
+        return json.loads(gzip.decompress(raw).decode("utf-8", errors="replace"))
+    except Exception:
+        return {}
+
+
 def _headers_from_blob(blob: Any) -> dict[str, list[str]]:
     if not blob:
         return {}
-    try:
-        length = blob.length()
-    except Exception:
-        length = 0
-    if not length:
-        return {}
-    try:
-        raw = bytes(blob.getBytes(1, int(length)))
-    except Exception:
-        return {}
+    raw = _blob_bytes(blob)
     if not raw:
         return {}
     try:
@@ -1208,20 +1647,7 @@ def _blob_contains(blob: Any, pattern: bytes) -> bool:
         return False
     if not pattern:
         return False
-    raw: bytes
-    if isinstance(blob, (bytes, bytearray, memoryview)):
-        raw = bytes(blob)
-    else:
-        try:
-            length = int(blob.length())
-        except Exception:
-            return False
-        if length <= 0:
-            return False
-        try:
-            raw = bytes(blob.getBytes(1, length))
-        except Exception:
-            return False
+    raw = _blob_bytes(blob)
     if not raw:
         return False
     sample = raw[:512]
@@ -1344,6 +1770,14 @@ def _extract_header_value(
     extract: dict[str, Any], headers: dict[str, list[str]], links: list[dict[str, Any]]
 ) -> Optional[str]:
     kind = extract.get("type")
+    if kind == "header_name":
+        name = str(extract.get("name", "")).strip().lower()
+        if not name:
+            return None
+        values = headers.get(name) or []
+        if not values:
+            return None
+        return ", ".join(str(value) for value in values if value is not None) or None
     if kind == "link_rel":
         rel = str(extract.get("rel", "")).lower()
         return _extract_link_rel(links, rel) if rel else None
@@ -1352,6 +1786,325 @@ def _extract_header_value(
     if kind == "hreflang_url":
         return _extract_hreflang(links)[1]
     return None
+
+
+def _header_extract_column(extract: dict[str, Any]) -> str:
+    return str(extract.get("column") or "HTTP_RESPONSE_HEADER_COLLECTION")
+
+
+def _iter_cookie_rows(encoded_url: Any, cookie_blob: Any) -> Iterator[dict[str, Any]]:
+    payload = _decode_gzip_json_blob(cookie_blob)
+    cookies = payload.get("mCookies") or []
+    if not isinstance(cookies, list):
+        return
+    address = _safe_text(encoded_url)
+    for cookie in cookies:
+        if not isinstance(cookie, dict):
+            continue
+        yield {
+            "Address": address,
+            "Cookie Name": _safe_text(cookie.get("mName")),
+            "Cookie Value": _safe_text(cookie.get("mValue")),
+            "Domain": _safe_text(cookie.get("mDomain")),
+            "Path": _safe_text(cookie.get("mPath")),
+            "Expiration Time": _cookie_expiration_text(cookie.get("mExpirationTime")),
+            "Secure": _normalize_bool(cookie.get("mIsSecure")),
+            "HttpOnly": _normalize_bool(cookie.get("mIsHttpOnly")),
+        }
+
+
+def _build_cookie_summary_rows(
+    source_rows: Iterator[tuple[Any, ...]],
+) -> list[dict[str, Any]]:
+    aggregates: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for encoded_url, cookie_blob in source_rows:
+        for row in _iter_cookie_rows(encoded_url, cookie_blob):
+            key = (
+                row.get("Cookie Name"),
+                row.get("Domain"),
+                row.get("Path"),
+                row.get("Expiration Time"),
+                row.get("Secure"),
+                row.get("HttpOnly"),
+            )
+            current = aggregates.get(key)
+            if current is None:
+                current = {
+                    "Cookie Name": row.get("Cookie Name"),
+                    "Domain": row.get("Domain"),
+                    "Path": row.get("Path"),
+                    "Expiration Time": row.get("Expiration Time"),
+                    "Secure": row.get("Secure"),
+                    "HttpOnly": row.get("HttpOnly"),
+                    "Occurrences": 0,
+                    "Sample URL": row.get("Address"),
+                }
+                aggregates[key] = current
+            current["Occurrences"] = int(current.get("Occurrences") or 0) + 1
+    return list(aggregates.values())
+
+
+def _cookie_expiration_text(value: Any) -> Optional[str]:
+    seconds = _safe_int(value)
+    if seconds is None:
+        return None
+    if seconds < 0:
+        return "Session"
+    if seconds == 0:
+        return "0 Seconds"
+    units = (
+        ("Day", 24 * 60 * 60),
+        ("Hour", 60 * 60),
+        ("Minute", 60),
+        ("Second", 1),
+    )
+    for label, size in units:
+        count = seconds // size
+        if count >= 1:
+            suffix = "" if count == 1 else "s"
+            return f"{count} {label}{suffix}"
+    return "0 Seconds"
+
+
+def _language_error_signature(error: dict[str, Any]) -> tuple[Any, ...]:
+    suggestions = error.get("suggestions") or []
+    if not isinstance(suggestions, list):
+        suggestions = [suggestions]
+    return (
+        _safe_text(error.get("ruleId")),
+        _safe_text(error.get("errorType")),
+        _safe_text(error.get("error")),
+        tuple(str(item) for item in suggestions if item not in {None, ""}),
+        _safe_text(error.get("pageSection")),
+    )
+
+
+def _language_error_type(error: dict[str, Any]) -> Optional[str]:
+    raw = str(error.get("errorType") or "").strip().upper()
+    if raw in {"TYPO", "SPELLING", "MISSPELLING"}:
+        return "Spelling"
+    if not raw:
+        return None
+    return "Grammar"
+
+
+def _language_page_section(value: Any) -> Optional[str]:
+    raw = str(value or "").strip().upper()
+    mapping = {
+        "CONTENT": "Page Body",
+        "TITLE": "Title",
+        "META_DESCRIPTION": "Meta Description",
+        "META_KEYWORDS": "Meta Keywords",
+        "HEADINGS": "Headings",
+    }
+    if raw in mapping:
+        return mapping[raw]
+    if not raw:
+        return None
+    return raw.replace("_", " ").title()
+
+
+def _build_language_error_summary_rows(
+    rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    total_urls = len({row.get("URL") for row in rows if row.get("URL")})
+    aggregates: dict[tuple[Any, ...], dict[str, Any]] = {}
+    for row in rows:
+        key = (
+            row.get("Error"),
+            row.get("Error Type"),
+            row.get("Error Detail"),
+        )
+        current = aggregates.get(key)
+        if current is None:
+            current = {
+                "Error": row.get("Error"),
+                "Error Type": row.get("Error Type"),
+                "Error Count": 0,
+                "URLs Affected": 0,
+                "Coverage %": 0.0,
+                "Error Detail": row.get("Error Detail"),
+                "Sample URL": row.get("URL"),
+            }
+            current["_urls"] = set()
+            aggregates[key] = current
+        current["Error Count"] = int(current.get("Error Count") or 0) + int(
+            row.get("Error Count") or 0
+        )
+        if row.get("URL"):
+            current["_urls"].add(row["URL"])
+    for current in aggregates.values():
+        urls_affected = len(current.pop("_urls", set()))
+        current["URLs Affected"] = urls_affected
+        current["Coverage %"] = round(
+            (urls_affected / total_urls) * 100, 2
+        ) if total_urls else 0.0
+    return list(aggregates.values())
+
+
+def _parse_structured_data_blocks(blob: Any) -> list[dict[str, Any]]:
+    raw = _blob_bytes(blob)
+    if not raw:
+        return []
+    blocks: list[dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
+    for index in range(len(raw) - 1):
+        if raw[index : index + 2] != b"\x1f\x8b":
+            continue
+        try:
+            inflater = zlib.decompressobj(16 + zlib.MAX_WBITS)
+            text_bytes = inflater.decompress(raw[index:])
+        except Exception:
+            continue
+        if not text_bytes:
+            continue
+        text = text_bytes.decode("utf-8", errors="replace")
+        format_key = _structured_data_format_from_context(raw, index)
+        signature = (format_key, text[:256])
+        if signature in seen:
+            continue
+        seen.add(signature)
+        blocks.append({"format": format_key, "text": text})
+    return blocks
+
+
+def _structured_data_format_from_context(raw: bytes, index: int) -> Optional[str]:
+    start = max(0, index - 96)
+    context = raw[start:index].upper()
+    for token in (b"JSONLD", b"MICRODATA", b"RDFA"):
+        if token in context:
+            return token.decode("ascii")
+    return None
+
+
+def _structured_data_format_label(value: Any) -> Optional[str]:
+    raw = str(value or "").strip().upper()
+    if raw == "JSONLD":
+        return "JSON-LD"
+    if raw == "MICRODATA":
+        return "Microdata"
+    if raw == "RDFA":
+        return "RDFa"
+    return _safe_text(value)
+
+
+def _extract_structured_data_types(text: Any) -> list[str]:
+    if not text:
+        return []
+    matches = re.findall(
+        r"<http://www\.w3\.org/1999/02/22-rdf-syntax-ns#type>\s+<https?://schema\.org/([^>]+)>",
+        str(text),
+    )
+    return [match.rsplit("/", 1)[-1] for match in matches if match]
+
+
+def _ordered_unique(values: Sequence[str]) -> list[str]:
+    output: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if value in seen:
+            continue
+        output.append(value)
+        seen.add(value)
+    return output
+
+
+def _parse_rich_result_features(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        raw_values = list(value)
+    else:
+        text = str(value).strip()
+        if not text:
+            return []
+        if text.startswith("[") and text.endswith("]"):
+            try:
+                decoded = json.loads(text)
+                if isinstance(decoded, list):
+                    raw_values = decoded
+                else:
+                    raw_values = [decoded]
+            except Exception:
+                raw_values = re.split(r"[,\n;|]+", text)
+        else:
+            raw_values = re.split(r"[,\n;|]+", text)
+    features: list[str] = []
+    for raw in raw_values:
+        token = _safe_text(raw)
+        if not token:
+            continue
+        if not token.lower().startswith("google "):
+            token = f"Google {token}"
+        if token not in features:
+            features.append(token)
+    return features
+
+
+def _derive_rich_result_features(types: Sequence[str]) -> list[str]:
+    mapping = {
+        "FAQPage": "Google FAQ",
+        "BreadcrumbList": "Google Breadcrumb",
+        "Review": "Google Review Snippet",
+        "AggregateRating": "Google Review Snippet",
+        "SoftwareApplication": "Google Software App",
+        "SportsEvent": "Google Event",
+        "Event": "Google Event",
+        "Person": "Google Profile Page",
+        "ProfilePage": "Google Profile Page",
+        "Recipe": "Google Recipe",
+        "VideoObject": "Google Video",
+        "JobPosting": "Google Job Posting",
+        "HowTo": "Google How-To",
+        "QAPage": "Google Q&A",
+        "Product": "Google Product",
+        "NewsArticle": "Google Article",
+        "Article": "Google Article",
+    }
+    features: list[str] = []
+    for item in types:
+        feature = mapping.get(str(item))
+        if feature and feature not in features:
+            features.append(feature)
+    return features
+
+
+def _iter_structured_data_triples(text: str) -> Iterator[tuple[str, str, str]]:
+    for line in str(text).splitlines():
+        cleaned = line.strip()
+        if not cleaned or not cleaned.endswith("."):
+            continue
+        match = re.match(r"^(\S+)\s+<([^>]+)>\s+(.+?)\s+\.$", cleaned)
+        if not match:
+            continue
+        yield match.group(1), match.group(2), match.group(3)
+
+
+def _normalize_structured_object(value: str) -> str:
+    cleaned = value.strip()
+    if cleaned.startswith("<") and cleaned.endswith(">"):
+        cleaned = cleaned[1:-1]
+    if cleaned.startswith("\"") and cleaned.endswith("\""):
+        cleaned = cleaned[1:-1]
+    return cleaned
+
+
+def _safe_int(value: Any) -> Optional[int]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return int(float(text))
+    except ValueError:
+        return None
 
 
 _LINKS_BASE_SELECT = (

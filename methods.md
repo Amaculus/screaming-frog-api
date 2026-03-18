@@ -25,6 +25,7 @@ This file lists the current callable API in `sf-alpha`.
 - `crawl.tab_filter_defs(name) -> list[Any]`
 - `crawl.tab_columns(name) -> list[str]`
 - `crawl.describe_tab(name) -> dict[str, Any]`
+- `crawl.query(schema, table) -> QueryView`
 - `crawl.raw(table) -> Iterator[dict[str, Any]]`
 - `crawl.sql(query, params=None) -> Iterator[dict[str, Any]]`
 - `crawl.compare(other, ..., title_fields=None, redirect_fields=None, redirect_type_fields=None, field_groups=None) -> CrawlDiff`
@@ -56,6 +57,7 @@ This file lists the current callable API in `sf-alpha`.
 - `filter(**kwargs) -> InternalView`
 - `count() -> int`
 - iterable (`for page in crawl.internal.filter(...): ...`)
+- Derby-backed `crawl.internal` also materializes mapped expression fields such as `Indexability` and `Indexability Status`
 
 ## `TabView` (returned by `crawl.tab("...")`)
 - `filter(**kwargs) -> TabView`
@@ -63,6 +65,17 @@ This file lists the current callable API in `sf-alpha`.
   - supports GUI filter shortcut via `gui="Missing"` or `gui_filters=[...]`
 - `count() -> int`
 - iterable (`for row in crawl.tab("...").filter(...): ...`)
+
+## `QueryView` (returned by `crawl.query("APP", "URLS")`)
+- `select(*columns) -> QueryView`
+- `where(sql_fragment, *params) -> QueryView`
+- `group_by(*columns) -> QueryView`
+- `having(sql_fragment, *params) -> QueryView`
+- `order_by(*columns) -> QueryView`
+- `limit(n) -> QueryView`
+- `collect() -> list[dict[str, Any]]`
+- `first() -> dict[str, Any] | None`
+- `to_sql() -> tuple[str, list[Any]]`
 
 ---
 

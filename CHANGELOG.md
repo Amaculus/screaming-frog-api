@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+- Derby `crawl.internal` now materializes expression-backed internal fields, including `Indexability` and `Indexability Status`.
+- Added Derby-backed special tab support for cookies, spelling/grammar, and structured-data summary/detail exports.
+- Expanded mapping coverage and refreshed `schemas/mapping_nulls.md` / `schemas/inlinks_mapping_nulls.md`.
+- Added regression tests for Derby internal streaming/materialized expressions and special-tab parsing.
+
 ## 0.1.1 (2026-03-16)
 - Added chainable SQL query builder via `crawl.query(...)` with `select`, `where`, `group_by`, `having`, `order_by`, and `limit`.
 - Implemented Derby GUI filter SQL for:

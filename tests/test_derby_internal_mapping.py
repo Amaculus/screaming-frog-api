@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from screamingfrog.backends.derby_backend import (
     _build_supplementary_map,
+    _extract_header_value,
+    _header_extract_column,
     _normalize_select_expression,
     _resolve_tab_entries,
     _resolve_internal_alias_map,
@@ -88,6 +90,29 @@ def test_resolve_internal_header_extract_map_returns_header_entries() -> None:
     extracts = _resolve_internal_header_extract_map(mapping, "APP.URLS")
 
     assert extracts == {'HTTP rel="next" 1': {"type": "link_rel", "rel": "next"}}
+
+
+def test_extract_header_value_returns_joined_named_header_values() -> None:
+    result = _extract_header_value(
+        {"type": "header_name", "name": "cache-control"},
+        {"cache-control": ["public", "max-age=600"]},
+        [],
+    )
+
+    assert result == "public, max-age=600"
+
+
+def test_header_extract_column_defaults_to_response_headers() -> None:
+    assert _header_extract_column({"type": "header_name", "name": "server"}) == (
+        "HTTP_RESPONSE_HEADER_COLLECTION"
+    )
+    assert _header_extract_column(
+        {
+            "type": "header_name",
+            "name": "user-agent",
+            "column": "HTTP_REQUEST_HEADER_COLLECTION",
+        }
+    ) == "HTTP_REQUEST_HEADER_COLLECTION"
 
 
 def test_resolve_internal_expression_selects_returns_deduped_expr_aliases() -> None:

@@ -1,6 +1,6 @@
 # Screaming Frog Python Library - Progress Overview
 
-Last updated: 2026-03-16
+Last updated: 2026-03-17
 
 ## Goals
 - Single Python API for all Screaming Frog crawl sources:
@@ -35,6 +35,8 @@ Last updated: 2026-03-16
 - Raw escape hatches for DB backends: `crawl.raw("APP.URLS")` and `crawl.sql("SELECT ...")`
 - Chainable query builder for DB backends: `crawl.query(...).select(...).where(...).collect()`
 - Crawl-over-crawl diff available via `crawl.compare(other_crawl)` (status, title, redirect, and selected content/indexability signals)
+- Derby-backed `crawl.internal` now materializes expression-backed fields like `Indexability` and `Indexability Status`
+- Derby special tabs added for cookies, spelling/grammar, and structured-data summary/detail exports
 
 ### 4) Derby support without SF install
 - Bundled Apache Derby jars (10.17.1.0) under `screamingfrog/vendor/derby`
@@ -55,7 +57,7 @@ Last updated: 2026-03-16
 - Mapping rebuilt from schema + augmented for core tabs (response codes, titles, headings, directives, images, pagination, hreflang, canonicals, pagespeed, accessibility).
 - Derby mapping supports `db_expression` for computed columns (indexability, lengths, meta description/keywords, meta robots, dimensions, inlink counts, canonical counts).
 - HTTP canonical/rel next/prev parsing wired via header blob extraction.
-- Remaining unmapped CSV columns: pixel width, structured data errors/warnings/types, link score/% of total, JS-specific outlink counts, accessibility status, secondary hreflang slots.
+- Remaining unmapped CSV columns: pixel width, some structured data validation errors/warnings, link score/% of total, JS-specific outlink counts, accessibility status, secondary hreflang slots.
 
 ### 7) Config builder + crash fix
 - Java ConfigBuilder updated to avoid custom extraction crash

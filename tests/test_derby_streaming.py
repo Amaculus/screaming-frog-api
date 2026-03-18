@@ -66,10 +66,10 @@ def test_iter_cursor_rows_uses_fetchmany_chunks() -> None:
 
 def test_get_internal_streams_rows_without_fetchall() -> None:
     cursor = _FakeCursor(
-        ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL"],
+        ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL", "SF_EXPR_0", "SF_EXPR_1"],
         [
-            ("https://example.com/", 200, True),
-            ("https://example.com/missing", 404, True),
+            ("https://example.com/", 200, True, "Indexable", "Indexable"),
+            ("https://example.com/missing", 404, True, "Non-Indexable", "Noindex"),
         ],
     )
     backend = DerbyBackend.__new__(DerbyBackend)
@@ -79,7 +79,8 @@ def test_get_internal_streams_rows_without_fetchall() -> None:
     backend._internal_columns = ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL"]
     backend._internal_is_internal_col = "IS_INTERNAL"
     backend._internal_expr_selects = [
-        ("SF_EXPR_0", "Indexability", "CASE WHEN 1=1 THEN 'Indexable' END")
+        ("SF_EXPR_0", "Indexability", "CASE WHEN 1=1 THEN 'Indexable' END"),
+        ("SF_EXPR_1", "Indexability Status", "CASE WHEN 1=1 THEN 'Indexable' END"),
     ]
     backend._internal_alias_map = {
         "Address": "ENCODED_URL",
@@ -94,9 +95,17 @@ def test_get_internal_streams_rows_without_fetchall() -> None:
     assert pages[0].status_code == 200
     assert pages[1].address == "https://example.com/missing"
     assert pages[1].status_code == 404
+    assert pages[0].data["Indexability"] == "Indexable"
+    assert pages[0].data["Indexability Status"] == "Indexable"
+    assert pages[1].data["Indexability"] == "Non-Indexable"
+    assert pages[1].data["Indexability Status"] == "Noindex"
     assert pages[0].data["Status Code"] == 200
     assert pages[1].data["Status Code"] == 404
-    assert cursor.executed_sql == "SELECT * FROM APP.URLS WHERE IS_INTERNAL = TRUE"
+    assert cursor.executed_sql == (
+        "SELECT APP.URLS.*, CASE WHEN 1=1 THEN 'Indexable' END AS SF_EXPR_0, "
+        "CASE WHEN 1=1 THEN 'Indexable' END AS SF_EXPR_1 "
+        "FROM APP.URLS WHERE IS_INTERNAL = TRUE"
+    )
     assert cursor.executed_params == []
     assert cursor.fetchall_called == 0
     assert len(cursor.fetchmany_calls) >= 1
