@@ -659,3 +659,118 @@ def test_hreflang_link_reports_and_webfont_savings_use_direct_columns() -> None:
         "db_column": "TEXT_VISIBLE_DURING_LOAD",
         "db_table": "APP.PAGE_SPEED_API",
     }
+
+
+def test_custom_filter_rollout_maps_filter_counts_across_url_tabs() -> None:
+    tabs = [
+        "custom_search_all.csv",
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+
+    for tab in tabs:
+        assert _entry(tab, "Filter 1") == {
+            "csv_column": "Filter 1",
+            "db_expression": (
+                "(SELECT cfm.NUM_MATCHES FROM APP.CUSTOM_FILTER_MATCHES cfm "
+                "WHERE cfm.ENCODED_URL = APP.URLS.ENCODED_URL AND cfm.FILTER_IDX = 0 "
+                "FETCH FIRST 1 ROWS ONLY)"
+            ),
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Filter 100") == {
+            "csv_column": "Filter 100",
+            "db_expression": (
+                "(SELECT cfm.NUM_MATCHES FROM APP.CUSTOM_FILTER_MATCHES cfm "
+                "WHERE cfm.ENCODED_URL = APP.URLS.ENCODED_URL AND cfm.FILTER_IDX = 99 "
+                "FETCH FIRST 1 ROWS ONLY)"
+            ),
+            "db_table": "APP.URLS",
+        }
+
+
+def test_custom_extractor_first_match_rollout_maps_primary_match_columns() -> None:
+    url_tabs = [
+        "custom_extraction_all.csv",
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+
+    for tab in url_tabs:
+        assert _entry(tab, "Extractor 1 1") == {
+            "csv_column": "Extractor 1 1",
+            "db_expression": (
+                "(SELECT CAST(ce.MATCHED AS LONG VARCHAR) FROM APP.CUSTOM_EXTRACTION ce "
+                "WHERE ce.ENCODED_URL = APP.URLS.ENCODED_URL AND ce.EXTRACTOR_IDX = 0 "
+                "FETCH FIRST 1 ROWS ONLY)"
+            ),
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Extractor 100 1") == {
+            "csv_column": "Extractor 100 1",
+            "db_expression": (
+                "(SELECT CAST(ce.MATCHED AS LONG VARCHAR) FROM APP.CUSTOM_EXTRACTION ce "
+                "WHERE ce.ENCODED_URL = APP.URLS.ENCODED_URL AND ce.EXTRACTOR_IDX = 99 "
+                "FETCH FIRST 1 ROWS ONLY)"
+            ),
+            "db_table": "APP.URLS",
+        }
+
+    assert _entry("custom_javascript_all.csv", "Extractor 1 1") == {
+        "csv_column": "Extractor 1 1",
+        "db_expression": (
+            "(SELECT CAST(cj.MATCHED AS LONG VARCHAR) FROM APP.CUSTOM_JAVASCRIPT cj "
+            "WHERE cj.ENCODED_URL = APP.URLS.ENCODED_URL AND cj.EXTRACTOR_IDX = 0 "
+            "FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.URLS",
+    }
+    assert _entry("custom_javascript_all.csv", "Extractor 100 1") == {
+        "csv_column": "Extractor 100 1",
+        "db_expression": (
+            "(SELECT CAST(cj.MATCHED AS LONG VARCHAR) FROM APP.CUSTOM_JAVASCRIPT cj "
+            "WHERE cj.ENCODED_URL = APP.URLS.ENCODED_URL AND cj.EXTRACTOR_IDX = 99 "
+            "FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.URLS",
+    }
+    assert _entry("all_inlinks.csv", "Extractor 1 1") == {
+        "csv_column": "Extractor 1 1",
+        "db_expression": (
+            "(SELECT CAST(ce.MATCHED AS LONG VARCHAR) FROM APP.CUSTOM_EXTRACTION ce "
+            "WHERE ce.ENCODED_URL = (SELECT d.ENCODED_URL FROM APP.UNIQUE_URLS d "
+            "WHERE d.ID = APP.LINKS.DST_ID FETCH FIRST 1 ROWS ONLY) AND ce.EXTRACTOR_IDX = 0 "
+            "FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.LINKS",
+    }
+    assert _entry("all_inlinks.csv", "Extractor 100 1") == {
+        "csv_column": "Extractor 100 1",
+        "db_expression": (
+            "(SELECT CAST(ce.MATCHED AS LONG VARCHAR) FROM APP.CUSTOM_EXTRACTION ce "
+            "WHERE ce.ENCODED_URL = (SELECT d.ENCODED_URL FROM APP.UNIQUE_URLS d "
+            "WHERE d.ID = APP.LINKS.DST_ID FETCH FIRST 1 ROWS ONLY) AND ce.EXTRACTOR_IDX = 99 "
+            "FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.LINKS",
+    }
