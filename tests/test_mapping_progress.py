@@ -679,7 +679,18 @@ def test_redirect_type_rollout_uses_http_redirect_label_and_internal_carryover()
     ]
     redirect_url = {
         "csv_column": "Redirect URL",
-        "db_expression": "COALESCE(NULLIF(META_FULL_URL_1, ''), NULLIF(META_FULL_URL_2, ''))",
+        "db_column": "ENCODED_URL",
+        "derived_extract": {
+            "type": "redirect_url",
+            "columns": [
+                "ENCODED_URL",
+                "RESPONSE_CODE",
+                "NUM_METAREFRESH",
+                "META_FULL_URL_1",
+                "META_FULL_URL_2",
+                "HTTP_RESPONSE_HEADER_COLLECTION",
+            ],
+        },
         "db_table": "APP.URLS",
     }
     redirect_type = {
@@ -733,6 +744,31 @@ def test_internal_tabs_map_pagespeed_issue_summary_text() -> None:
                 ),
                 "db_table": "APP.URLS",
             }
+
+
+def test_internal_tabs_map_cookie_counts_via_blob_extract() -> None:
+    internal_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+
+    for tab in internal_tabs:
+        assert _entry(tab, "Cookies") == {
+            "csv_column": "Cookies",
+            "db_column": "COOKIE_COLLECTION",
+            "db_table": "APP.URLS",
+            "blob_extract": {"type": "cookie_count"},
+        }
 
 
 def test_pending_link_reports_map_unlinked_flags() -> None:

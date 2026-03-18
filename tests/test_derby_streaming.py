@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gzip
+import json
 from typing import Any
 
 from screamingfrog.backends.derby_backend import DerbyBackend, _iter_cursor_rows
@@ -49,6 +51,28 @@ class _FakeConnection:
 
     def cursor(self) -> _FakeCursor:
         return self._cursor
+
+
+class _FakeBlob:
+    def __init__(self, data: bytes) -> None:
+        self._data = data
+
+    def length(self) -> int:
+        return len(self._data)
+
+    def getBytes(self, start: int, length: int) -> bytes:
+        offset = max(0, start - 1)
+        return self._data[offset : offset + length]
+
+
+def _headers_blob(**headers: list[str]) -> _FakeBlob:
+    payload = {
+        "mHeaders": [
+            {"mName": name, "mValue": list(values)}
+            for name, values in headers.items()
+        ]
+    }
+    return _FakeBlob(gzip.compress(json.dumps(payload).encode("utf-8")))
 
 
 def test_iter_cursor_rows_uses_fetchmany_chunks() -> None:
@@ -188,3 +212,67 @@ def test_get_tab_skips_null_literal_projection_columns() -> None:
     assert rows[0]["Extractor 1"] is None
     assert rows[0]["Extractor 1005"] is None
     assert cursor.executed_sql == "SELECT ENCODED_URL FROM APP.LINKS"
+
+
+def test_get_tab_materializes_derived_redirect_url_from_meta_and_headers() -> None:
+    cursor = _FakeCursor(
+        [
+            "ENCODED_URL",
+            "RESPONSE_CODE",
+            "NUM_METAREFRESH",
+            "META_FULL_URL_1",
+            "META_FULL_URL_2",
+            "HTTP_RESPONSE_HEADER_COLLECTION",
+        ],
+        [
+            (
+                "https://example.com/source",
+                301,
+                0,
+                None,
+                None,
+                _headers_blob(Location=["/final"]),
+            ),
+            (
+                "https://example.com/meta",
+                200,
+                1,
+                "/meta-final",
+                None,
+                None,
+            ),
+        ],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _FakeConnection(cursor)
+    backend._mapping = {
+        "response_codes_internal_all.csv": [
+            {
+                "csv_column": "Redirect URL",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+                "derived_extract": {
+                    "type": "redirect_url",
+                    "columns": [
+                        "ENCODED_URL",
+                        "RESPONSE_CODE",
+                        "NUM_METAREFRESH",
+                        "META_FULL_URL_1",
+                        "META_FULL_URL_2",
+                        "HTTP_RESPONSE_HEADER_COLLECTION",
+                    ],
+                },
+            }
+        ]
+    }
+
+    rows = list(backend.get_tab("response_codes_internal_all"))
+
+    assert rows == [
+        {"Redirect URL": "https://example.com/final"},
+        {"Redirect URL": "https://example.com/meta-final"},
+    ]
+    assert cursor.executed_sql == (
+        "SELECT ENCODED_URL, RESPONSE_CODE, NUM_METAREFRESH, META_FULL_URL_1, "
+        "META_FULL_URL_2, HTTP_RESPONSE_HEADER_COLLECTION FROM APP.URLS"
+    )

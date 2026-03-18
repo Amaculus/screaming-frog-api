@@ -294,6 +294,8 @@ class DerbyBackend(CrawlBackend):
         csv_columns: list[str] = []
         entry_indexes: list[int | None] = []
         header_indexes: dict[str, int] = {}
+        blob_extract_indexes: dict[str, int] = {}
+        derived_extract_indexes: dict[str, int] = {}
         encoded_url_index: int | None = None
         blob_checks = _resolve_blob_checks(gui_defs)
         blob_indexes: dict[str, int] = {}
@@ -308,6 +310,22 @@ class DerbyBackend(CrawlBackend):
                 if blob_col not in header_indexes:
                     select_items.append(blob_col)
                     header_indexes[blob_col] = len(select_items) - 1
+                entry_indexes.append(None)
+                csv_columns.append(entry["csv_column"])
+                continue
+            if entry.get("blob_extract"):
+                blob_col = str(entry.get("db_column") or "")
+                if blob_col and blob_col not in blob_extract_indexes:
+                    select_items.append(blob_col)
+                    blob_extract_indexes[blob_col] = len(select_items) - 1
+                entry_indexes.append(None)
+                csv_columns.append(entry["csv_column"])
+                continue
+            if entry.get("derived_extract"):
+                for source_col in _derived_extract_columns(entry):
+                    if source_col not in derived_extract_indexes:
+                        select_items.append(source_col)
+                        derived_extract_indexes[source_col] = len(select_items) - 1
                 entry_indexes.append(None)
                 csv_columns.append(entry["csv_column"])
                 continue
@@ -415,6 +433,23 @@ class DerbyBackend(CrawlBackend):
                         entry["header_extract"],
                         parsed_headers.get(blob_col, {}),
                         parsed_links.get(blob_col, []),
+                    )
+                elif entry.get("blob_extract"):
+                    blob_col = str(entry.get("db_column") or "")
+                    blob_idx = blob_extract_indexes.get(blob_col)
+                    output[column] = _extract_blob_value(
+                        entry["blob_extract"],
+                        row[blob_idx] if blob_idx is not None else None,
+                    )
+                elif entry.get("derived_extract"):
+                    source_values = {
+                        source_col: row[idx]
+                        for source_col, idx in derived_extract_indexes.items()
+                        if idx < len(row)
+                    }
+                    output[column] = _extract_derived_value(
+                        entry["derived_extract"],
+                        source_values,
                     )
                 else:
                     output[column] = row[idx] if idx is not None else None
@@ -1292,7 +1327,12 @@ def _resolve_tab_entries(
             continue
         if not entry.get("db_column"):
             continue
-        if entry.get("db_expression") or entry.get("header_extract"):
+        if (
+            entry.get("db_expression")
+            or entry.get("header_extract")
+            or entry.get("blob_extract")
+            or entry.get("derived_extract")
+        ):
             continue
         csv_column = str(entry.get("csv_column") or "").strip()
         if not csv_column:
@@ -1421,7 +1461,7 @@ def _build_where_from_entries(
         csv_key = _normalize_key(entry.get("csv_column", ""))
         if not csv_key or csv_key in field_map:
             continue
-        if entry.get("header_extract"):
+        if entry.get("header_extract") or entry.get("blob_extract") or entry.get("derived_extract"):
             field_map[csv_key] = ("post", None)
             continue
         expr = entry.get("db_expression")
@@ -1925,6 +1965,53 @@ def _extract_header_value(
 
 def _header_extract_column(extract: dict[str, Any]) -> str:
     return str(extract.get("column") or "HTTP_RESPONSE_HEADER_COLLECTION")
+
+
+def _extract_blob_value(extract: dict[str, Any], blob: Any) -> Any:
+    kind = str(extract.get("type") or "").strip().lower()
+    if kind == "cookie_count":
+        payload = _decode_gzip_json_blob(blob)
+        cookies = payload.get("mCookies") or []
+        return len(cookies) if isinstance(cookies, list) else None
+    return None
+
+
+def _derived_extract_columns(entry: dict[str, Any]) -> list[str]:
+    extract = entry.get("derived_extract") or {}
+    columns = list(extract.get("columns") or [])
+    primary = entry.get("db_column")
+    if primary:
+        columns.insert(0, str(primary))
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for column in columns:
+        text = str(column or "").strip()
+        if text and text not in seen:
+            deduped.append(text)
+            seen.add(text)
+    return deduped
+
+
+def _extract_derived_value(extract: dict[str, Any], values: dict[str, Any]) -> Any:
+    kind = str(extract.get("type") or "").strip().lower()
+    if kind == "redirect_url":
+        address = _safe_text(values.get("ENCODED_URL"))
+        num_meta = _safe_int(values.get("NUM_METAREFRESH"))
+        meta_url = _safe_text(values.get("META_FULL_URL_1")) or _safe_text(
+            values.get("META_FULL_URL_2")
+        )
+        if num_meta and meta_url:
+            return urljoin(address or "", meta_url)
+
+        code = _safe_int(values.get("RESPONSE_CODE"))
+        headers_blob = values.get("HTTP_RESPONSE_HEADER_COLLECTION")
+        if code is not None and 300 <= code < 400 and headers_blob is not None:
+            headers = _headers_from_blob(headers_blob)
+            locations = headers.get("location", [])
+            if locations:
+                return urljoin(address or "", locations[0])
+        return None
+    return None
 
 
 def _iter_cookie_rows(encoded_url: Any, cookie_blob: Any) -> Iterator[dict[str, Any]]:

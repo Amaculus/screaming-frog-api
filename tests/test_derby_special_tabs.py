@@ -213,6 +213,38 @@ def test_get_tab_cookie_summary_aggregates_occurrences() -> None:
     ]
 
 
+def test_get_tab_internal_all_extracts_cookie_count_from_blob_mapping() -> None:
+    cursor = _FakeCursor(
+        ["COOKIE_COLLECTION"],
+        [
+            (
+                _cookie_blob(
+                    {"mName": "a", "mValue": "1"},
+                    {"mName": "b", "mValue": "2"},
+                    {"mName": "c", "mValue": "3"},
+                ),
+            )
+        ],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _QueuedConnection([cursor])
+    backend._mapping = {
+        "internal_all.csv": [
+            {
+                "csv_column": "Cookies",
+                "db_column": "COOKIE_COLLECTION",
+                "db_table": "APP.URLS",
+                "blob_extract": {"type": "cookie_count"},
+            }
+        ]
+    }
+
+    rows = list(backend.get_tab("internal_all"))
+
+    assert rows == [{"Cookies": 3}]
+    assert cursor.executed_sql == "SELECT COOKIE_COLLECTION FROM APP.URLS"
+
+
 def test_get_tab_language_errors_groups_repeated_page_errors() -> None:
     errors = [
         {
