@@ -591,3 +591,71 @@ def test_readability_label_rollout_uses_flesch_score_bands() -> None:
             "db_expression": expr,
             "db_table": "APP.URLS",
         }
+
+
+def test_js_outlink_rollout_maps_direct_url_counts() -> None:
+    tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "javascript_all.csv",
+        "javascript_contains_javascript_links.csv",
+        "links_all.csv",
+        "links_follow_nofollow_internal_inlinks_to_page.csv",
+        "links_internal_nofollow_inlinks_only.csv",
+        "links_internal_nofollow_outlinks.csv",
+        "links_internal_outlinks_with_no_anchor_text.csv",
+        "links_nondescriptive_anchor_text_in_internal_outlinks.csv",
+        "links_nonindexable_page_inlinks_only.csv",
+        "links_outlinks_to_localhost.csv",
+        "links_pages_with_high_crawl_depth.csv",
+        "links_pages_with_high_external_outlinks.csv",
+        "links_pages_with_high_internal_outlinks.csv",
+        "links_pages_without_internal_outlinks.csv",
+    ]
+    js_expr = (
+        "COALESCE(NUM_JS_UNIQUE_INTERNAL_OUTLINKS,0) + "
+        "COALESCE(NUM_JS_UNIQUE_EXTERNAL_OUTLINKS,0)"
+    )
+
+    for tab in tabs:
+        assert _entry(tab, "Unique JS Outlinks") == {
+            "csv_column": "Unique JS Outlinks",
+            "db_expression": js_expr,
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Unique External JS Outlinks") == {
+            "csv_column": "Unique External JS Outlinks",
+            "db_column": "NUM_JS_UNIQUE_EXTERNAL_OUTLINKS",
+            "db_table": "APP.URLS",
+        }
+
+
+def test_hreflang_link_reports_and_webfont_savings_use_direct_columns() -> None:
+    for tab in [
+        "hreflang_non200_hreflang_urls.csv",
+        "hreflang_unlinked_hreflang_urls.csv",
+    ]:
+        assert _entry(tab, "hreflang") == {
+            "csv_column": "hreflang",
+            "db_column": "HREF_LANG",
+            "db_table": "APP.LINKS",
+        }
+
+    assert _entry(
+        "ensure_text_remains_visible_during_webfont_load_report.csv",
+        "Potential Savings (ms)",
+    ) == {
+        "csv_column": "Potential Savings (ms)",
+        "db_column": "TEXT_VISIBLE_DURING_LOAD",
+        "db_table": "APP.PAGE_SPEED_API",
+    }
