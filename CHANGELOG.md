@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Derby tab projection now skips literal `NULL` mapping columns at query time, which fixes oversized mapped tabs like `all_inlinks` / `all_outlinks` while still returning those fields as `None`.
 - Derby `crawl.internal` now materializes expression-backed internal fields, including `Indexability` and `Indexability Status`.
 - Derby filter compilation now supports mapped `db_expression` fields and post-filters mapped header/supplementary fields for `crawl.internal` and `crawl.tab(...)`.
 - SQLite `crawl.internal` now follows the `internal_all` projection so mapped fields like `Indexability` / `Indexability Status` stay aligned with `crawl.tab("internal_all")`.

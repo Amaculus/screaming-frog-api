@@ -154,3 +154,37 @@ def test_count_applies_internal_clause_and_filters() -> None:
     )
     assert cursor.executed_params == [404]
     assert cursor.fetchone_called == 1
+
+
+def test_get_tab_skips_null_literal_projection_columns() -> None:
+    cursor = _FakeCursor(
+        ["ENCODED_URL"],
+        [("https://example.com/source",)],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _FakeConnection(cursor)
+    backend._mapping = {
+        "all_inlinks.csv": [
+            {
+                "csv_column": "Source",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.LINKS",
+            },
+            *[
+                {
+                    "csv_column": f"Extractor {index}",
+                    "db_expression": "NULL",
+                    "db_table": "APP.LINKS",
+                }
+                for index in range(1, 1006)
+            ],
+        ]
+    }
+
+    rows = list(backend.get_tab("all_inlinks"))
+
+    assert len(rows) == 1
+    assert rows[0]["Source"] == "https://example.com/source"
+    assert rows[0]["Extractor 1"] is None
+    assert rows[0]["Extractor 1005"] is None
+    assert cursor.executed_sql == "SELECT ENCODED_URL FROM APP.LINKS"

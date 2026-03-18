@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from screamingfrog.backends.derby_backend import (
     _build_supplementary_map,
+    _build_where_from_entries,
     _extract_header_value,
     _header_extract_column,
     _normalize_select_expression,
@@ -307,3 +308,25 @@ def test_build_supplementary_map_groups_by_table_and_keeps_first_csv_mapping() -
         },
         "APP.LANGUAGE_ERROR": {"Spelling Errors": "SPELLING_ERRORS"},
     }
+
+
+def test_build_where_from_entries_treats_null_literal_expressions_as_post_filters() -> None:
+    where, params, post_filters = _build_where_from_entries(
+        {"Extractor 1": None, "Source": "https://example.com/source"},
+        [
+            {
+                "csv_column": "Source",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.LINKS",
+            },
+            {
+                "csv_column": "Extractor 1",
+                "db_expression": "NULL",
+                "db_table": "APP.LINKS",
+            },
+        ],
+    )
+
+    assert where == "ENCODED_URL = ?"
+    assert params == ["https://example.com/source"]
+    assert post_filters == {"Extractor 1": None}

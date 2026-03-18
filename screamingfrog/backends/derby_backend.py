@@ -314,6 +314,10 @@ class DerbyBackend(CrawlBackend):
 
             expr = entry.get("db_expression")
             if expr:
+                if _is_null_expression(expr):
+                    entry_indexes.append(None)
+                    csv_columns.append(entry["csv_column"])
+                    continue
                 select_items.append(_normalize_select_expression(expr))
             else:
                 select_items.append(entry["db_column"])
@@ -330,6 +334,8 @@ class DerbyBackend(CrawlBackend):
                 idx = len(select_items) - 1
             blob_indexes[blob_column] = idx
 
+        if not select_items:
+            select_items.append("1")
         select_cols = ", ".join(select_items)
         join_sql = ""
         where_parts: list[str] = []
@@ -1420,6 +1426,9 @@ def _build_where_from_entries(
             continue
         expr = entry.get("db_expression")
         if expr:
+            if _is_null_expression(expr):
+                field_map[csv_key] = ("post", None)
+                continue
             field_map[csv_key] = ("expr", _normalize_select_expression(expr))
             continue
         column = entry.get("db_column")
@@ -1501,6 +1510,10 @@ def _normalize_select_expression(expr: Any) -> str:
         )
 
     return text
+
+
+def _is_null_expression(expr: Any) -> bool:
+    return str(expr).strip().upper() == "NULL"
 
 
 def _normalize_key(value: str) -> str:
