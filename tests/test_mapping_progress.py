@@ -305,3 +305,40 @@ def test_url_family_tabs_map_encoded_address_and_js_blocked_resources_maps_respo
         "db_column": "RESPONSE_TIME_MS",
         "db_table": "APP.URLS",
     }
+
+
+def test_readability_label_rollout_uses_flesch_score_bands() -> None:
+    readability_tabs = [
+        "content_all.csv",
+        "content_readability_difficult.csv",
+        "content_readability_very_difficult.csv",
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+    expr = (
+        "CASE WHEN READABILITY_SCORE IS NULL THEN NULL "
+        "WHEN READABILITY_SCORE >= 90 THEN 'Very Easy' "
+        "WHEN READABILITY_SCORE >= 80 THEN 'Easy' "
+        "WHEN READABILITY_SCORE >= 70 THEN 'Fairly Easy' "
+        "WHEN READABILITY_SCORE >= 60 THEN 'Standard' "
+        "WHEN READABILITY_SCORE >= 50 THEN 'Fairly Difficult' "
+        "WHEN READABILITY_SCORE >= 30 THEN 'Difficult' "
+        "ELSE 'Very Difficult' END"
+    )
+
+    for tab in readability_tabs:
+        assert _entry(tab, "Readability") == {
+            "csv_column": "Readability",
+            "db_expression": expr,
+            "db_table": "APP.URLS",
+        }
