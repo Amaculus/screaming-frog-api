@@ -236,3 +236,72 @@ def test_content_all_maps_total_language_errors_expression() -> None:
         ),
         "db_table": "APP.URLS",
     }
+
+
+def test_internal_tabs_map_url_timestamp_and_http_metadata_fields() -> None:
+    internal_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+
+    for tab in internal_tabs:
+        assert _entry(tab, "Response Time") == {
+            "csv_column": "Response Time",
+            "db_column": "RESPONSE_TIME_MS",
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Last Modified") == {
+            "csv_column": "Last Modified",
+            "db_column": "LAST_MODIFIED_DATE",
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "URL Encoded Address") == {
+            "csv_column": "URL Encoded Address",
+            "db_column": "ENCODED_URL",
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Crawl Timestamp") == {
+            "csv_column": "Crawl Timestamp",
+            "db_column": "TIMESTAMP",
+            "db_table": "APP.URLS",
+        }
+
+
+def test_url_family_tabs_map_encoded_address_and_js_blocked_resources_maps_response_time() -> None:
+    url_tabs = [
+        "url_all.csv",
+        "url_broken_bookmark.csv",
+        "url_contains_space.csv",
+        "url_ga_tracking_parameters.csv",
+        "url_internal_search.csv",
+        "url_multiple_slashes.csv",
+        "url_non_ascii_characters.csv",
+        "url_over_115_characters.csv",
+        "url_parameters.csv",
+        "url_repetitive_path.csv",
+        "url_underscores.csv",
+        "url_uppercase.csv",
+    ]
+
+    for tab in url_tabs:
+        assert _entry(tab, "URL Encoded Address") == {
+            "csv_column": "URL Encoded Address",
+            "db_column": "ENCODED_URL",
+            "db_table": "APP.URLS",
+        }
+
+    assert _entry("javascript_pages_with_blocked_resources.csv", "Response Time") == {
+        "csv_column": "Response Time",
+        "db_column": "RESPONSE_TIME_MS",
+        "db_table": "APP.URLS",
+    }
