@@ -17,6 +17,25 @@ def _entry(tab: str, csv_column: str) -> dict:
     raise AssertionError(f"Missing mapping for {tab} -> {csv_column}")
 
 
+def _coalesced_meta_expression(prefix: str, names: tuple[str, ...]) -> str:
+    clauses = []
+    for i in range(1, 21):
+        name_col = f"META_NAME{prefix}_{i}" if prefix else f"META_NAME_{i}"
+        content_col = f"META_CONTENT{prefix}_{i}" if prefix else f"META_CONTENT_{i}"
+        if len(names) == 1:
+            clauses.append(
+                f"CASE WHEN LOWER({name_col}) = '{names[0]}' "
+                f"THEN NULLIF({content_col}, '') END"
+            )
+        else:
+            joined = ", ".join(f"'{name}'" for name in names)
+            clauses.append(
+                f"CASE WHEN LOWER({name_col}) IN ({joined}) "
+                f"THEN NULLIF({content_col}, '') END"
+            )
+    return "COALESCE(" + ", ".join(clauses) + ")"
+
+
 def test_content_language_tabs_map_language_code() -> None:
     grammar = _entry("content_grammar_errors.csv", "Language")
     spelling = _entry("content_spelling_errors.csv", "Language")
@@ -357,6 +376,121 @@ def test_form_action_link_tabs_map_to_destination_url() -> None:
 
     assert _entry("form_url_insecure.csv", "Form Action Link") == expected
     assert _entry("all_inlinks.csv", "Form Action Link") == expected
+
+
+def test_javascript_content_tabs_map_word_count_fields() -> None:
+    assert _entry("javascript_contains_javascript_content.csv", "HTML Word Count") == {
+        "csv_column": "HTML Word Count",
+        "db_column": "WORD_COUNT",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_contains_javascript_content.csv", "Rendered HTML Word Count") == {
+        "csv_column": "Rendered HTML Word Count",
+        "db_expression": "COALESCE(WORD_COUNT, 0) + COALESCE(WORD_COUNT_JS, 0)",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_contains_javascript_content.csv", "Word Count Change") == {
+        "csv_column": "Word Count Change",
+        "db_expression": "COALESCE(WORD_COUNT_JS, 0)",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_contains_javascript_content.csv", "JS Word Count %") == {
+        "csv_column": "JS Word Count %",
+        "db_expression": (
+            "CAST((100.0 * COALESCE(WORD_COUNT_JS, 0)) / "
+            "NULLIF(COALESCE(WORD_COUNT, 0) + COALESCE(WORD_COUNT_JS, 0), 0) "
+            "AS DECIMAL(12, 3))"
+        ),
+        "db_table": "APP.URLS",
+    }
+
+
+def test_javascript_title_and_h1_tabs_map_original_and_rendered_fields() -> None:
+    for tab in [
+        "javascript_page_title_updated_by_javascript.csv",
+        "javascript_page_title_only_in_rendered_html.csv",
+    ]:
+        assert _entry(tab, "HTML Title") == {
+            "csv_column": "HTML Title",
+            "db_column": "TITLE_1",
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Rendered HTML Title") == {
+            "csv_column": "Rendered HTML Title",
+            "db_column": "TITLE_JS_1",
+            "db_table": "APP.URLS",
+        }
+
+    for tab in [
+        "javascript_h1_updated_by_javascript.csv",
+        "javascript_h1_only_in_rendered_html.csv",
+    ]:
+        assert _entry(tab, "HTML H1") == {
+            "csv_column": "HTML H1",
+            "db_column": "H1_1",
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Rendered HTML H1") == {
+            "csv_column": "Rendered HTML H1",
+            "db_column": "H1_JS_1",
+            "db_table": "APP.URLS",
+        }
+
+
+def test_javascript_meta_description_and_robots_tabs_map_original_and_rendered_fields() -> None:
+    original_desc = _coalesced_meta_expression("", ("description",))
+    rendered_desc = _coalesced_meta_expression("_JS", ("description",))
+    original_robots = _coalesced_meta_expression(
+        "",
+        ("robots", "googlebot", "bingbot", "yandex", "baiduspider", "slurp"),
+    )
+    rendered_robots = _coalesced_meta_expression(
+        "_JS",
+        ("robots", "googlebot", "bingbot", "yandex", "baiduspider", "slurp"),
+    )
+
+    for tab in [
+        "javascript_meta_description_updated_by_javascript.csv",
+        "javascript_meta_description_only_in_rendered_html.csv",
+    ]:
+        assert _entry(tab, "HTML Meta Description") == {
+            "csv_column": "HTML Meta Description",
+            "db_expression": original_desc,
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Rendered HTML Meta Description") == {
+            "csv_column": "Rendered HTML Meta Description",
+            "db_expression": rendered_desc,
+            "db_table": "APP.URLS",
+        }
+
+    for tab in [
+        "javascript_noindex_only_in_original_html.csv",
+        "javascript_nofollow_only_in_original_html.csv",
+    ]:
+        assert _entry(tab, "HTML Meta Robots 1") == {
+            "csv_column": "HTML Meta Robots 1",
+            "db_expression": original_robots,
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Rendered HTML Meta Robots 1") == {
+            "csv_column": "Rendered HTML Meta Robots 1",
+            "db_expression": rendered_robots,
+            "db_table": "APP.URLS",
+        }
+
+
+def test_lorem_ipsum_and_viewport_tabs_map_direct_fields() -> None:
+    assert _entry("content_lorem_ipsum_placeholder.csv", "Occurrences") == {
+        "csv_column": "Occurrences",
+        "db_column": "LOREM_IPSUM_OCCURRENCES",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("viewport_not_set_report.csv", "Viewport Content") == {
+        "csv_column": "Viewport Content",
+        "db_expression": _coalesced_meta_expression("", ("viewport",)),
+        "db_table": "APP.URLS",
+    }
 
 
 def test_generate_mapping_nulls_only_counts_literal_null_placeholders() -> None:
