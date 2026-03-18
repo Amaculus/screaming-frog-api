@@ -661,6 +661,100 @@ def test_hreflang_link_reports_and_webfont_savings_use_direct_columns() -> None:
     }
 
 
+def test_redirect_type_rollout_uses_http_redirect_label_and_internal_carryover() -> None:
+    internal_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "javascript_pages_with_blocked_resources.csv",
+    ]
+    redirect_url = {
+        "csv_column": "Redirect URL",
+        "db_expression": "COALESCE(NULLIF(META_FULL_URL_1, ''), NULLIF(META_FULL_URL_2, ''))",
+        "db_table": "APP.URLS",
+    }
+    redirect_type = {
+        "csv_column": "Redirect Type",
+        "db_expression": (
+            "CASE WHEN NUM_METAREFRESH > 0 THEN 'Meta Refresh' "
+            "WHEN RESPONSE_CODE BETWEEN 300 AND 399 THEN 'HTTP Redirect' ELSE NULL END"
+        ),
+        "db_table": "APP.URLS",
+    }
+
+    for tab in internal_tabs:
+        assert _entry(tab, "Redirect URL") == redirect_url
+        assert _entry(tab, "Redirect Type") == redirect_type
+
+    for tab in [
+        "response_codes_all.csv",
+        "response_codes_internal_all.csv",
+        "response_codes_internal_redirection_(3xx).csv",
+    ]:
+        assert _entry(tab, "Redirect Type") == redirect_type
+
+
+def test_internal_tabs_map_pagespeed_issue_summary_text() -> None:
+    internal_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+    expected = {
+        "Image Elements Do Not Have Explicit Width & Height": "UNSIZED_IMAGES",
+        "Avoid Large Layout Shifts": "LAYOUT_SHIFT_ELEMENTS",
+    }
+
+    for tab in internal_tabs:
+        for csv_column, db_column in expected.items():
+            assert _entry(tab, csv_column) == {
+                "csv_column": csv_column,
+                "db_expression": (
+                    f"(SELECT psi.{db_column} FROM APP.PAGE_SPEED_API psi "
+                    "WHERE psi.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+                ),
+                "db_table": "APP.URLS",
+            }
+
+
+def test_pending_link_reports_map_unlinked_flags() -> None:
+    expected = {
+        "canonicals_nonindexable_canonicals.csv": "APP.MULTIMAP_CANONICALS_PENDING_LINK",
+        "pagination_non200_pagination_urls.csv": "APP.MULTIMAP_PAGINATION_PENDING_LINK",
+        "pagination_unlinked_pagination_urls.csv": "APP.MULTIMAP_PAGINATION_PENDING_LINK",
+    }
+
+    for tab, join_table in expected.items():
+        assert _entry(tab, "Unlinked") == {
+            "csv_column": "Unlinked",
+            "db_expression": (
+                "CASE WHEN EXISTS (SELECT 1 FROM "
+                f"{join_table} j "
+                "WHERE j.MULTIMAP_KEY = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY) "
+                "THEN 'true' ELSE 'false' END"
+            ),
+            "db_table": "APP.URLS",
+        }
+
+
 def test_custom_filter_rollout_maps_filter_counts_across_url_tabs() -> None:
     tabs = [
         "custom_search_all.csv",

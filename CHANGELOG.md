@@ -18,6 +18,7 @@
 - Added direct Derby mappings for JS outlink counts, hreflang link labels in non-200/unlinked reports, and webfont-load PageSpeed savings.
 - Added bulk Derby mappings for custom filter counts (`Filter 1`-`Filter 100`) and first-match custom extractor columns across internal/custom-extraction tabs plus `all_inlinks`.
 - Added bulk Derby mappings for internal performance, CrUX, semantic-similarity, text-ratio, link-score, and transfer/CO2 fields across internal, links, and validation tabs.
+- Added internal redirect/blocked-resource carryover mappings for `Redirect URL` / `Redirect Type`, aligned redirect labels to `HTTP Redirect`, and filled internal PageSpeed issue summary text plus pending-link `Unlinked` flags.
 - Added regression tests for Derby internal streaming/materialized expressions and special-tab parsing.
 
 ## 0.1.1 (2026-03-16)
