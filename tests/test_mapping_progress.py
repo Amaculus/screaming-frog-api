@@ -774,3 +774,182 @@ def test_custom_extractor_first_match_rollout_maps_primary_match_columns() -> No
         ),
         "db_table": "APP.LINKS",
     }
+
+
+def test_internal_tabs_roll_out_pagespeed_semantic_and_text_ratio_mappings() -> None:
+    internal_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+    pagespeed_columns = {
+        "First Contentful Paint Time (ms)": "FIRST_CONTENTFUL_PAINT",
+        "Speed Index Time (ms)": "SPEED_INDEX",
+        "Largest Contentful Paint Time (ms)": "LARGEST_CONTENTFUL_PAINT",
+        "Time to Interactive (ms)": "TIME_TO_INTERACTIVE",
+        "Total Blocking Time (ms)": "TOTAL_BLOCKING_TIME",
+        "Total Size Savings (Bytes)": "TOTAL_OPPORTUNITY_SAVINGS_BYTES",
+        "Total Time Savings (ms)": "TOTAL_OPPORTUNITY_SAVINGS_MS",
+        "Total Page Size (Bytes)": "TOTAL_PAGE_SIZE",
+        "HTML Size (Bytes)": "HTML_SIZE",
+        "Image Size (Bytes)": "IMAGE_SIZE",
+        "CSS Size (Bytes)": "CSS_SIZE",
+        "JavaScript Size (Bytes)": "JAVASCRIPT_SIZE",
+        "Font Size (Bytes)": "FONT_SIZE",
+        "Media Size (Bytes)": "MEDIA_SIZE",
+        "Other Size (Bytes)": "OTHER_SIZE",
+        "Third Party Size (Bytes)": "THIRD_PARTY_SIZE",
+        "Core Web Vitals Assessment": "LOADING_EXPERIENCE_SCORE",
+        "CrUX Largest Contentful Paint Time (ms)": "LOADING_EXPERIENCE_LARGEST_CONTENTFUL_PAINT_TIME",
+        "CrUX Interaction to Next Paint (ms)": "LOADING_EXPERIENCE_INTERACTION_TO_NEXT_PAINT_MS",
+        "CrUX Cumulative Layout Shift": "LOADING_EXPERIENCE_CUMULATIVE_LAYOUT_SHIFT",
+        "CrUX First Contentful Paint Time (ms)": "LOADING_EXPERIENCE_FIRST_CONTENTFUL_PAINT_TIME",
+        "Eliminate Render-Blocking Resources Savings (ms)": "ELIMINATE_RENDER_BLOCKING_RESOURCES",
+        "Defer Offscreen Images Savings (ms)": "DEFER_OFFSCREEN_IMAGES_MS",
+        "Efficiently Encode Images Savings (ms)": "EFFICIENTLY_ENCODE_IMAGES_MS",
+        "Properly Size Images Savings (ms)": "PROPERLY_SIZE_IMAGES_MS",
+        "Minify CSS Savings (ms)": "MINIFY_CSS_MS",
+        "Minify JavaScript Savings (ms)": "MINIFY_JAVASCRIPT_MS",
+        "Reduce Unused CSS Savings (ms)": "REMOVE_UNUSED_CSS_MS",
+        "Reduce Unused JavaScript Savings (ms)": "REMOVE_UNUSED_JAVASCRIPT_MS",
+        "Serve Images in Next-Gen Formats Savings (ms)": "NEXT_GEN_IMAGES_MS",
+        "Enable Text Compression Savings (ms)": "TEXT_COMPRESSION_MS",
+        "Preconnect to Required Origins Savings (ms)": "PRECONNECT_MS",
+        "Server Response Times (TTFB) (ms)": "SERVER_RESPONSE_TIMES_SAVINGS_MS",
+        "Multiple Redirects Savings (ms)": "REDIRECTS",
+        "Preload Key Requests Savings (ms)": "PRELOAD",
+        "Use Video Format for Animated Images Savings (ms)": "VIDEO_FORMAT_MS",
+        "Total Image Optimization Savings (ms)": "TOTAL_IMAGE_OPTIMIZATION_SAVINGS",
+        "Avoid Serving Legacy JavaScript to Modern Browsers Savings (ms)": "LEGACY_JAVASCRIPT",
+    }
+    semantic_exprs = {
+        "Closest Semantically Similar Address": (
+            "(SELECT cs.CLOSEST_URL FROM APP.COSINE_SIMILARITY cs "
+            "WHERE cs.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "Semantic Similarity Score": (
+            "(SELECT cs.SCORE FROM APP.COSINE_SIMILARITY cs "
+            "WHERE cs.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "No. Semantically Similar": (
+            "(SELECT cs.SIMILAR_URLS FROM APP.COSINE_SIMILARITY cs "
+            "WHERE cs.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "Semantic Relevance Score": (
+            "(SELECT lr.SCORE FROM APP.LOW_RELEVANCE lr "
+            "WHERE lr.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        ),
+    }
+
+    for tab in internal_tabs:
+        assert _entry(tab, "Text Ratio") == {
+            "csv_column": "Text Ratio",
+            "db_column": "TEXT_TO_HTML_RATIO",
+            "db_table": "APP.URLS",
+        }
+        for csv_column, db_column in pagespeed_columns.items():
+            assert _entry(tab, csv_column) == {
+                "csv_column": csv_column,
+                "db_expression": (
+                    f"(SELECT psi.{db_column} FROM APP.PAGE_SPEED_API psi "
+                    "WHERE psi.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+                ),
+                "db_table": "APP.URLS",
+            }
+        for csv_column, expr in semantic_exprs.items():
+            assert _entry(tab, csv_column) == {
+                "csv_column": csv_column,
+                "db_expression": expr,
+                "db_table": "APP.URLS",
+            }
+
+
+def test_link_score_and_transfer_metrics_roll_out_across_url_tabs() -> None:
+    link_score_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "links_all.csv",
+        "links_follow_nofollow_internal_inlinks_to_page.csv",
+        "links_internal_nofollow_inlinks_only.csv",
+        "links_internal_nofollow_outlinks.csv",
+        "links_internal_outlinks_with_no_anchor_text.csv",
+        "links_nondescriptive_anchor_text_in_internal_outlinks.csv",
+        "links_nonindexable_page_inlinks_only.csv",
+        "links_outlinks_to_localhost.csv",
+        "links_pages_with_high_crawl_depth.csv",
+        "links_pages_with_high_external_outlinks.csv",
+        "links_pages_with_high_internal_outlinks.csv",
+        "links_pages_without_internal_outlinks.csv",
+    ]
+    link_score_expr = (
+        "(SELECT ls.LINKSCORE FROM APP.LINK_SCORE ls "
+        "WHERE ls.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+    )
+    transfer_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "validation_all.csv",
+        "validation_body_element_preceding_html.csv",
+        "validation_head_not_first_in_html_element.csv",
+        "validation_high_carbon_rating.csv",
+        "validation_html_document_over_15mb.csv",
+        "validation_invalid_html_elements_in_head.csv",
+        "validation_missing_body_tag.csv",
+        "validation_missing_head_tag.csv",
+        "validation_multiple_body_tags.csv",
+        "validation_multiple_head_tags.csv",
+        "validation_resource_over_15mb.csv",
+    ]
+
+    for tab in link_score_tabs:
+        assert _entry(tab, "Link Score") == {
+            "csv_column": "Link Score",
+            "db_expression": link_score_expr,
+            "db_table": "APP.URLS",
+        }
+
+    for tab in transfer_tabs:
+        assert _entry(tab, "Transferred (bytes)") == {
+            "csv_column": "Transferred (bytes)",
+            "db_column": "PAGE_TRANSFER_SIZE",
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Total Transferred (bytes)") == {
+            "csv_column": "Total Transferred (bytes)",
+            "db_column": "TOTAL_PAGE_TRANSFER_SIZE",
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "CO2 (mg)") == {
+            "csv_column": "CO2 (mg)",
+            "db_column": "CO2",
+            "db_table": "APP.URLS",
+        }
