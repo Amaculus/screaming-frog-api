@@ -427,6 +427,22 @@ Third-party notices for Apache Derby are included in `screamingfrog/vendor/derby
 Derby tab mapping uses `schemas/mapping.json`. Set `SCREAMINGFROG_MAPPING` if
 you store the mapping elsewhere.
 
+## Contributing: tab/column mapping
+
+To help map more GUI tabs to Derby (see [Antonio's LinkedIn](https://www.linkedin.com/in/antoniomaculus/) for progress):
+
+- **Source of truth:** `schemas/mapping.json` (keys = normalized export filenames, e.g. `internal_all.csv`).
+- **Workflow:** Compare CSV schema in `schemas/csv/` with Derby schema in `schemas/db/tables/`; prefer `db_column` → `db_expression` → `NULL`; then add/update tests.
+- **Automation:** Run from repo root:
+  ```bash
+  python scripts/suggest_mappings.py --tab hreflang_all.csv   # suggestions for one tab
+  python scripts/suggest_mappings.py --tab-family hreflang   # all hreflang_* tabs
+  python scripts/suggest_mappings.py --list-unmapped          # tabs with unmapped columns
+  python scripts/suggest_mappings.py --patch --tab my_tab    # JSON fragment to merge into mapping.json
+  python scripts/suggest_mappings.py --report-nulls          # regenerate mapping_nulls.md content
+  ```
+- **PRs:** Prefer PRs to `schemas/mapping.json` for new column coverage; for repeated Derby SQL incompatibilities, fix in `screamingfrog/backends/derby_backend.py`; for GUI filter parity, use `screamingfrog/filters/*.py`. See `scripts/README.md` and `schemas/mapping_nulls.md` / `schemas/inlinks_mapping_missing.md` for backlog.
+
 ## Development
 
 ```bash
