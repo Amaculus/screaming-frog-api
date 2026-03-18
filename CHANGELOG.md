@@ -2,6 +2,8 @@
 
 ## Unreleased
 - Derby `crawl.internal` now materializes expression-backed internal fields, including `Indexability` and `Indexability Status`.
+- Derby filter compilation now supports mapped `db_expression` fields and post-filters mapped header/supplementary fields for `crawl.internal` and `crawl.tab(...)`.
+- SQLite `crawl.internal` now follows the `internal_all` projection so mapped fields like `Indexability` / `Indexability Status` stay aligned with `crawl.tab("internal_all")`.
 - Added Derby-backed special tab support for cookies, spelling/grammar, and structured-data summary/detail exports.
 - Expanded mapping coverage and refreshed `schemas/mapping_nulls.md` / `schemas/inlinks_mapping_nulls.md`.
 - Added regression tests for Derby internal streaming/materialized expressions and special-tab parsing.

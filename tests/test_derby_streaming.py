@@ -102,9 +102,9 @@ def test_get_internal_streams_rows_without_fetchall() -> None:
     assert pages[0].data["Status Code"] == 200
     assert pages[1].data["Status Code"] == 404
     assert cursor.executed_sql == (
-        "SELECT APP.URLS.*, CASE WHEN 1=1 THEN 'Indexable' END AS SF_EXPR_0, "
+        "SELECT sf_internal.*, CASE WHEN 1=1 THEN 'Indexable' END AS SF_EXPR_0, "
         "CASE WHEN 1=1 THEN 'Indexable' END AS SF_EXPR_1 "
-        "FROM APP.URLS WHERE IS_INTERNAL = TRUE"
+        "FROM APP.URLS sf_internal WHERE IS_INTERNAL = TRUE"
     )
     assert cursor.executed_params == []
     assert cursor.fetchall_called == 0

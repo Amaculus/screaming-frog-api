@@ -136,6 +136,7 @@ Notes:
 - Derby now natively supports `Response Codes > Internal Redirect Chain` and `Hreflang > Not Using Canonical`.
 - HTTP canonical/rel fields in Derby are parsed from `HTTP_RESPONSE_HEADER_COLLECTION` when present.
 - Derby-backed `crawl.internal` now materializes computed mapped fields like `Indexability` and `Indexability Status`.
+- Derby filters now work against mapped expression fields and header-derived fields in both `crawl.internal` and `crawl.tab(...)`.
 - Some link metrics (Link Score, % of Total, JS outlink counts) are not mapped in Derby yet.
 
 ## Inlinks / Outlinks (Derby)

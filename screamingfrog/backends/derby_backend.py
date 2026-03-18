@@ -95,11 +95,12 @@ class DerbyBackend(CrawlBackend):
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         if self._internal_expr_selects:
-            select_parts = [f"{self._table}.*"]
+            table_alias = "sf_internal"
+            select_parts = [f"{table_alias}.*"]
             select_parts.extend(
                 f"{expr} AS {alias}" for alias, _csv_col, expr in self._internal_expr_selects
             )
-            sql = f"SELECT {', '.join(select_parts)} FROM {self._table}"
+            sql = f"SELECT {', '.join(select_parts)} FROM {self._table} {table_alias}"
         else:
             sql = f"SELECT * FROM {self._table}"
         where_parts: list[str] = []
@@ -107,9 +108,19 @@ class DerbyBackend(CrawlBackend):
         internal_clause = self._internal_only_clause()
         if internal_clause:
             where_parts.append(internal_clause)
+        post_filters: dict[str, Any] = {}
         if filters:
-            where, filter_params = _build_where(filters, self._column_map)
-            where_parts.append(where)
+            alias_map = getattr(self, "_internal_alias_map", None) or getattr(
+                self, "_column_map", {}
+            )
+            where, filter_params, post_filters = _compile_internal_filters(
+                filters,
+                alias_map,
+                getattr(self, "_internal_expr_selects", []),
+                getattr(self, "_internal_header_extract_map", {}),
+            )
+            if where:
+                where_parts.append(where)
             params.extend(filter_params)
         if where_parts:
             sql = f"{sql} WHERE {' AND '.join(where_parts)}"
@@ -161,6 +172,8 @@ class DerbyBackend(CrawlBackend):
                         headers = parsed_headers.get(blob_col, {})
                         links = parsed_links.get(blob_col, [])
                     data[csv_col] = _extract_header_value(extract, headers, links)
+            if post_filters and not _row_matches_filters(data, post_filters):
+                continue
             yield InternalPage.from_data(data, copy_data=False)
 
     def get_inlinks(self, url: str) -> Iterator[Link]:
@@ -207,8 +220,19 @@ class DerbyBackend(CrawlBackend):
         if internal_clause:
             where_parts.append(internal_clause)
         if filters:
-            where, filter_params = _build_where(filters, self._column_map)
-            where_parts.append(where)
+            alias_map = getattr(self, "_internal_alias_map", None) or getattr(
+                self, "_column_map", {}
+            )
+            where, filter_params, post_filters = _compile_internal_filters(
+                filters,
+                alias_map,
+                getattr(self, "_internal_expr_selects", []),
+                getattr(self, "_internal_header_extract_map", {}),
+            )
+            if post_filters:
+                return sum(1 for _ in self.get_internal(filters=filters))
+            if where:
+                where_parts.append(where)
             params.extend(filter_params)
         if where_parts:
             sql = f"{sql} WHERE {' AND '.join(where_parts)}"
@@ -317,9 +341,13 @@ class DerbyBackend(CrawlBackend):
 
         sql = f"SELECT {select_cols} FROM {table}{join_sql}"
         params: list[Any] = []
+        post_filters: dict[str, Any] = {}
         if filters:
-            where, params = _build_where_from_entries(filters, entries)
-            where_parts.append(where)
+            where, params, post_filters = _build_where_from_entries(
+                filters, entries, supplementary
+            )
+            if where:
+                where_parts.append(where)
 
         for filt in gui_defs:
             if filt.sql_where:
@@ -397,6 +425,8 @@ class DerbyBackend(CrawlBackend):
                     for csv_to_db in supplementary_map.values():
                         for csv_col in csv_to_db:
                             output.setdefault(csv_col, None)
+            if post_filters and not _row_matches_filters(output, post_filters):
+                continue
             yield output
 
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
@@ -1314,16 +1344,108 @@ def _build_where(filters: dict[str, Any], column_map: dict[str, str]) -> tuple[s
     return " AND ".join(clauses), params
 
 
-def _build_where_from_entries(
-    filters: dict[str, Any], entries: list[dict[str, Any]]
-) -> tuple[str, list[Any]]:
-    csv_map = {
-        _normalize_key(entry.get("csv_column", "")): entry.get("db_column")
-        for entry in entries
-        if entry.get("db_column")
+def _append_filter_clause(
+    clauses: list[str],
+    params: list[Any],
+    sql_expr: str,
+    expected: Any,
+    *,
+    wrap_expr: bool = False,
+) -> None:
+    expr = f"({sql_expr})" if wrap_expr else sql_expr
+    if isinstance(expected, (list, tuple, set)):
+        values = list(expected)
+        if not values:
+            clauses.append("1=0")
+            return
+        placeholders = ", ".join(["?"] * len(values))
+        clauses.append(f"{expr} IN ({placeholders})")
+        params.extend(values)
+    elif expected is None:
+        clauses.append(f"{expr} IS NULL")
+    else:
+        clauses.append(f"{expr} = ?")
+        params.append(expected)
+
+
+def _compile_internal_filters(
+    filters: dict[str, Any],
+    alias_map: dict[str, str],
+    expr_selects: Sequence[tuple[str, str, str]],
+    header_extract_map: dict[str, dict[str, Any]],
+) -> tuple[str, list[Any], dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    post_filters: dict[str, Any] = {}
+    direct_map = {_normalize_key(csv_col): db_col for csv_col, db_col in alias_map.items()}
+    expr_map = {
+        _normalize_key(csv_col): expr for _alias, csv_col, expr in expr_selects
     }
-    column_map: dict[str, str] = {k: v for k, v in csv_map.items() if v}
-    return _build_where(filters, column_map)
+    post_map = {_normalize_key(csv_col) for csv_col in header_extract_map}
+
+    for key, expected in filters.items():
+        lookup = _normalize_key(str(key))
+        expr = expr_map.get(lookup)
+        if expr:
+            _append_filter_clause(clauses, params, expr, expected, wrap_expr=True)
+            continue
+        column = direct_map.get(lookup)
+        if column:
+            _append_filter_clause(clauses, params, column, expected)
+            continue
+        if lookup in post_map:
+            post_filters[key] = expected
+            continue
+        _append_filter_clause(clauses, params, str(key), expected)
+
+    return " AND ".join(clauses), params, post_filters
+
+
+def _build_where_from_entries(
+    filters: dict[str, Any],
+    entries: list[dict[str, Any]],
+    supplementary: Optional[list[dict[str, Any]]] = None,
+) -> tuple[str, list[Any], dict[str, Any]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    post_filters: dict[str, Any] = {}
+    field_map: dict[str, tuple[str, str | None]] = {}
+
+    for entry in entries:
+        csv_key = _normalize_key(entry.get("csv_column", ""))
+        if not csv_key or csv_key in field_map:
+            continue
+        if entry.get("header_extract"):
+            field_map[csv_key] = ("post", None)
+            continue
+        expr = entry.get("db_expression")
+        if expr:
+            field_map[csv_key] = ("expr", _normalize_select_expression(expr))
+            continue
+        column = entry.get("db_column")
+        if column:
+            field_map[csv_key] = ("column", str(column))
+
+    for entry in supplementary or []:
+        csv_key = _normalize_key(entry.get("csv_column", ""))
+        if csv_key and csv_key not in field_map:
+            field_map[csv_key] = ("post", None)
+
+    for key, expected in filters.items():
+        lookup = _normalize_key(str(key))
+        mode, sql_expr = field_map.get(lookup, ("raw", str(key)))
+        if mode == "post":
+            post_filters[key] = expected
+            continue
+        _append_filter_clause(
+            clauses,
+            params,
+            str(sql_expr or key),
+            expected,
+            wrap_expr=mode == "expr",
+        )
+
+    return " AND ".join(clauses), params, post_filters
 
 
 def _normalize_select_expression(expr: Any) -> str:
@@ -1382,7 +1504,7 @@ def _normalize_select_expression(expr: Any) -> str:
 
 
 def _normalize_key(value: str) -> str:
-    return value.strip().lower().replace(" ", "_")
+    return re.sub(r"[^a-z0-9]+", "_", value.strip().lower()).strip("_")
 
 
 def _normalize_tab_name(name: str) -> str:

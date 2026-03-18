@@ -94,6 +94,34 @@ def test_sqlite_tab_support(sample_db_path: Path) -> None:
     assert missing_meta[0]["Address"] == "https://example.com/missing"
 
 
+def test_sqlite_internal_view_matches_internal_all_projection(tmp_path: Path) -> None:
+    db_path = tmp_path / "crawl.dbseospider"
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        "CREATE TABLE internal ("
+        "id INTEGER PRIMARY KEY, address TEXT NOT NULL, status_code INTEGER, "
+        "indexability TEXT, indexability_status TEXT, title TEXT)"
+    )
+    conn.executemany(
+        "INSERT INTO internal (address, status_code, indexability, indexability_status, title) "
+        "VALUES (?, ?, ?, ?, ?)",
+        [
+            ("https://example.com/", 200, "Indexable", "Indexable", "Home"),
+            ("https://example.com/noindex", 200, "Non-Indexable", "Noindex", "Noindex"),
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    crawl = Crawl.from_database(str(db_path))
+    pages = list(crawl.internal.filter(indexability="Indexable"))
+
+    assert [page.address for page in pages] == ["https://example.com/"]
+    assert pages[0].data["Indexability"] == "Indexable"
+    assert pages[0].data["Indexability Status"] == "Indexable"
+    assert crawl.internal.filter(indexability="Indexable").count() == 1
+
+
 # ── Tests for _normalize_select_expression Derby correlated-subquery fix ──────
 
 _DST_BROKEN = (

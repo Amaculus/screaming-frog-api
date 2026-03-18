@@ -12,12 +12,6 @@ from screamingfrog.db.connection import connect
 from screamingfrog.models import InternalPage, Link
 
 
-_INTERNAL_FILTER_MAP = {
-    "address": "address",
-    "status_code": "status_code",
-}
-
-
 class DatabaseBackend(CrawlBackend):
     """Backend that queries the SQLite database directly."""
 
@@ -30,14 +24,8 @@ class DatabaseBackend(CrawlBackend):
         self._internal_column_map = {col.lower(): col for col in self._internal_columns}
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
-        sql = "SELECT * FROM internal"
-        params: list[Any] = []
-        if filters:
-            where, params = _build_where(filters, _INTERNAL_FILTER_MAP)
-            sql = f"{sql} WHERE {where}"
-        cursor = self.conn.execute(sql, params)
-        for row in cursor.fetchall():
-            yield InternalPage.from_db_row(self._internal_columns, row)
+        for row in self.get_tab("internal_all", filters=filters):
+            yield InternalPage.from_data(row, copy_data=False)
 
     def get_inlinks(self, url: str) -> Iterator[Link]:
         raise NotImplementedError("Inlinks not implemented for DB backend yet")
@@ -48,12 +36,9 @@ class DatabaseBackend(CrawlBackend):
     def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
         if table != "internal":
             raise NotImplementedError("DB backend only supports 'internal' in Phase 1")
-        sql = "SELECT COUNT(*) FROM internal"
-        params: list[Any] = []
         if filters:
-            where, params = _build_where(filters, _INTERNAL_FILTER_MAP)
-            sql = f"{sql} WHERE {where}"
-        return int(self.conn.execute(sql, params).fetchone()[0])
+            return sum(1 for _ in self.get_internal(filters=filters))
+        return int(self.conn.execute("SELECT COUNT(*) FROM internal").fetchone()[0])
 
     def aggregate(self, table: str, column: str, func: str) -> Any:
         if table != "internal":
@@ -155,25 +140,6 @@ class DatabaseBackend(CrawlBackend):
     def _get_table_columns(self, table_name: str) -> list[str]:
         cursor = self.conn.execute(f"PRAGMA table_info({table_name});")
         return [row[1] for row in cursor.fetchall()]
-
-
-def _build_where(filters: dict[str, Any], column_map: dict[str, str]) -> tuple[str, list[Any]]:
-    clauses = []
-    params: list[Any] = []
-    for key, expected in filters.items():
-        column = column_map.get(key, key)
-        if isinstance(expected, (list, tuple, set)):
-            placeholders = ", ".join(["?"] * len(expected))
-            clauses.append(f"{column} IN ({placeholders})")
-            params.extend(list(expected))
-        elif expected is None:
-            clauses.append(f"{column} IS NULL")
-        else:
-            clauses.append(f"{column} = ?")
-            params.append(expected)
-    return " AND ".join(clauses), params
-
-
 @dataclass(frozen=True)
 class ColumnSpec:
     csv_column: str

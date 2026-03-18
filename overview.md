@@ -36,7 +36,9 @@ Last updated: 2026-03-17
 - Chainable query builder for DB backends: `crawl.query(...).select(...).where(...).collect()`
 - Crawl-over-crawl diff available via `crawl.compare(other_crawl)` (status, title, redirect, and selected content/indexability signals)
 - Derby-backed `crawl.internal` now materializes expression-backed fields like `Indexability` and `Indexability Status`
+- Derby filters now support mapped expressions plus post-filter header-derived fields in `crawl.internal` and generic tabs
 - Derby special tabs added for cookies, spelling/grammar, and structured-data summary/detail exports
+- SQLite `crawl.internal` now follows the `internal_all` projection instead of bypassing mapped fields
 
 ### 4) Derby support without SF install
 - Bundled Apache Derby jars (10.17.1.0) under `screamingfrog/vendor/derby`
