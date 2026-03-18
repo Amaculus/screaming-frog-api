@@ -98,3 +98,141 @@ def test_mobile_pagespeed_tabs_map_request_status_expression() -> None:
             "db_expression": expected_expr,
             "db_table": "APP.PAGE_SPEED_API",
         }
+
+
+def test_content_and_internal_tabs_map_readability_and_near_duplicate_fields() -> None:
+    avg_tabs = [
+        "content_all.csv",
+        "content_readability_difficult.csv",
+        "content_readability_very_difficult.csv",
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+
+    for tab in avg_tabs:
+        assert _entry(tab, "Average Words Per Sentence") == {
+            "csv_column": "Average Words Per Sentence",
+            "db_column": "AVG_WORDS_PER_SENTENCE",
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Flesch Reading Ease Score") == {
+            "csv_column": "Flesch Reading Ease Score",
+            "db_column": "READABILITY_SCORE",
+            "db_table": "APP.URLS",
+        }
+
+    near_dup_tabs = [
+        "content_all.csv",
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+    closest_expr = (
+        "(SELECT nd.CLOSEST_MATCH_PERCENTAGE FROM APP.NEAR_DUPLICATE nd "
+        "WHERE nd.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+    )
+    count_expr = (
+        "(SELECT nd.NUMBER_OF_NEAR_DUPLICATES FROM APP.NEAR_DUPLICATE nd "
+        "WHERE nd.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+    )
+
+    for tab in near_dup_tabs:
+        assert _entry(tab, "Closest Near Duplicate Match") == {
+            "csv_column": "Closest Near Duplicate Match",
+            "db_expression": closest_expr,
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "No. Near Duplicates") == {
+            "csv_column": "No. Near Duplicates",
+            "db_expression": count_expr,
+            "db_table": "APP.URLS",
+        }
+
+
+def test_hash_and_language_rollouts_cover_internal_content_and_url_tabs() -> None:
+    hash_tabs = [
+        "content_all.csv",
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "url_all.csv",
+        "url_broken_bookmark.csv",
+        "url_contains_space.csv",
+        "url_ga_tracking_parameters.csv",
+        "url_internal_search.csv",
+        "url_multiple_slashes.csv",
+        "url_non_ascii_characters.csv",
+        "url_over_115_characters.csv",
+        "url_parameters.csv",
+        "url_repetitive_path.csv",
+        "url_underscores.csv",
+        "url_uppercase.csv",
+    ]
+    for tab in hash_tabs:
+        assert _entry(tab, "Hash") == {
+            "csv_column": "Hash",
+            "db_column": "MD5SUM",
+            "db_table": "APP.URLS",
+        }
+
+    language_tabs = [
+        "content_all.csv",
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+    for tab in language_tabs:
+        assert _entry(tab, "Language") == {
+            "csv_column": "Language",
+            "db_column": "LANGUAGE_CODE",
+            "db_table": "APP.LANGUAGE_ERROR",
+        }
+
+
+def test_content_all_maps_total_language_errors_expression() -> None:
+    assert _entry("content_all.csv", "Total Language Errors") == {
+        "csv_column": "Total Language Errors",
+        "db_expression": (
+            "(SELECT COALESCE(le.SPELLING_ERRORS, 0) + "
+            "COALESCE(le.GRAMMAR_ERRORS, 0) FROM APP.LANGUAGE_ERROR le "
+            "WHERE le.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.URLS",
+    }

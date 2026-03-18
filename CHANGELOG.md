@@ -9,6 +9,7 @@
 - Expanded mapping coverage and refreshed `schemas/mapping_nulls.md` / `schemas/inlinks_mapping_nulls.md`.
 - Added direct Derby mappings for content language tabs, image alt-text length, and ten PageSpeed report savings columns.
 - Added direct Derby mappings for `preload_key_requests_report`, `properly_size_images_report`, and mobile `PSI Request Status` fields.
+- Added direct Derby mappings for content/internal readability metrics, near-duplicate fields, language/hash fields, and `mobile_all` PSI request status.
 - Added regression tests for Derby internal streaming/materialized expressions and special-tab parsing.
 
 ## 0.1.1 (2026-03-16)
