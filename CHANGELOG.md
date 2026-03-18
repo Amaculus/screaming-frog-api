@@ -14,6 +14,7 @@
 - Added derived Derby mappings for `Readability` across content and internal tabs using Screaming Frog's documented Flesch score groups.
 - Added direct Derby mappings for URL-family `Length`, `ai_all` crawl timestamps, and form action link destination URLs.
 - Added Derby mappings for JavaScript diff tabs (title, H1, meta description, robots, word-count deltas), lorem ipsum occurrences, and viewport content.
+- Added Derby mappings for semantic similarity and low-relevance content fields via `APP.COSINE_SIMILARITY` and `APP.LOW_RELEVANCE`.
 - Added regression tests for Derby internal streaming/materialized expressions and special-tab parsing.
 
 ## 0.1.1 (2026-03-16)

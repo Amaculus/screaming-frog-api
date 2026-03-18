@@ -493,6 +493,51 @@ def test_lorem_ipsum_and_viewport_tabs_map_direct_fields() -> None:
     }
 
 
+def test_semantic_similarity_and_relevance_tabs_map_derby_similarity_tables() -> None:
+    closest_expr = (
+        "(SELECT cs.CLOSEST_URL FROM APP.COSINE_SIMILARITY cs "
+        "WHERE cs.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+    )
+    score_expr = (
+        "(SELECT cs.SCORE FROM APP.COSINE_SIMILARITY cs "
+        "WHERE cs.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+    )
+    count_expr = (
+        "(SELECT cs.SIMILAR_URLS FROM APP.COSINE_SIMILARITY cs "
+        "WHERE cs.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+    )
+    relevance_expr = (
+        "(SELECT lr.SCORE FROM APP.LOW_RELEVANCE lr "
+        "WHERE lr.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+    )
+
+    for tab in ["content_all.csv", "content_semantically_similar.csv", "semantically_similar_report.csv"]:
+        assert _entry(tab, "Closest Semantically Similar Address") == {
+            "csv_column": "Closest Semantically Similar Address",
+            "db_expression": closest_expr,
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Semantic Similarity Score") == {
+            "csv_column": "Semantic Similarity Score",
+            "db_expression": score_expr,
+            "db_table": "APP.URLS",
+        }
+
+    for tab in ["content_all.csv", "content_semantically_similar.csv"]:
+        assert _entry(tab, "No. Semantically Similar") == {
+            "csv_column": "No. Semantically Similar",
+            "db_expression": count_expr,
+            "db_table": "APP.URLS",
+        }
+
+    for tab in ["content_all.csv", "content_low_relevance_content.csv"]:
+        assert _entry(tab, "Semantic Relevance Score") == {
+            "csv_column": "Semantic Relevance Score",
+            "db_expression": relevance_expr,
+            "db_table": "APP.URLS",
+        }
+
+
 def test_generate_mapping_nulls_only_counts_literal_null_placeholders() -> None:
     content = generate_mapping_nulls_content(
         {
