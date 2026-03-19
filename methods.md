@@ -24,6 +24,10 @@ This file lists the current callable API in `sf-alpha`.
 - `crawl.redirect_chains(min_hops=None, max_hops=None, loop=None) -> Iterator[dict[str, Any]]`
 - `crawl.canonical_chains(min_hops=None, max_hops=None, loop=None) -> Iterator[dict[str, Any]]`
 - `crawl.redirect_and_canonical_chains(min_hops=None, max_hops=None, loop=None) -> Iterator[dict[str, Any]]`
+- `crawl.broken_links_report(min_status=400, max_status=599, max_inlinks=25) -> list[dict[str, Any]]`
+- `crawl.title_meta_audit() -> list[dict[str, Any]]`
+- `crawl.indexability_audit() -> list[dict[str, Any]]`
+- `crawl.redirect_chain_report(min_hops=None, max_hops=None, loop=None) -> list[dict[str, Any]]`
 - `crawl.tab_filters(name) -> list[str]`
 - `crawl.tab_filter_defs(name) -> list[Any]`
 - `crawl.tab_columns(name) -> list[str]`

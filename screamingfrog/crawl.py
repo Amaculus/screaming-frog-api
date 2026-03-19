@@ -711,6 +711,84 @@ class Crawl:
         """Return outlinks for a given URL (backend-dependent support)."""
         return self._backend.get_outlinks(url)
 
+    def broken_links_report(
+        self,
+        *,
+        min_status: int = 400,
+        max_status: int = 599,
+        max_inlinks: int | None = 25,
+    ) -> list[dict[str, Any]]:
+        """Return broken internal URLs with optional sampled inlink sources."""
+        rows: list[dict[str, Any]] = []
+        for issue in _iter_broken_pages(self, min_status=min_status, max_status=max_status):
+            url = str(issue.get("Address") or "").strip()
+            if not url:
+                continue
+            report_row = dict(issue)
+            try:
+                inlinks = list(self.inlinks(url))
+            except Exception:
+                inlinks = []
+            limit = max_inlinks if max_inlinks is not None and max_inlinks >= 0 else None
+            sampled = inlinks if limit is None else inlinks[:limit]
+            report_row["Inlinks"] = len(inlinks)
+            report_row["Inlink Sources"] = [link.source for link in sampled if link.source]
+            report_row["Inlink Anchors"] = [link.anchor_text for link in sampled if link.anchor_text]
+            rows.append(report_row)
+        return rows
+
+    def title_meta_audit(self) -> list[dict[str, Any]]:
+        """Return page-level missing title/meta issues as flat rows."""
+        rows: list[dict[str, Any]] = []
+        for url in _iter_missing_titles(self):
+            rows.append({"Address": url, "Issue": "Missing Title"})
+        for url in _iter_missing_meta_descriptions(self):
+            rows.append({"Address": url, "Issue": "Missing Meta Description"})
+        return rows
+
+    def indexability_audit(self) -> list[dict[str, Any]]:
+        """Return non-indexable pages with their key indexability fields."""
+        rows: list[dict[str, Any]] = []
+        for page in self.internal:
+            if not _is_non_indexable(page):
+                continue
+            rows.append(
+                {
+                    "Address": page.address,
+                    "Status Code": page.status_code,
+                    "Indexability": _get_first_value(
+                        page.data, _DEFAULT_FIELD_GROUPS.get("Indexability", ("Indexability",))
+                    ),
+                    "Indexability Status": _get_first_value(
+                        page.data,
+                        _DEFAULT_FIELD_GROUPS.get(
+                            "Indexability Status", ("Indexability Status",)
+                        ),
+                    ),
+                    "Canonical": _get_first_value(
+                        page.data, _DEFAULT_FIELD_GROUPS.get("Canonical", ("Canonical",))
+                    ),
+                    "Meta Robots": _get_first_value(
+                        page.data, _DEFAULT_FIELD_GROUPS.get("Meta Robots", ("Meta Robots 1",))
+                    ),
+                    "X-Robots-Tag": _get_first_value(
+                        page.data,
+                        _DEFAULT_FIELD_GROUPS.get("X-Robots-Tag", ("X-Robots-Tag 1",)),
+                    ),
+                }
+            )
+        return rows
+
+    def redirect_chain_report(
+        self,
+        *,
+        min_hops: int | None = None,
+        max_hops: int | None = None,
+        loop: bool | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return redirect chain rows as a collected report."""
+        return list(self.redirect_chains(min_hops=min_hops, max_hops=max_hops, loop=loop))
+
     def redirect_chains(
         self,
         *,
@@ -1312,6 +1390,75 @@ def _default_csv_cache_dir(source: str) -> Path:
         return project_dir / "exports_cache"
     except Exception:
         return Path.cwd() / f"{source}_exports_cache"
+
+
+def _iter_broken_pages(
+    crawl: Crawl,
+    *,
+    min_status: int = 400,
+    max_status: int = 599,
+) -> Iterator[dict[str, Any]]:
+    tab_candidates = (
+        "response_codes_internal_client_error_(4xx)",
+        "response_codes_internal_server_error_(5xx)",
+    )
+    yielded: set[tuple[str, Any]] = set()
+    for tab_name in tab_candidates:
+        try:
+            for row in crawl.tab(tab_name):
+                code = _safe_int(row.get("Status Code"))
+                address = str(row.get("Address") or "").strip()
+                if not address or code is None or not (min_status <= code <= max_status):
+                    continue
+                key = (address, code)
+                if key in yielded:
+                    continue
+                yielded.add(key)
+                yield {"Address": address, "Status Code": code}
+        except Exception:
+            continue
+    if yielded:
+        return
+    for page in crawl.internal:
+        code = _safe_int(page.status_code)
+        if code is None or not (min_status <= code <= max_status):
+            continue
+        yield {"Address": page.address, "Status Code": code}
+
+
+def _iter_missing_titles(crawl: Crawl) -> Iterator[str]:
+    try:
+        for row in crawl.tab("page_titles_missing"):
+            address = row.get("Address")
+            if address:
+                yield str(address)
+        return
+    except Exception:
+        pass
+
+    for page in crawl.internal:
+        title = _get_first_value(page.data, ("Title 1", "Title", "title", "TITLE_1"))
+        if not title:
+            yield page.address
+
+
+def _iter_missing_meta_descriptions(crawl: Crawl) -> Iterator[str]:
+    try:
+        for row in crawl.tab("meta_description_missing"):
+            address = row.get("Address")
+            if address:
+                yield str(address)
+        return
+    except Exception:
+        pass
+
+    for page in crawl.internal:
+        meta = _get_first_value(
+            page.data,
+            ("Meta Description 1", "Meta Description", "meta_description_1", "META_DESCRIPTION_1"),
+        )
+        if not meta:
+            yield page.address
 
 
 def _dataframe_from_rows(rows: Iterator[dict[str, Any]], module_name: str) -> Any:

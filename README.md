@@ -195,6 +195,27 @@ for row in crawl.redirect_and_canonical_chains(min_hops=4):
     print(row["Address"], row.get("Number of Redirects/Canonicals"))
 ```
 
+## Audit helpers
+
+Thin report helpers are available for common workflows:
+
+```python
+from screamingfrog import Crawl
+
+crawl = Crawl.load("./crawl.dbseospider")
+
+broken = crawl.broken_links_report()
+title_meta = crawl.title_meta_audit()
+non_indexable = crawl.indexability_audit()
+chains = crawl.redirect_chain_report(min_hops=3)
+```
+
+Notes:
+- `broken_links_report()` returns broken internal URLs with inlink counts and sampled inlink sources when available.
+- `title_meta_audit()` currently surfaces missing titles and missing meta descriptions as flat issue rows.
+- `indexability_audit()` returns non-indexable pages with the key indexability fields that explain why.
+- `redirect_chain_report()` is a collected helper over `crawl.redirect_chains(...)`.
+
 ## Escape hatches (raw SQL)
 
 Mapped fields are stable and documented. Raw access is available for advanced users
