@@ -36,6 +36,14 @@ This is the broad inventory. It is intentionally expansive. Some are ready today
 - `site-migration-and-redesign.md`
 - `ticketing-and-ops-integrations.md`
 
+- `affiliate-and-review-sites.md`
+- `api-products-and-developer-docs.md`
+- `education-and-course-platforms.md`
+- `franchise-and-multi-brand-operations.md`
+- `healthcare-and-regulated-sites.md`
+- `marketplaces-and-directory-sites.md`
+- `newsroom-and-media-operations.md`
+- `observability-and-executive-scorecards.md`
 ## Crawl Intake And Normalization
 - Load a `.dbseospider` crawl and expose typed internal pages.
 - Load a crawl by DB id and query it without opening the GUI.

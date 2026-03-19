@@ -29,9 +29,12 @@
 - Added derived AJAX pretty/ugly URL mapping for JavaScript tabs and exact-safe `amphtml Link Element` extraction from stored original HTML.
 - Added exact-safe mobile alternate extraction from stored original HTML and aligned `mobile_all` with the same derived mapping path as internal/mobile tabs.
 - Mapped `Unlinked` on `all_inlinks` and hreflang non-200/unlinked URL reports from `APP.INLINK_COUNTS`.
+- Added a generic supplementary-derived lookup path so tab fields can be derived from related encoded-URL tables without forcing CSV fallback.
+- Mapped `orphan_pages.csv -> URL` to the inlink destination URL.
 - Added CLOB-aware Derby row streaming and HTML-link extraction helpers to support exact derived fields from `APP.URLS.ORIGINAL_CONTENT`.
 - Tightened `schemas/mapping_nulls.md` / `schemas/inlinks_mapping_nulls.md` so they only report true unresolved `NULL` placeholders, not runtime/derived/blob-backed fields.
 - Expanded the `use cases/` corpus with packaged workflow docs for agencies, ecommerce, publishing, migrations, multi-location, QA/governance, product ideas, data science, analytics joins, and operations integrations.
+- Added persona/workflow indexes plus new packaged workflow notes for affiliate, directory/marketplace, newsroom, docs/API, franchise, regulated, education, and exec-scorecard use cases.
 - Added regression tests for Derby internal streaming/materialized expressions and special-tab parsing.
 
 ## 0.1.1 (2026-03-16)
