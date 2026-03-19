@@ -93,6 +93,34 @@ _CANONICAL_ISSUE_TABS: dict[str, str] = {
     "hreflang_not_using_canonical": "Hreflang Not Using Canonical",
 }
 
+_HREFLANG_ISSUE_TABS: dict[str, str] = {
+    "hreflang_missing": "Missing Hreflang",
+    "hreflang_missing_self_reference": "Missing Self-Reference",
+    "hreflang_missing_return_links": "Missing Return Links",
+    "hreflang_missing_xdefault": "Missing x-default",
+    "hreflang_multiple_entries": "Multiple Entries",
+    "hreflang_incorrect_language_region_codes": "Incorrect Language/Region Codes",
+    "hreflang_inconsistent_language_return_links": "Inconsistent Language Return Links",
+    "hreflang_inconsistent_language_region_return_links": "Inconsistent Language/Region Return Links",
+    "hreflang_noncanonical_return_links": "Non-Canonical Return Links",
+    "hreflang_non_canonical_return_links": "Non-Canonical Return Links",
+    "hreflang_non200_hreflang_urls": "Non-200 Hreflang URL",
+    "hreflang_noindex_return_links": "Noindex Return Links",
+    "hreflang_no_index_return_links": "Noindex Return Links",
+    "hreflang_not_using_canonical": "Not Using Canonical",
+    "hreflang_unlinked_hreflang_urls": "Unlinked Hreflang URL",
+    "hreflang_outside_head": "Outside Head",
+}
+
+_REDIRECT_ISSUE_TABS: dict[str, str] = {
+    "response_codes_internal_redirection_(3xx)": "Internal Redirect",
+    "response_codes_internal_redirection_(meta_refresh)": "Meta Refresh Redirect",
+    "response_codes_internal_redirection_(javascript)": "JavaScript Redirect",
+    "response_codes_internal_redirect_chain": "Redirect Chain",
+    "response_codes_internal_redirect_loop": "Redirect Loop",
+    "redirect_chains": "Redirect Chain",
+}
+
 
 @dataclass(frozen=True)
 class InternalView:
@@ -1120,6 +1148,14 @@ class Crawl:
     def canonical_issues_report(self) -> list[dict[str, Any]]:
         """Return flat rows from available canonical issue tabs."""
         return _issue_rows_from_tabs(self, _CANONICAL_ISSUE_TABS)
+
+    def hreflang_issues_report(self) -> list[dict[str, Any]]:
+        """Return flat rows from available hreflang issue tabs."""
+        return _issue_rows_from_tabs(self, _HREFLANG_ISSUE_TABS)
+
+    def redirect_issues_report(self) -> list[dict[str, Any]]:
+        """Return flat rows from available redirect issue tabs."""
+        return _issue_rows_from_tabs(self, _REDIRECT_ISSUE_TABS)
 
     def redirect_chain_report(
         self,

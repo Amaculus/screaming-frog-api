@@ -225,11 +225,23 @@ def test_issue_reports_collect_rows_from_available_tabs(tmp_path: Path) -> None:
         ["Address", "Status Code"],
         [{"Address": "https://example.com/no-canonical", "Status Code": "200"}],
     )
+    _write_csv(
+        tmp_path / "hreflang_missing_return_links.csv",
+        ["Address", "Status Code"],
+        [{"Address": "https://example.com/no-return", "Status Code": "200"}],
+    )
+    _write_csv(
+        tmp_path / "response_codes_internal_redirect_chain.csv",
+        ["Address", "Status Code"],
+        [{"Address": "https://example.com/chain", "Status Code": "301"}],
+    )
 
     crawl = Crawl.load(str(tmp_path))
 
     security = crawl.security_issues_report()
     canonical = crawl.canonical_issues_report()
+    hreflang = crawl.hreflang_issues_report()
+    redirects = crawl.redirect_issues_report()
 
     assert security == [
         {
@@ -243,5 +255,19 @@ def test_issue_reports_collect_rows_from_available_tabs(tmp_path: Path) -> None:
             "Address": "https://example.com/no-canonical",
             "Status Code": "200",
             "Issue": "Missing Canonical",
+        }
+    ]
+    assert hreflang == [
+        {
+            "Address": "https://example.com/no-return",
+            "Status Code": "200",
+            "Issue": "Missing Return Links",
+        }
+    ]
+    assert redirects == [
+        {
+            "Address": "https://example.com/chain",
+            "Status Code": "301",
+            "Issue": "Redirect Chain",
         }
     ]
