@@ -21,6 +21,7 @@
 - Added `multi_row_extract` mapping support in the Derby backend and used it to map the remaining custom-extractor match columns (`2..10`) across `custom_extraction_all`, `internal_all`, `internal_html`, and `all_inlinks`.
 - Added exact current-state carryover mappings for `change_detection_*` tabs plus `Crawl Timestamp` where the value exists in a single Derby crawl.
 - Added `pagespeed_main_thread_work` blob extraction support and mapped `minimize_main_thread_work_report.csv` from `APP.PAGE_SPEED_API.JSON_RESPONSE`.
+- Added exact `Occurrences` mappings for directive filter tabs using meta-robots, JS meta-robots, X-Robots-Tag, and `NUM_METAREFRESH`.
 - Added bulk Derby mappings for internal performance, CrUX, semantic-similarity, text-ratio, link-score, and transfer/CO2 fields across internal, links, and validation tabs.
 - Added internal redirect/blocked-resource carryover mappings for `Redirect URL` / `Redirect Type`, aligned redirect labels to `HTTP Redirect`, and filled internal PageSpeed issue summary text plus pending-link `Unlinked` flags.
 - Added backend-derived redirect URL materialization from meta-refresh targets and HTTP `Location` headers, plus generic blob-derived cookie counts and folder-depth derivation for internal tabs.

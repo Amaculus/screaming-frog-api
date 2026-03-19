@@ -1,10 +1,10 @@
 # Mapping Backlog
 
-Current mapping coverage after the 2026-03-19 housekeeping/mapping pass:
+Current mapping coverage after the 2026-03-19 directives-occurrence pass:
 
-- Field-level mapped coverage: `93.9%` (`14643 / 15589`)
-- Fully mapped tabs: `71.7%` (`450 / 628`)
-- Remaining literal `NULL` cells: `946`
+- Field-level mapped coverage: `94.0%` (`14659 / 15589`)
+- Fully mapped tabs: `74.2%` (`466 / 628`)
+- Remaining literal `NULL` cells: `930`
 
 This file is the working backlog for the remaining mapping work. It separates
 exact-safe next batches from families that still need more evidence or backend
@@ -18,39 +18,29 @@ parsing.
 - `change_detection_*` current-state carryovers plus crawl timestamp where exact
 - `minimize_main_thread_work_report.csv` main-thread breakdown from
   `APP.PAGE_SPEED_API.JSON_RESPONSE`
+- Exact `Occurrences` rollout for directive filter tabs
 - Live smoke test harness for custom extraction multi-row materialization
 
 ## Exact-Safe Next
 
-These are the next batches that are still defensible from current Derby
-evidence and should not require CSV fallback or guesswork.
+There is no remaining wide direct-column batch like custom extraction or
+directive occurrences. The next defensible items are narrower validations.
 
-### 1. Directives: Occurrences
+### 1. `directives_outside_head.csv`
 
-Safe if computed per-token from the same predicates already used in
-`screamingfrog/filters/directives.py`.
+Only map `Occurrences` if a real count field exists in `APP.HTML_VALIDATION_DATA`
+or another Derby table. Do not infer it from the boolean flag alone.
 
-- `directives_follow.csv`
-- `directives_index.csv`
-- `directives_maximagepreview.csv`
-- `directives_maxsnippet.csv`
-- `directives_maxvideopreview.csv`
-- `directives_noarchive.csv`
-- `directives_nofollow.csv`
-- `directives_noimageindex.csv`
-- `directives_noindex.csv`
-- `directives_none.csv`
-- `directives_noodp.csv`
-- `directives_nosnippet.csv`
-- `directives_notranslate.csv`
-- `directives_noydir.csv`
-- `directives_refresh.csv`
-- `directives_unavailable_after.csv`
+### 2. Potential Savings on inlink tabs
 
-Do not treat `directives_outside_head.csv` the same way. That one appears to be
-boolean-backed, not count-backed.
+Remaining gaps:
 
-### 2. Change Detection: Previous / Delta Side
+- `all_image_inlinks.csv -> Potential Savings (bytes)`
+- `all_inlinks.csv -> Potential Savings (bytes)`
+
+Only map once the exact PageSpeed source field is verified.
+
+### 3. Change Detection: Previous / Delta Side
 
 Current-side fields are now mapped. Remaining gaps are:
 

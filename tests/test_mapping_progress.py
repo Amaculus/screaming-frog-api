@@ -36,6 +36,33 @@ def _coalesced_meta_expression(prefix: str, names: tuple[str, ...]) -> str:
     return "COALESCE(" + ", ".join(clauses) + ")"
 
 
+def _directive_occurrence_expression(
+    token: str, *, not_token: str | None = None
+) -> str:
+    robot_names = (
+        "'robots', 'googlebot', 'bingbot', 'yandex', 'baiduspider', 'slurp'"
+    )
+    clauses = []
+    for prefix in ("", "_JS"):
+        for i in range(1, 21):
+            name_col = f"META_NAME{prefix}_{i}"
+            content_col = f"META_CONTENT{prefix}_{i}"
+            clause = f"LOWER({content_col}) LIKE '%{token.lower()}%'"
+            if not_token:
+                clause += f" AND LOWER({content_col}) NOT LIKE '%{not_token.lower()}%'"
+            clauses.append(
+                f"CASE WHEN LOWER({name_col}) IN ({robot_names}) AND {clause} "
+                "THEN 1 ELSE 0 END"
+            )
+    for i in range(1, 21):
+        col = f"X_ROBOT_TAG_{i}"
+        clause = f"LOWER({col}) LIKE '%{token.lower()}%'"
+        if not_token:
+            clause += f" AND LOWER({col}) NOT LIKE '%{not_token.lower()}%'"
+        clauses.append(f"CASE WHEN {clause} THEN 1 ELSE 0 END")
+    return "(" + " + ".join(clauses) + ")"
+
+
 def test_content_language_tabs_map_language_code() -> None:
     grammar = _entry("content_grammar_errors.csv", "Language")
     spelling = _entry("content_spelling_errors.csv", "Language")
@@ -118,6 +145,60 @@ def test_mobile_pagespeed_tabs_map_request_status_expression() -> None:
             "csv_column": "PSI Request Status",
             "db_expression": expected_expr,
             "db_table": "APP.PAGE_SPEED_API",
+        }
+
+
+def test_directive_tabs_map_occurrences_from_meta_and_xrobots() -> None:
+    expected = {
+        "directives_follow.csv": _directive_occurrence_expression(
+            "follow",
+            not_token="nofollow",
+        ),
+        "directives_index.csv": _directive_occurrence_expression(
+            "index",
+            not_token="noindex",
+        ),
+        "directives_maximagepreview.csv": _directive_occurrence_expression(
+            "max-image-preview"
+        ),
+        "directives_maxsnippet.csv": _directive_occurrence_expression(
+            "max-snippet"
+        ),
+        "directives_maxvideopreview.csv": _directive_occurrence_expression(
+            "max-video-preview"
+        ),
+        "directives_noarchive.csv": _directive_occurrence_expression(
+            "noarchive"
+        ),
+        "directives_nofollow.csv": _directive_occurrence_expression(
+            "nofollow"
+        ),
+        "directives_noimageindex.csv": _directive_occurrence_expression(
+            "noimageindex"
+        ),
+        "directives_noindex.csv": _directive_occurrence_expression(
+            "noindex"
+        ),
+        "directives_none.csv": _directive_occurrence_expression("none"),
+        "directives_noodp.csv": _directive_occurrence_expression("noodp"),
+        "directives_nosnippet.csv": _directive_occurrence_expression(
+            "nosnippet"
+        ),
+        "directives_notranslate.csv": _directive_occurrence_expression(
+            "notranslate"
+        ),
+        "directives_noydir.csv": _directive_occurrence_expression("noydir"),
+        "directives_refresh.csv": "COALESCE(NUM_METAREFRESH,0)",
+        "directives_unavailable_after.csv": _directive_occurrence_expression(
+            "unavailable_after"
+        ),
+    }
+
+    for tab, expression in expected.items():
+        assert _entry(tab, "Occurrences") == {
+            "csv_column": "Occurrences",
+            "db_expression": expression,
+            "db_table": "APP.URLS",
         }
 
 
