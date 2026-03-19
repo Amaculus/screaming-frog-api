@@ -18,7 +18,11 @@ from screamingfrog.backends import (
 )
 from screamingfrog.backends.hybrid_backend import FallbackConfig
 from screamingfrog.db.derby import find_derby_db_root
-from screamingfrog.db.duckdb import export_duckdb_from_backend
+from screamingfrog.db.duckdb import (
+    export_duckdb_from_backend,
+    export_duckdb_from_db_id,
+    export_duckdb_from_derby,
+)
 from screamingfrog.db.packaging import find_project_dir, load_seospider_db_project, pack_dbseospider
 from screamingfrog.filters.registry import list_filters as list_gui_filters
 from screamingfrog.filters.names import normalize_name
@@ -378,6 +382,10 @@ class Crawl:
         dbseospider_overwrite: bool = True,
         ensure_db_mode: bool = True,
         spider_config_path: str | None = None,
+        duckdb_path: str | None = None,
+        duckdb_tables: Sequence[str] | None = None,
+        duckdb_tabs: Sequence[str] | str | None = None,
+        duckdb_if_exists: str = "replace",
         cli_path: str | None = None,
         export_tabs: Sequence[str] | None = None,
         bulk_exports: Sequence[str] | None = None,
@@ -443,6 +451,20 @@ class Crawl:
             ensure_db_mode=ensure_db_mode,
         )
 
+        if mode == "duckdb":
+            target = Path(duckdb_path) if duckdb_path else Path(crawl_path).with_suffix(".duckdb")
+            exported = export_duckdb_from_derby(
+                str(project_dir),
+                target,
+                tables=duckdb_tables,
+                tabs=duckdb_tabs,
+                if_exists=duckdb_if_exists,
+                source_label=str(Path(crawl_path).resolve()),
+                mapping_path=mapping_path,
+                derby_jar=derby_jar,
+            )
+            return cls.from_duckdb(str(exported))
+
         if materialize_dbseospider:
             import warnings
 
@@ -499,6 +521,10 @@ class Crawl:
         *,
         backend: str = "derby",
         project_root: str | None = None,
+        duckdb_path: str | None = None,
+        duckdb_tables: Sequence[str] | None = None,
+        duckdb_tabs: Sequence[str] | str | None = None,
+        duckdb_if_exists: str = "replace",
         cli_path: str | None = None,
         export_tabs: Sequence[str] | None = None,
         bulk_exports: Sequence[str] | None = None,
@@ -532,6 +558,22 @@ class Crawl:
                     export_profile=export_profile,
                 )
             )
+
+        if mode == "duckdb":
+            target = Path(duckdb_path) if duckdb_path else find_project_dir(
+                crawl_id, project_root=project_root
+            ) / "crawl.duckdb"
+            exported = export_duckdb_from_db_id(
+                crawl_id,
+                target,
+                tables=duckdb_tables,
+                tabs=duckdb_tabs,
+                if_exists=duckdb_if_exists,
+                project_root=project_root,
+                mapping_path=mapping_path,
+                derby_jar=derby_jar,
+            )
+            return cls.from_duckdb(str(exported))
 
         project_dir = find_project_dir(crawl_id, project_root=project_root)
         return cls.from_derby(
@@ -574,6 +616,10 @@ class Crawl:
         dbseospider_overwrite: bool = True,
         ensure_db_mode: bool = True,
         spider_config_path: str | None = None,
+        duckdb_path: str | None = None,
+        duckdb_tables: Sequence[str] | None = None,
+        duckdb_tabs: Sequence[str] | str | None = None,
+        duckdb_if_exists: str = "replace",
         csv_fallback: bool = True,
         csv_fallback_cache_dir: str | None = None,
         csv_fallback_profile: str = "kitchen_sink",
@@ -603,6 +649,10 @@ class Crawl:
                 dbseospider_overwrite=dbseospider_overwrite,
                 ensure_db_mode=ensure_db_mode,
                 spider_config_path=spider_config_path,
+                duckdb_path=duckdb_path,
+                duckdb_tables=duckdb_tables,
+                duckdb_tabs=duckdb_tabs,
+                duckdb_if_exists=duckdb_if_exists,
                 csv_fallback=csv_fallback,
                 csv_fallback_cache_dir=csv_fallback_cache_dir,
                 csv_fallback_profile=csv_fallback_profile,
@@ -648,6 +698,10 @@ class Crawl:
                     dbseospider_overwrite=dbseospider_overwrite,
                     ensure_db_mode=ensure_db_mode,
                     spider_config_path=spider_config_path,
+                    duckdb_path=duckdb_path,
+                    duckdb_tables=duckdb_tables,
+                    duckdb_tabs=duckdb_tabs,
+                    duckdb_if_exists=duckdb_if_exists,
                     cli_path=cli_path,
                     export_tabs=export_tabs,
                     bulk_exports=bulk_exports,
@@ -671,6 +725,10 @@ class Crawl:
                 export_dir=export_dir,
                 backend=db_id_backend,
                 project_root=project_root,
+                duckdb_path=duckdb_path,
+                duckdb_tables=duckdb_tables,
+                duckdb_tabs=duckdb_tabs,
+                duckdb_if_exists=duckdb_if_exists,
                 cli_path=cli_path,
                 export_tabs=export_tabs,
                 bulk_exports=bulk_exports,
@@ -1109,6 +1167,10 @@ class Crawl:
         dbseospider_overwrite: bool,
         ensure_db_mode: bool,
         spider_config_path: str | None,
+        duckdb_path: str | None,
+        duckdb_tables: Sequence[str] | None,
+        duckdb_tabs: Sequence[str] | str | None,
+        duckdb_if_exists: str,
         csv_fallback: bool,
         csv_fallback_cache_dir: str | None,
         csv_fallback_profile: str,
@@ -1146,6 +1208,10 @@ class Crawl:
                 dbseospider_overwrite=dbseospider_overwrite,
                 ensure_db_mode=ensure_db_mode,
                 spider_config_path=spider_config_path,
+                duckdb_path=duckdb_path,
+                duckdb_tables=duckdb_tables,
+                duckdb_tabs=duckdb_tabs,
+                duckdb_if_exists=duckdb_if_exists,
                 cli_path=cli_path,
                 export_tabs=export_tabs,
                 bulk_exports=bulk_exports,
@@ -1168,6 +1234,10 @@ class Crawl:
                 export_dir=export_dir,
                 backend=db_id_backend,
                 project_root=project_root,
+                duckdb_path=duckdb_path,
+                duckdb_tables=duckdb_tables,
+                duckdb_tabs=duckdb_tabs,
+                duckdb_if_exists=duckdb_if_exists,
                 cli_path=cli_path,
                 export_tabs=export_tabs,
                 bulk_exports=bulk_exports,

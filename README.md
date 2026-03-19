@@ -66,6 +66,15 @@ crawl = Crawl.load(
 # DB crawl ID (DB mode) loads Derby by default
 crawl = Crawl.load("138edb21-61d0-41cd-9e9b-725b592a471c", source_type="db_id")
 
+# DB crawl ID -> export and load a DuckDB analytics cache directly
+crawl = Crawl.load(
+    "138edb21-61d0-41cd-9e9b-725b592a471c",
+    source_type="db_id",
+    db_id_backend="duckdb",
+    duckdb_path="./crawl.duckdb",
+    duckdb_tabs="all",
+)
+
 # Discover available DB crawls, then load one by ID
 latest = list_crawls()[0]
 crawl = Crawl.load(latest.db_id, source_type="db_id")
@@ -79,6 +88,7 @@ crawl = Crawl.load(latest.db_id, source_type="db_id")
 - DB conversion can temporarily set `storage.mode=DB` in `spider.config` (set `ensure_db_mode=False` to skip).
 - Internal DB crawl directories (e.g. `ProjectInstanceData/.../results_.../sql`) load via Derby.
 - DB crawl IDs load Derby by default; set `db_id_backend="csv"` to force CSV exports.
+- DB crawl IDs can export-and-load DuckDB directly with `db_id_backend="duckdb"` and `duckdb_path=...`.
 - Set `SCREAMINGFROG_CLI` if the CLI executable is not in a standard install path.
 - CLI exports default to the `Internal:All` tab unless `export_tabs` is provided.
 - `export_profile="kitchen_sink"` uses bundled export lists captured from the SF UI.
@@ -113,6 +123,7 @@ Notes:
 - DuckDB is the fast analytics cache for repeated analysis.
 - Current DuckDB export materializes key tabs (`internal_all`, `all_inlinks`, `all_outlinks`, redirect/canonical chain tabs) plus raw `APP.URLS`, `APP.LINKS`, and `APP.UNIQUE_URLS`.
 - You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
+- `.seospider` and DB crawl ID loaders can export and load DuckDB directly via `backend="duckdb"` / `db_id_backend="duckdb"`.
 - Use `tabs="all"` if you want to materialize every currently available mapped tab into the DuckDB cache.
 
 ### Discover DB crawls (`list_crawls`)

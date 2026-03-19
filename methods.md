@@ -11,8 +11,8 @@ This file lists the current callable API in `sf-alpha`.
 - `Crawl.from_database(db_path) -> Crawl`
 - `Crawl.from_duckdb(db_path) -> Crawl`
 - `Crawl.from_derby(db_path, ..., csv_fallback=True, ...) -> Crawl`
-- `Crawl.from_seospider(crawl_path, ..., backend="derby", ...) -> Crawl`
-- `Crawl.from_db_id(crawl_id, ..., backend="derby", ...) -> Crawl`
+- `Crawl.from_seospider(crawl_path, ..., backend="derby" | "csv" | "duckdb", duckdb_path=None, duckdb_tables=None, duckdb_tabs=None | "all", duckdb_if_exists="replace", ...) -> Crawl`
+- `Crawl.from_db_id(crawl_id, ..., backend="derby" | "csv" | "duckdb", duckdb_path=None, duckdb_tables=None, duckdb_tabs=None | "all", duckdb_if_exists="replace", ...) -> Crawl`
 
 - `crawl.internal` (property-like view object: `InternalView`)
 - `crawl.tab(name) -> TabView`
