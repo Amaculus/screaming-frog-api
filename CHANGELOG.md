@@ -25,6 +25,13 @@
 - Added bulk Derby mappings for internal performance, CrUX, semantic-similarity, text-ratio, link-score, and transfer/CO2 fields across internal, links, and validation tabs.
 - Added internal redirect/blocked-resource carryover mappings for `Redirect URL` / `Redirect Type`, aligned redirect labels to `HTTP Redirect`, and filled internal PageSpeed issue summary text plus pending-link `Unlinked` flags.
 - Added backend-derived redirect URL materialization from meta-refresh targets and HTTP `Location` headers, plus generic blob-derived cookie counts and folder-depth derivation for internal tabs.
+- Added exact-safe hreflang multimap tab support for missing return links, inconsistent-language return links, non-canonical return links, and noindex return links.
+- Added derived AJAX pretty/ugly URL mapping for JavaScript tabs and exact-safe `amphtml Link Element` extraction from stored original HTML.
+- Added exact-safe mobile alternate extraction from stored original HTML and aligned `mobile_all` with the same derived mapping path as internal/mobile tabs.
+- Mapped `Unlinked` on `all_inlinks` and hreflang non-200/unlinked URL reports from `APP.INLINK_COUNTS`.
+- Added CLOB-aware Derby row streaming and HTML-link extraction helpers to support exact derived fields from `APP.URLS.ORIGINAL_CONTENT`.
+- Tightened `schemas/mapping_nulls.md` / `schemas/inlinks_mapping_nulls.md` so they only report true unresolved `NULL` placeholders, not runtime/derived/blob-backed fields.
+- Expanded the `use cases/` corpus with packaged workflow docs for agencies, ecommerce, publishing, migrations, multi-location, QA/governance, product ideas, data science, analytics joins, and operations integrations.
 - Added regression tests for Derby internal streaming/materialized expressions and special-tab parsing.
 
 ## 0.1.1 (2026-03-16)

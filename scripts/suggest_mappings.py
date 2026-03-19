@@ -448,7 +448,14 @@ def generate_mapping_nulls_content(mapping: dict[str, list[dict]], csv_schemas: 
         entries = mapping.get(tab_key) or []
         null_cols = []
         for e in entries:
-            if str(e.get("db_expression", "")).strip().upper() == "NULL":
+            if (
+                str(e.get("db_expression", "")).strip().upper() == "NULL"
+                and not e.get("runtime_extract")
+                and not e.get("derived_extract")
+                and not e.get("multi_row_extract")
+                and not e.get("blob_extract")
+                and not e.get("header_extract")
+            ):
                 csv_col = (e.get("csv_column") or "").strip()
                 if csv_col:
                     null_cols.append(csv_col)

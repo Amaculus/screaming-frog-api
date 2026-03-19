@@ -10,7 +10,7 @@ import zlib
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.derby import (
@@ -35,6 +35,15 @@ _COOKIE_TAB_KEYS = {
     "all_cookies.csv",
     "cookie_summary.csv",
 }
+_HTTP_HEADER_TAB_KEYS = {
+    "http_header_summary.csv",
+}
+_HREFLANG_MULTIMAP_TAB_KEYS = {
+    "hreflang_missing_return_links.csv",
+    "hreflang_inconsistent_language_return_links.csv",
+    "hreflang_non_canonical_return_links.csv",
+    "hreflang_no_index_return_links.csv",
+}
 _LANGUAGE_TAB_KEYS = {
     "spelling_and_grammar_errors.csv",
     "spelling_and_grammar_errors_report_summary.csv",
@@ -54,9 +63,80 @@ _STRUCTURED_DATA_TAB_KEYS = {
     "structured_data_validation_warnings.csv",
     "structured_data_parse_error_report.csv",
     "contains_structured_data_detailed_report.csv",
+    "jsonld_urls_detailed_report.csv",
+    "microdata_urls_detailed_report.csv",
+    "rdfa_urls_detailed_report.csv",
+    "validation_errors_detailed_report.csv",
+    "validation_warnings_detailed_report.csv",
 }
+_ACCESSIBILITY_TAB_KEYS = {
+    "accessibility_violations_summary.csv",
+    "all_incomplete.csv",
+    "all_violations.csv",
+    "best_practice_all_incomplete.csv",
+    "best_practice_all_violations.csv",
+    "wcag_2_0_a_all_incomplete.csv",
+    "wcag_2_0_a_all_violations.csv",
+    "wcag_2_0_aa_all_incomplete.csv",
+    "wcag_2_0_aa_all_violations.csv",
+    "wcag_2_0_aaa_all_incomplete.csv",
+    "wcag_2_0_aaa_all_violations.csv",
+    "wcag_2_1_aa_all_incomplete.csv",
+    "wcag_2_1_aa_all_violations.csv",
+    "wcag_2_2_aa_all_incomplete.csv",
+    "wcag_2_2_aa_all_violations.csv",
+}
+_PAGESPEED_TAB_KEYS = {
+    "pagespeed_opportunities_summary.csv",
+    "css_coverage_summary.csv",
+    "js_coverage_summary.csv",
+    "avoid_excessive_dom_size_report.csv",
+    "avoid_large_layout_shifts_report.csv",
+    "avoid_serving_legacy_javascript_to_modern_browsers_report.csv",
+    "reduce_javascript_execution_time_report.csv",
+    "serve_static_assets_with_an_efficient_cache_policy_report.csv",
+    "illegible_font_size_report.csv",
+    "image_elements_do_not_have_explicit_width_and_height_report.csv",
+    "defer_offscreen_images_report.csv",
+    "use_video_formats_for_animated_content_report.csv",
+}
+_RICH_RESULTS_TAB_KEYS = {
+    "google_rich_results_features_report.csv",
+    "google_rich_results_features_summary_report.csv",
+}
+_URL_INSPECTION_TAB_KEYS = {
+    "url_inspection_rich_results.csv",
+}
+_SERP_PIXEL_PROFILES = {
+    "title": {
+        "family": "Tahoma",
+        "size": 14,
+        "weight": "normal",
+        "scale": 1.0543,
+        "fallback_avg": 10.4817,
+    },
+    "description": {
+        "family": "Arial",
+        "size": 11,
+        "weight": "normal",
+        "scale": 0.9756,
+        "fallback_avg": 6.3229,
+    },
+}
+_CARBON_RATING_THRESHOLDS_MG = [
+    (95.0, "A+"),
+    (186.0, "A"),
+    (341.0, "B"),
+    (493.0, "C"),
+    (656.0, "D"),
+    (846.0, "E"),
+    (1095.0, "F"),
+]
+_TK_ROOT: Any | None = None
+_TK_FONT_CACHE: dict[tuple[str, int, str], Any] = {}
 _CHAIN_MAX_HOPS = 10
 _FETCH_BATCH_SIZE = 1000
+_BLOB_FETCH_BATCH_SIZE = 1
 
 
 class DerbyBackend(CrawlBackend):
@@ -279,11 +359,32 @@ class DerbyBackend(CrawlBackend):
         if normalized in _COOKIE_TAB_KEYS:
             yield from self._get_cookie_tab(normalized, filters)
             return
+        if normalized in _HTTP_HEADER_TAB_KEYS:
+            yield from self._get_http_header_tab(normalized, filters)
+            return
+        if normalized in _HREFLANG_MULTIMAP_TAB_KEYS:
+            yield from self._get_hreflang_multimap_tab(normalized, filters)
+            return
+        if normalized == "mobile_all.csv":
+            yield from self._get_mobile_all_tab(normalized, filters)
+            return
         if normalized in _LANGUAGE_TAB_KEYS:
             yield from self._get_language_tab(normalized, filters)
             return
         if normalized in _STRUCTURED_DATA_TAB_KEYS:
             yield from self._get_structured_data_tab(normalized, filters)
+            return
+        if normalized in _ACCESSIBILITY_TAB_KEYS:
+            yield from self._get_accessibility_tab(normalized, filters)
+            return
+        if normalized in _PAGESPEED_TAB_KEYS:
+            yield from self._get_pagespeed_tab(normalized, filters)
+            return
+        if normalized in _RICH_RESULTS_TAB_KEYS:
+            yield from self._get_rich_results_tab(normalized, filters)
+            return
+        if normalized in _URL_INSPECTION_TAB_KEYS:
+            yield from self._get_url_inspection_tab(normalized, filters)
             return
         table, entries, gui_defs, supplementary = _resolve_tab_entries(
             self._mapping, tab_name, gui_filter
@@ -325,16 +426,22 @@ class DerbyBackend(CrawlBackend):
             if entry.get("derived_extract"):
                 for source_col in _derived_extract_columns(entry):
                     if source_col not in derived_extract_indexes:
-                        select_items.append(source_col)
-                        derived_extract_indexes[source_col] = len(select_items) - 1
+                        try:
+                            derived_extract_indexes[source_col] = select_items.index(source_col)
+                        except ValueError:
+                            select_items.append(source_col)
+                            derived_extract_indexes[source_col] = len(select_items) - 1
                 entry_indexes.append(None)
                 csv_columns.append(entry["csv_column"])
                 continue
             if entry.get("multi_row_extract"):
                 for source_col in _multi_row_extract_columns(entry):
                     if source_col not in multi_row_extract_indexes:
-                        select_items.append(source_col)
-                        multi_row_extract_indexes[source_col] = len(select_items) - 1
+                        try:
+                            multi_row_extract_indexes[source_col] = select_items.index(source_col)
+                        except ValueError:
+                            select_items.append(source_col)
+                            multi_row_extract_indexes[source_col] = len(select_items) - 1
                 entry_indexes.append(None)
                 csv_columns.append(entry["csv_column"])
                 continue
@@ -389,7 +496,7 @@ class DerbyBackend(CrawlBackend):
         if where_parts:
             sql = f"{sql} WHERE {' AND '.join(where_parts)}"
 
-        supplementary_map = _build_supplementary_map(supplementary)
+        supplementary_specs = _build_supplementary_specs(supplementary)
         supplementary_cache: dict[tuple[str, str], dict[str, Any]] = {}
         multi_row_cache: dict[tuple[str, str], dict[int, list[Any]]] = {}
         unique_url_cache: dict[Any, str | None] = {}
@@ -398,8 +505,15 @@ class DerbyBackend(CrawlBackend):
             cache_key = (table_name, encoded_url)
             if cache_key in supplementary_cache:
                 return supplementary_cache[cache_key]
-            spec = supplementary_map.get(table_name) or {}
-            db_columns = sorted(set(str(col) for col in spec.values()))
+            spec = supplementary_specs.get(table_name) or []
+            db_columns: list[str] = []
+            for entry in spec:
+                db_col = str(entry.get("db_column") or "").strip()
+                if db_col:
+                    db_columns.append(db_col)
+                for source_col in _derived_extract_columns(entry):
+                    db_columns.append(str(source_col))
+            db_columns = sorted(set(col for col in db_columns if col))
             if not db_columns:
                 supplementary_cache[cache_key] = {}
                 return {}
@@ -478,18 +592,33 @@ class DerbyBackend(CrawlBackend):
                 else:
                     output[column] = row[idx] if idx is not None else None
 
-            if supplementary_map and encoded_url_index is not None:
+            if supplementary_specs and encoded_url_index is not None:
                 encoded_url = row[encoded_url_index]
                 if encoded_url:
                     encoded_text = str(encoded_url)
-                    for table_name, csv_to_db in supplementary_map.items():
+                    for table_name, specs in supplementary_specs.items():
                         extra_data = fetch_supplementary(table_name, encoded_text)
-                        for csv_col, db_col in csv_to_db.items():
+                        for spec in specs:
+                            csv_col = str(spec.get("csv_column") or "").strip()
+                            if not csv_col or csv_col in output:
+                                continue
+                            if spec.get("derived_extract"):
+                                output.setdefault(
+                                    csv_col,
+                                    _extract_derived_value(
+                                        spec["derived_extract"],
+                                        extra_data,
+                                    ),
+                                )
+                                continue
+                            db_col = str(spec.get("db_column") or "").strip()
                             output.setdefault(csv_col, extra_data.get(db_col))
                 else:
-                    for csv_to_db in supplementary_map.values():
-                        for csv_col in csv_to_db:
-                            output.setdefault(csv_col, None)
+                    for specs in supplementary_specs.values():
+                        for spec in specs:
+                            csv_col = str(spec.get("csv_column") or "").strip()
+                            if csv_col:
+                                output.setdefault(csv_col, None)
             if post_filters and not _row_matches_filters(output, post_filters):
                 continue
             yield output
@@ -556,6 +685,207 @@ class DerbyBackend(CrawlBackend):
             if _row_matches_filters(row, norm_filters):
                 yield {column: row.get(column) for column in columns}
 
+    def _get_http_header_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = (
+            "SELECT ENCODED_URL, HTTP_REQUEST_HEADER_COLLECTION FROM APP.URLS "
+            "WHERE HTTP_REQUEST_HEADER_COLLECTION IS NOT NULL"
+        )
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" AND ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        if tab_key != "http_header_summary.csv":
+            return
+
+        header_names: set[str] = set()
+        for _encoded_url, header_blob in _iter_cursor_rows(cursor):
+            headers = _headers_from_blob(header_blob)
+            header_names.update(headers.keys())
+
+        for header_name in sorted(header_names):
+            row = {"HTTP Request Headers": _display_header_name(header_name)}
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
+    def _get_hreflang_multimap_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+        address_values = _filter_values(
+            norm_filters,
+            "address",
+            "url",
+            "url_missing_return_link",
+            "url_with_inconsistent_language_return_link",
+        )
+        table_by_tab = {
+            "hreflang_missing_return_links.csv": "APP.MULTIMAP_HREF_LANG_MISSING_CONFIRMATION",
+            "hreflang_inconsistent_language_return_links.csv": "APP.MULTIMAP_HREF_LANG_INCONSISTENT_LANGUAGE_CONFIRMATION",
+            "hreflang_non_canonical_return_links.csv": "APP.MULTIMAP_HREF_LANG_CANONICAL_CONFIRMATION",
+            "hreflang_no_index_return_links.csv": "APP.MULTIMAP_HREF_LANG_NO_INDEX_CONFIRMATION",
+        }
+        table_name = table_by_tab[tab_key]
+        cursor = self._conn.cursor()
+        sql = f"SELECT MULTIMAP_KEY, MULTIMAP_VALUE FROM {table_name}"
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE MULTIMAP_KEY IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        url_meta_cache: dict[str, dict[str, Any]] = {}
+        hreflang_cache: dict[tuple[str, str], dict[str, Any]] = {}
+        return_cache: dict[tuple[str, str, str | None], dict[str, Any]] = {}
+        canonical_cache: dict[str, Optional[str]] = {}
+
+        def fetch_url_meta(encoded_url: str) -> dict[str, Any]:
+            if encoded_url in url_meta_cache:
+                return url_meta_cache[encoded_url]
+            cursor_inner = self._conn.cursor()
+            cursor_inner.execute(
+                "SELECT RESPONSE_CODE, HTTP_RESPONSE_HEADER_COLLECTION "
+                "FROM APP.URLS WHERE ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY",
+                [encoded_url],
+            )
+            row = cursor_inner.fetchone()
+            meta = {
+                "response_code": row[0] if row else None,
+                "headers": _headers_from_blob(row[1]) if row and len(row) > 1 else {},
+            }
+            url_meta_cache[encoded_url] = meta
+            return meta
+
+        def fetch_hreflang_edge(src_url: str, dst_url: str) -> dict[str, Any]:
+            cache_key = (src_url, dst_url)
+            if cache_key in hreflang_cache:
+                return hreflang_cache[cache_key]
+            cursor_inner = self._conn.cursor()
+            cursor_inner.execute(
+                "SELECT l.HREF_LANG, l.LINK_TYPE "
+                "FROM APP.LINKS l "
+                "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+                "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+                "WHERE s.ENCODED_URL = ? AND d.ENCODED_URL = ? "
+                "AND l.LINK_TYPE IN (12, 13) "
+                "ORDER BY CASE WHEN l.LINK_TYPE = 13 THEN 0 ELSE 1 END "
+                "FETCH FIRST 1 ROWS ONLY",
+                [src_url, dst_url],
+            )
+            row = cursor_inner.fetchone()
+            data = {
+                "href_lang": _safe_text(row[0]) if row else None,
+                "link_type": row[1] if row else None,
+            }
+            hreflang_cache[cache_key] = data
+            return data
+
+        def fetch_inconsistent_return(
+            target_url: str, expected_url: str, expected_lang: str | None
+        ) -> dict[str, Any]:
+            cache_key = (target_url, expected_url, expected_lang)
+            if cache_key in return_cache:
+                return return_cache[cache_key]
+            cursor_inner = self._conn.cursor()
+            cursor_inner.execute(
+                "SELECT d.ENCODED_URL, l.HREF_LANG "
+                "FROM APP.LINKS l "
+                "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+                "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+                "WHERE s.ENCODED_URL = ? AND l.LINK_TYPE IN (12, 13) "
+                "ORDER BY CASE WHEN l.LINK_TYPE = 13 THEN 0 ELSE 1 END, d.ENCODED_URL",
+                [target_url],
+            )
+            fallback = {"return_url": None, "actual_lang": None}
+            for return_url, actual_lang in _iter_cursor_rows(cursor_inner):
+                row = {
+                    "return_url": _safe_text(return_url),
+                    "actual_lang": _safe_text(actual_lang),
+                }
+                if fallback["return_url"] is None:
+                    fallback = row
+                if row["return_url"] != expected_url or row["actual_lang"] != expected_lang:
+                    return_cache[cache_key] = row
+                    return row
+            return_cache[cache_key] = fallback
+            return fallback
+
+        def fetch_canonical_target(encoded_url: str) -> Optional[str]:
+            if encoded_url in canonical_cache:
+                return canonical_cache[encoded_url]
+            cursor_inner = self._conn.cursor()
+            cursor_inner.execute(
+                "SELECT d.ENCODED_URL "
+                "FROM APP.LINKS l "
+                "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+                "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+                "WHERE s.ENCODED_URL = ? AND l.LINK_TYPE = 6 "
+                "FETCH FIRST 1 ROWS ONLY",
+                [encoded_url],
+            )
+            row = cursor_inner.fetchone()
+            canonical = _safe_text(row[0]) if row else None
+            if not canonical:
+                meta = fetch_url_meta(encoded_url)
+                links = _parse_link_headers(meta.get("headers", {}).get("link", []))
+                canonical = _extract_link_rel(links, "canonical")
+            canonical_cache[encoded_url] = canonical
+            return canonical
+
+        for multimap_key, multimap_value in _iter_cursor_rows(cursor):
+            source_url = _safe_text(multimap_key)
+            target_url = _safe_text(multimap_value)
+            if not source_url or not target_url:
+                continue
+            row: dict[str, Any]
+            if tab_key == "hreflang_missing_return_links.csv":
+                source_edge = fetch_hreflang_edge(source_url, target_url)
+                target_meta = fetch_url_meta(target_url)
+                row = {
+                    "URL Missing Return Link": source_url,
+                    "URL Not Returning Link": target_url,
+                    "Expected Link": source_url,
+                    "Response Code": target_meta.get("response_code"),
+                    "hreflang": source_edge.get("href_lang"),
+                }
+            elif tab_key == "hreflang_non_canonical_return_links.csv":
+                row = {
+                    "URL": source_url,
+                    "Non Canonical Return Link URL": target_url,
+                    "Canonical": fetch_canonical_target(target_url),
+                }
+            elif tab_key == "hreflang_no_index_return_links.csv":
+                source_edge = fetch_hreflang_edge(source_url, target_url)
+                row = {
+                    "URL": source_url,
+                    "Noindex URL": target_url,
+                    "Language": source_edge.get("href_lang"),
+                }
+            else:
+                source_edge = fetch_hreflang_edge(source_url, target_url)
+                return_edge = fetch_inconsistent_return(
+                    target_url, source_url, source_edge.get("href_lang")
+                )
+                row = {
+                    "URL with Inconsistent Language Return Link": source_url,
+                    "URL Target": target_url,
+                    "URL Returning with Inconsistent Language": return_edge.get("return_url"),
+                    "Expected Language": source_edge.get("href_lang"),
+                    "Actual Language": return_edge.get("actual_lang"),
+                }
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
     def _iter_language_error_rows(
         self, norm_filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
@@ -618,14 +948,68 @@ class DerbyBackend(CrawlBackend):
                 }
                 yield row
 
+    def _get_mobile_all_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+        address_values = _filter_values(norm_filters, "address", "url", "source_page")
+        cursor = self._conn.cursor()
+        sql = (
+            "SELECT p.ENCODED_URL, p.SF_REQUEST_ERROR_KEY, p.VIEWPORT, "
+            "p.TARGET_SIZE, p.CONTENT_WIDTH, p.FONT_DISPLAY_SIZE, u.ORIGINAL_CONTENT "
+            "FROM APP.PAGE_SPEED_API p "
+            "LEFT JOIN APP.URLS u ON u.ENCODED_URL = p.ENCODED_URL"
+        )
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE p.ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        for (
+            encoded_url,
+            request_error,
+            viewport,
+            target_size,
+            content_width,
+            font_display_size,
+            original_content,
+        ) in _iter_cursor_rows(cursor):
+            html = _clob_text(original_content)
+            mobile_alt = _html_mobile_alternate_href(html)
+            row = {
+                "Address": encoded_url,
+                "PSI Request Status": (
+                    _safe_text(request_error) if _safe_text(request_error) else "Success"
+                ),
+                "Viewport": viewport,
+                "Target Size": target_size,
+                "Content Width": content_width,
+                "Font Display Size": font_display_size,
+                "Mobile Alternate Link": (
+                    urljoin(_safe_text(encoded_url) or "", mobile_alt) if mobile_alt else None
+                ),
+            }
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
     def _get_structured_data_tab(
         self, tab_key: str, filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
 
-        if tab_key == "contains_structured_data_detailed_report.csv":
-            for row in self._iter_structured_data_detailed_rows(norm_filters):
+        if tab_key in {
+            "contains_structured_data_detailed_report.csv",
+            "jsonld_urls_detailed_report.csv",
+            "microdata_urls_detailed_report.csv",
+            "rdfa_urls_detailed_report.csv",
+            "validation_errors_detailed_report.csv",
+            "validation_warnings_detailed_report.csv",
+        }:
+            for row in self._iter_structured_data_detailed_rows(tab_key, norm_filters):
                 if _row_matches_filters(row, norm_filters):
                     yield {column: row.get(column) for column in columns}
             return
@@ -633,6 +1017,500 @@ class DerbyBackend(CrawlBackend):
         for row in self._iter_structured_data_summary_rows(tab_key, norm_filters):
             if _row_matches_filters(row, norm_filters):
                 yield {column: row.get(column) for column in columns}
+
+    def _get_accessibility_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+        if tab_key == "accessibility_violations_summary.csv":
+            rows = self._iter_accessibility_summary_rows(norm_filters)
+        else:
+            rows = self._iter_accessibility_detail_rows(tab_key, norm_filters)
+        for row in rows:
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
+    def _iter_accessibility_detail_rows(
+        self, tab_key: str, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        section, category = _accessibility_tab_mode(tab_key)
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = "SELECT ENCODED_URL, COMPRESSED_JSON FROM APP.AXE_CORE_RESULTS"
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        for encoded_url, axe_blob in _iter_cursor_rows(cursor):
+            payload = _decode_gzip_json_blob(axe_blob)
+            for issue in _iter_accessibility_issue_entries(payload, section, category):
+                nodes = issue.get("nodes") or [{}]
+                for node in nodes:
+                    yield {
+                        "Issue": _accessibility_issue_label(issue),
+                        "Address": encoded_url,
+                        "Location on Page": _accessibility_issue_location(node),
+                        "Guidelines": _accessibility_guideline_label(issue),
+                        "User Impact": _accessibility_user_impact(issue),
+                        "Priority": _accessibility_priority(issue),
+                        "Issue Description": _sentence_text(issue.get("help")),
+                        "How To Fix": _sentence_text(issue.get("description")),
+                        "Help URL": _safe_text(issue.get("helpUrl")),
+                    }
+
+    def _iter_accessibility_summary_rows(
+        self, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = "SELECT ENCODED_URL, COMPRESSED_JSON FROM APP.AXE_CORE_RESULTS"
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        total_urls = 0
+        summary: dict[str, dict[str, Any]] = {}
+        for encoded_url, axe_blob in _iter_cursor_rows(cursor):
+            payload = _decode_gzip_json_blob(axe_blob)
+            if not payload:
+                continue
+            total_urls += 1
+            for section in ("violations", "incomplete"):
+                for issue in _iter_accessibility_issue_entries(payload, section, None):
+                    label = _accessibility_issue_label(issue)
+                    if not label:
+                        continue
+                    row = summary.setdefault(
+                        label,
+                        {
+                            "Issue": label,
+                            "Guidelines": _accessibility_guideline_label(issue),
+                            "User Impact": _accessibility_user_impact(issue),
+                            "Priority": _accessibility_priority(issue),
+                            "_urls": set(),
+                            "Sample Affected URL": None,
+                        },
+                    )
+                    row["_urls"].add(encoded_url)
+                    if row["Sample Affected URL"] is None:
+                        row["Sample Affected URL"] = encoded_url
+
+        ordered = sorted(
+            summary.values(),
+            key=lambda row: (-len(row["_urls"]), str(row["Issue"])),
+        )
+        for row in ordered:
+            affected = len(row["_urls"])
+            pct = 0.0
+            if total_urls:
+                pct = round((affected * 100.0) / total_urls, 3)
+            yield {
+                "Issue": row["Issue"],
+                "Guidelines": row["Guidelines"],
+                "User Impact": row["User Impact"],
+                "Priority": row["Priority"],
+                "Total URLs Crawled": total_urls,
+                "Number of URLs with Violations": affected,
+                "% URLs in Violation": pct,
+                "Sample Affected URL": row["Sample Affected URL"],
+            }
+
+    def _get_pagespeed_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+        if tab_key in {
+            "avoid_excessive_dom_size_report.csv",
+            "avoid_large_layout_shifts_report.csv",
+            "avoid_serving_legacy_javascript_to_modern_browsers_report.csv",
+            "reduce_javascript_execution_time_report.csv",
+            "serve_static_assets_with_an_efficient_cache_policy_report.csv",
+            "illegible_font_size_report.csv",
+            "image_elements_do_not_have_explicit_width_and_height_report.csv",
+            "defer_offscreen_images_report.csv",
+            "use_video_formats_for_animated_content_report.csv",
+        }:
+            rows = self._iter_pagespeed_detail_rows(tab_key, norm_filters)
+        elif tab_key == "pagespeed_opportunities_summary.csv":
+            rows = self._iter_pagespeed_opportunity_rows(norm_filters)
+        elif tab_key == "css_coverage_summary.csv":
+            rows = self._iter_pagespeed_coverage_rows("unused-css-rules", norm_filters)
+        else:
+            rows = self._iter_pagespeed_coverage_rows("unused-javascript", norm_filters)
+        for row in rows:
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
+    def _iter_pagespeed_detail_rows(
+        self, tab_key: str, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "address", "url", "source_page")
+        cursor = self._conn.cursor()
+        sql = "SELECT ENCODED_URL, JSON_RESPONSE FROM APP.PAGE_SPEED_API"
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        audit_key = {
+            "avoid_excessive_dom_size_report.csv": "dom-size",
+            "avoid_large_layout_shifts_report.csv": "layout-shifts",
+            "avoid_serving_legacy_javascript_to_modern_browsers_report.csv": "legacy-javascript",
+            "reduce_javascript_execution_time_report.csv": "bootup-time",
+            "serve_static_assets_with_an_efficient_cache_policy_report.csv": "uses-long-cache-ttl",
+            "illegible_font_size_report.csv": "font-size",
+            "image_elements_do_not_have_explicit_width_and_height_report.csv": "unsized-images",
+            "defer_offscreen_images_report.csv": "offscreen-images",
+            "use_video_formats_for_animated_content_report.csv": "efficient-animated-content",
+        }.get(tab_key)
+        if not audit_key:
+            return
+
+        for encoded_url, json_blob in _iter_cursor_rows(cursor):
+            payload = _decode_gzip_json_blob(json_blob)
+            audits = payload.get("lighthouseResult", {}).get("audits", {})
+            details = (audits.get(audit_key) or {}).get("details") or {}
+            yield from _iter_pagespeed_detail_rows_for_audit(tab_key, encoded_url, details)
+
+    def _iter_pagespeed_coverage_rows(
+        self, audit_key: str, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = "SELECT ENCODED_URL, JSON_RESPONSE FROM APP.PAGE_SPEED_API"
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        resource_map: dict[str, list[tuple[float, float]]] = defaultdict(list)
+        for encoded_url, json_blob in _iter_cursor_rows(cursor):
+            payload = _decode_gzip_json_blob(json_blob)
+            audits = payload.get("lighthouseResult", {}).get("audits", {})
+            details = (audits.get(audit_key) or {}).get("details") or {}
+            if not _pagespeed_details_are_affected(details):
+                continue
+            items = details.get("items") or []
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                resource = _safe_text(item.get("url"))
+                total_bytes = _safe_float(item.get("totalBytes"))
+                wasted_bytes = _safe_float(item.get("wastedBytes"))
+                if not resource or total_bytes is None or wasted_bytes is None:
+                    continue
+                if wasted_bytes > 0:
+                    resource_map[resource].append((total_bytes, wasted_bytes))
+
+        rows: list[dict[str, Any]] = []
+        for resource, values in resource_map.items():
+            total_bytes = int(sum(total for total, _ in values) / len(values))
+            avg_unused_bytes = int(sum(wasted for _, wasted in values) / len(values))
+            avg_unused_pct = round((avg_unused_bytes * 100.0 / total_bytes), 2) if total_bytes else 0.0
+            rows.append(
+                {
+                    "Resource": resource,
+                    "Total Bytes": total_bytes,
+                    "Average Unused Bytes": avg_unused_bytes,
+                    "Average Unused Percentage": avg_unused_pct,
+                    "Affected URLs": len(values),
+                    "Unused URLs": sum(
+                        1 for total, wasted in values if total and wasted >= total
+                    ),
+                }
+            )
+
+        rows.sort(
+            key=lambda row: (-( _safe_int(row.get("Affected URLs")) or 0), str(row["Resource"]))
+        )
+        yield from rows
+
+    def _iter_pagespeed_opportunity_rows(
+        self, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = "SELECT ENCODED_URL, JSON_RESPONSE FROM APP.PAGE_SPEED_API"
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        totals: dict[str, dict[str, float]] = {
+            label: {
+                "Number of URLs Affected": 0.0,
+                "Total Size Bytes": 0.0,
+                "Total Savings ms": 0.0,
+                "Total Savings Size Bytes": 0.0,
+            }
+            for label in _pagespeed_opportunity_specs()
+        }
+
+        for _encoded_url, json_blob in _iter_cursor_rows(cursor):
+            payload = _decode_gzip_json_blob(json_blob)
+            audits = payload.get("lighthouseResult", {}).get("audits", {})
+            for label, audit_key in _pagespeed_opportunity_specs().items():
+                details = (audits.get(audit_key) or {}).get("details") or {}
+                savings_ms_value = _safe_float(details.get("overallSavingsMs"))
+                savings_bytes_value = _safe_float(details.get("overallSavingsBytes"))
+                savings_ms = savings_ms_value or 0.0
+                savings_bytes = savings_bytes_value or 0.0
+                items = details.get("items") or []
+                total_size = 0.0
+                detail_savings_bytes = 0.0
+                if isinstance(items, list):
+                    for item in items:
+                        if not isinstance(item, dict):
+                            continue
+                        total_size += _safe_float(item.get("totalBytes")) or 0.0
+                        detail_savings_bytes += _safe_float(item.get("wastedBytes")) or 0.0
+                affected = (savings_ms_value is not None and savings_ms > 0) or (
+                    savings_ms_value is None
+                    and (savings_bytes > 0 or detail_savings_bytes > 0)
+                )
+                if not affected:
+                    continue
+                row = totals[label]
+                row["Number of URLs Affected"] += 1
+                row["Total Size Bytes"] += total_size
+                row["Total Savings ms"] += savings_ms
+                row["Total Savings Size Bytes"] += (
+                    detail_savings_bytes if detail_savings_bytes > 0 else savings_bytes
+                )
+
+        for label in _pagespeed_opportunity_specs():
+            row = totals[label]
+            affected = int(row["Number of URLs Affected"])
+            total_size = int(round(row["Total Size Bytes"]))
+            total_ms = int(round(row["Total Savings ms"]))
+            total_savings_size = int(round(row["Total Savings Size Bytes"]))
+            avg_ms = int(total_ms / affected) if affected else 0
+            avg_savings_size = int(total_savings_size / affected) if affected else 0
+            yield {
+                "Opportunity": label,
+                "Number of URLs Affected": affected,
+                "Total Size Bytes": total_size,
+                "Total Savings ms": total_ms,
+                "Total Savings Size Bytes": total_savings_size,
+                "Average Savings ms": avg_ms,
+                "Average Savings Size Bytes": avg_savings_size,
+            }
+
+    def _get_rich_results_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+        if tab_key == "google_rich_results_features_summary_report.csv":
+            rows = self._iter_rich_results_summary_rows(tab_key, norm_filters)
+        else:
+            rows = self._iter_rich_results_report_rows(tab_key, norm_filters)
+        for row in rows:
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
+    def _get_url_inspection_tab(
+        self, tab_key: str, filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        columns = _tab_columns(self._mapping, tab_key)
+        norm_filters = _normalize_filters(filters)
+        rows = self._iter_url_inspection_rows(tab_key, norm_filters)
+        for row in rows:
+            if _row_matches_filters(row, norm_filters):
+                yield {column: row.get(column) for column in columns}
+
+    def _iter_url_inspection_rows(
+        self, tab_key: str, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = (
+            "SELECT ENCODED_URL, RICH_RESULTS_VERDICT, RICH_RESULTS_TYPES, "
+            "RICH_RESULTS_TYPE_ERRORS, RICH_RESULTS_TYPE_WARNINGS, JSON "
+            "FROM APP.URL_INSPECTION"
+        )
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        for encoded_url, verdict, rich_types, rich_errors, rich_warnings, json_blob in _iter_cursor_rows(cursor):
+            inspection = _rich_results_first_issue(json_blob)
+            feature = inspection.get("feature") or _first_rich_result_feature(rich_types)
+            if not feature and verdict in {None, ""}:
+                continue
+
+            severity = inspection.get("severity")
+            if severity is None:
+                error_count = _safe_int(rich_errors) or 0
+                warning_count = _safe_int(rich_warnings) or 0
+                if error_count > 0:
+                    severity = "Error"
+                elif warning_count > 0:
+                    severity = "Warning"
+                elif feature:
+                    severity = "Pass"
+
+            rich_results_value = _safe_text(verdict)
+            if rich_results_value is None and feature:
+                rich_results_value = "Detected"
+
+            issue_type = inspection.get("message") or inspection.get("issue_type")
+            item_name = inspection.get("item_name") or feature
+            indexability, indexability_status = self._fetch_indexability_values(encoded_url)
+            row = {
+                "Address": encoded_url,
+                "Indexability": indexability,
+                "Indexability Status": indexability_status,
+                "Rich Results": rich_results_value,
+                "Rich Results Type": feature,
+                "Severity": severity,
+                "Item Name": item_name,
+                "Rich Results Issue Type": issue_type,
+            }
+            yield row
+
+    def _iter_rich_results_report_rows(
+        self, tab_key: str, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = (
+            "SELECT ENCODED_URL, RICH_RESULTS_TYPES, RICH_RESULTS_TYPE_ERRORS, "
+            "RICH_RESULTS_TYPE_WARNINGS, JSON FROM APP.URL_INSPECTION"
+        )
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        feature_columns = [
+            column for column in _tab_columns(self._mapping, tab_key) if column != "Address"
+        ]
+        for encoded_url, rich_types, rich_errors, rich_warnings, json_blob in _iter_cursor_rows(cursor):
+            feature_map = _rich_results_feature_entries(
+                json_blob,
+                rich_types,
+                feature_columns,
+                rich_errors=rich_errors,
+                rich_warnings=rich_warnings,
+            )
+            if not feature_map:
+                continue
+            row = {"Address": encoded_url}
+            detected = False
+            for feature in feature_columns:
+                if feature in feature_map:
+                    row[feature] = "detected"
+                    detected = True
+                else:
+                    row[feature] = None
+            if detected:
+                yield row
+
+    def _iter_rich_results_summary_rows(
+        self, tab_key: str, norm_filters: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        address_values = _filter_values(norm_filters, "address", "url")
+        cursor = self._conn.cursor()
+        sql = (
+            "SELECT ENCODED_URL, RICH_RESULTS_TYPES, RICH_RESULTS_TYPE_ERRORS, "
+            "RICH_RESULTS_TYPE_WARNINGS, JSON FROM APP.URL_INSPECTION"
+        )
+        params: list[Any] = []
+        if address_values:
+            placeholders = ", ".join(["?"] * len(address_values))
+            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            params.extend(address_values)
+        cursor.execute(sql, params)
+
+        valid_features = {
+            row
+            for row in _tab_columns(self._mapping, "google_rich_results_features_report.csv")
+            if row != "Address"
+        }
+        summary: dict[str, dict[str, Any]] = {}
+        for encoded_url, rich_types, rich_errors, rich_warnings, json_blob in _iter_cursor_rows(cursor):
+            feature_map = _rich_results_feature_entries(
+                json_blob,
+                rich_types,
+                valid_features,
+                rich_errors=rich_errors,
+                rich_warnings=rich_warnings,
+            )
+            for feature, info in feature_map.items():
+                row = summary.setdefault(
+                    feature,
+                    {
+                        "Rich Results Feature": feature,
+                        "_urls": set(),
+                        "_eligible_urls": set(),
+                        "_error_urls": set(),
+                        "_warning_urls": set(),
+                        "_unique_errors": set(),
+                        "_unique_warnings": set(),
+                        "Occurrences": 0,
+                        "Total Errors": 0,
+                        "Total Warnings": 0,
+                        "Sample URL": None,
+                    },
+                )
+                row["_urls"].add(encoded_url)
+                row["Occurrences"] += info["occurrences"]
+                row["Total Errors"] += info["error_count"]
+                row["Total Warnings"] += info["warning_count"]
+                row["_unique_errors"].update(info["error_messages"])
+                row["_unique_warnings"].update(info["warning_messages"])
+                if info["error_count"] > 0:
+                    row["_error_urls"].add(encoded_url)
+                if info["warning_count"] > 0:
+                    row["_warning_urls"].add(encoded_url)
+                if info["error_count"] == 0:
+                    row["_eligible_urls"].add(encoded_url)
+                if row["Sample URL"] is None:
+                    row["Sample URL"] = encoded_url
+
+        ordered = sorted(
+            summary.values(),
+            key=lambda row: (-len(row["_urls"]), str(row["Rich Results Feature"])),
+        )
+        for row in ordered:
+            urls = len(row["_urls"])
+            eligible_urls = len(row["_eligible_urls"])
+            yield {
+                "Rich Results Feature": row["Rich Results Feature"],
+                "URLs": urls,
+                "Occurrences": row["Occurrences"],
+                "% Eligible": int(round((eligible_urls * 100.0) / urls)) if urls else 0,
+                "Eligible URLs": eligible_urls,
+                "Error URLs": len(row["_error_urls"]),
+                "Warning URLs": len(row["_warning_urls"]),
+                "Unique Errors": len(row["_unique_errors"]),
+                "Unique Warnings": len(row["_unique_warnings"]),
+                "Total Errors": row["Total Errors"],
+                "Total Warnings": row["Total Warnings"],
+                "Sample URL": row["Sample URL"],
+            }
 
     def _iter_structured_data_summary_rows(
         self, tab_key: str, norm_filters: dict[str, Any]
@@ -730,36 +1608,78 @@ class DerbyBackend(CrawlBackend):
             yield row
 
     def _iter_structured_data_detailed_rows(
-        self, norm_filters: dict[str, Any]
+        self, tab_key: str, norm_filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
         address_values = _filter_values(norm_filters, "address", "url")
         cursor = self._conn.cursor()
         sql = (
-            "SELECT ENCODED_URL, SERIALISED_STRUCTURED_DATA, PARSE_ERROR_MSG "
-            "FROM APP.URLS WHERE SERIALISED_STRUCTURED_DATA IS NOT NULL"
+            "SELECT u.ENCODED_URL, u.SERIALISED_STRUCTURED_DATA, "
+            "i.RICH_RESULTS_TYPE_ERRORS, i.RICH_RESULTS_TYPE_WARNINGS, i.JSON "
+            "FROM APP.URLS u "
+            "LEFT JOIN APP.URL_INSPECTION i ON i.ENCODED_URL = u.ENCODED_URL "
+            "WHERE u.SERIALISED_STRUCTURED_DATA IS NOT NULL"
         )
         params: list[Any] = []
         if address_values:
             placeholders = ", ".join(["?"] * len(address_values))
-            sql += f" AND ENCODED_URL IN ({placeholders})"
+            sql += f" AND u.ENCODED_URL IN ({placeholders})"
             params.extend(address_values)
         cursor.execute(sql, params)
 
-        for encoded_url, data_blob, _parse_error in _iter_cursor_rows(cursor):
+        format_filter = {
+            "jsonld_urls_detailed_report.csv": {"JSON-LD"},
+            "microdata_urls_detailed_report.csv": {"Microdata"},
+            "rdfa_urls_detailed_report.csv": {"RDFa"},
+        }.get(tab_key)
+        require_errors = tab_key == "validation_errors_detailed_report.csv"
+        require_warnings = tab_key == "validation_warnings_detailed_report.csv"
+
+        for encoded_url, data_blob, rich_errors, rich_warnings, inspection_json in _iter_cursor_rows(cursor):
             blocks = _parse_structured_data_blocks(data_blob)
             if not blocks:
                 continue
-            summary_features = []
-            warning_count = 0
-            error_count = 0
+            issue_entries = _rich_results_issue_entries(inspection_json)
+            error_count = _safe_int(rich_errors)
+            warning_count = _safe_int(rich_warnings)
+            if error_count is None:
+                error_count = sum(
+                    1
+                    for issue in issue_entries
+                    if str(issue.get("severity") or "").upper() == "ERROR"
+                )
+            if warning_count is None:
+                warning_count = sum(
+                    1
+                    for issue in issue_entries
+                    if str(issue.get("severity") or "").upper() == "WARNING"
+                )
+            if require_errors and error_count <= 0:
+                continue
+            if require_warnings and warning_count <= 0:
+                continue
+            selected_issues = issue_entries
+            if require_errors:
+                selected_issues = [
+                    issue
+                    for issue in issue_entries
+                    if str(issue.get("severity") or "").upper() == "ERROR"
+                ]
+            elif require_warnings:
+                selected_issues = [
+                    issue
+                    for issue in issue_entries
+                    if str(issue.get("severity") or "").upper() == "WARNING"
+                ]
             term_map: dict[str, str] = {}
             term_index = 0
             for block in blocks:
                 format_label = _structured_data_format_label(block.get("format"))
+                if format_filter and format_label not in format_filter:
+                    continue
                 text = block.get("text")
                 if not text:
                     continue
-                for subject, _predicate, object_value in _iter_structured_data_triples(text):
+                for subject, predicate, object_value in _iter_structured_data_triples(text):
                     if subject not in term_map:
                         term_map[subject] = f"subject{term_index}"
                         term_index += 1
@@ -773,18 +1693,30 @@ class DerbyBackend(CrawlBackend):
                     row = {
                         "URL": encoded_url,
                         "Subject": term_map[subject],
-                        "Predicate": format_label,
+                        "Predicate": _normalize_structured_object(predicate),
                         "Object": normalized_object,
                         "Errors": error_count,
                         "Warnings": warning_count,
                     }
                     for index in range(10):
                         row[f"Validation Type {index + 1}"] = (
-                            summary_features[index] if index < len(summary_features) else None
+                            selected_issues[index].get("feature")
+                            if index < len(selected_issues)
+                            else None
                         )
-                        row[f"Severity {index + 1}"] = None
-                        row[f"Issue {index + 1}"] = None
+                        row[f"Severity {index + 1}"] = (
+                            selected_issues[index].get("severity")
+                            if index < len(selected_issues)
+                            else None
+                        )
+                        row[f"Issue {index + 1}"] = (
+                            selected_issues[index].get("message")
+                            or selected_issues[index].get("issue_type")
+                            if index < len(selected_issues)
+                            else None
+                        )
                     yield row
+
 
     def _fetch_indexability_values(self, encoded_url: str) -> tuple[Any, Any]:
         idx_expr = None
@@ -1362,9 +2294,10 @@ def _resolve_tab_entries(
             entry.get("db_expression")
             or entry.get("header_extract")
             or entry.get("blob_extract")
-            or entry.get("derived_extract")
             or entry.get("multi_row_extract")
         ):
+            continue
+        if entry.get("derived_extract") and not _derived_extract_columns(entry):
             continue
         csv_column = str(entry.get("csv_column") or "").strip()
         if not csv_column:
@@ -1386,7 +2319,13 @@ def _can_lookup_tab_table_by_encoded_url(base_table: str, other_table: str) -> b
 
 def _table_supports_encoded_url(table: str) -> bool:
     upper = str(table or "").strip().upper()
-    return upper in {"APP.URLS", "URLS", "APP.PAGE_SPEED_API", "APP.LANGUAGE_ERROR"}
+    return upper in {
+        "APP.URLS",
+        "URLS",
+        "APP.PAGE_SPEED_API",
+        "APP.LANGUAGE_ERROR",
+        "APP.CHROME_CONSOLE_DATA",
+    }
 
 
 def _build_supplementary_map(
@@ -1401,6 +2340,24 @@ def _build_supplementary_map(
             continue
         table_map = mapping.setdefault(table, {})
         table_map.setdefault(csv_col, db_col)
+    return mapping
+
+
+def _build_supplementary_specs(
+    entries: list[dict[str, Any]]
+) -> dict[str, list[dict[str, Any]]]:
+    mapping: dict[str, list[dict[str, Any]]] = {}
+    seen: dict[str, set[str]] = {}
+    for entry in entries:
+        table = str(entry.get("db_table") or "").strip()
+        csv_col = str(entry.get("csv_column") or "").strip()
+        if not table or not csv_col:
+            continue
+        seen_for_table = seen.setdefault(table, set())
+        if csv_col in seen_for_table:
+            continue
+        seen_for_table.add(csv_col)
+        mapping.setdefault(table, []).append(entry)
     return mapping
 
 
@@ -1661,9 +2618,15 @@ def _resolve_blob_checks(gui_defs: list[Any]) -> list[tuple[str, bytes]]:
 
 
 def _tab_columns(mapping: dict[str, Any], tab_key: str) -> list[str]:
+    entries = mapping.get(tab_key)
+    if entries is None:
+        for candidate, candidate_entries in mapping.items():
+            if _normalize_tab_name(candidate) == _normalize_tab_name(tab_key):
+                entries = candidate_entries
+                break
     return [
         entry.get("csv_column")
-        for entry in mapping.get(tab_key, [])
+        for entry in (entries or [])
         if entry.get("csv_column")
     ]
 
@@ -1767,6 +2730,8 @@ def _resolve_column_name(columns: Sequence[str], target: str) -> str | None:
 
 def _iter_cursor_rows(cursor, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:
     """Yield cursor rows in chunks to avoid loading full result sets into memory."""
+    if batch_size > _BLOB_FETCH_BATCH_SIZE and _cursor_has_blob_columns(cursor):
+        batch_size = _BLOB_FETCH_BATCH_SIZE
     fetchmany = getattr(cursor, "fetchmany", None)
     if not callable(fetchmany):
         for row in cursor.fetchall():
@@ -1778,6 +2743,28 @@ def _iter_cursor_rows(cursor, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[t
             break
         for row in rows:
             yield row
+
+
+def _cursor_has_blob_columns(cursor: Any) -> bool:
+    description = getattr(cursor, "description", None) or []
+    for desc in description:
+        if not isinstance(desc, (list, tuple)) or len(desc) < 2:
+            continue
+        type_info = desc[1]
+        type_text = str(type_info or "").upper()
+        if any(
+            token in type_text
+            for token in (
+                "BLOB",
+                "BINARY",
+                "VARBINARY",
+                "LONGVARBINARY",
+                "CLOB",
+                "LONGVARCHAR",
+            )
+        ):
+            return True
+    return False
 
 
 def zipfile_is_zip(path: Path) -> bool:
@@ -1814,6 +2801,23 @@ def _decode_gzip_json_blob(blob: Any) -> dict[str, Any]:
         return {}
 
 
+def _clob_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    try:
+        length = int(value.length())
+    except Exception:
+        return str(value)
+    if length <= 0:
+        return ""
+    try:
+        return str(value.getSubString(1, length))
+    except Exception:
+        return str(value)
+
+
 def _headers_from_blob(blob: Any) -> dict[str, list[str]]:
     if not blob:
         return {}
@@ -1838,6 +2842,13 @@ def _headers_from_blob(blob: Any) -> dict[str, list[str]]:
                 continue
             headers.setdefault(name, []).append(str(value))
     return headers
+
+
+def _display_header_name(name: Any) -> Optional[str]:
+    text = _safe_text(name)
+    if not text:
+        return None
+    return "-".join(part.capitalize() for part in text.split("-"))
 
 
 def _row_matches_blob_patterns(
@@ -1978,6 +2989,81 @@ def _extract_hreflang(links: list[dict[str, Any]]) -> tuple[Optional[str], Optio
     return None, None
 
 
+def _html_link_href(
+    html: str,
+    rel_target: str,
+    *,
+    media_pattern: str | None = None,
+) -> Optional[str]:
+    rel_norm = rel_target.strip().lower()
+    if not html or not rel_norm:
+        return None
+    for match in re.finditer(r"<link\b[^>]*>", html, flags=re.IGNORECASE):
+        tag = match.group(0)
+        attrs: dict[str, str] = {}
+        for attr_match in re.finditer(
+            r"([^\s=<>'\"/]+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s>]+))",
+            tag,
+            flags=re.IGNORECASE,
+        ):
+            name = attr_match.group(1).strip().lower()
+            value = next(
+                (
+                    group
+                    for group in attr_match.groups()[1:]
+                    if group is not None
+                ),
+                "",
+            )
+            attrs[name] = value
+        rel_tokens = re.split(r"\s+", attrs.get("rel", "").strip()) if attrs.get("rel") else []
+        if rel_norm not in {token.lower() for token in rel_tokens if token}:
+            continue
+        if media_pattern:
+            media = attrs.get("media") or ""
+            if not media or not re.search(media_pattern, media, flags=re.IGNORECASE):
+                continue
+        href = attrs.get("href")
+        if href:
+            return href
+    return None
+
+
+def _html_mobile_alternate_href(html: str) -> Optional[str]:
+    if not html:
+        return None
+    for match in re.finditer(r"<link\b[^>]*>", html, flags=re.IGNORECASE):
+        tag = match.group(0)
+        attrs: dict[str, str] = {}
+        for attr_match in re.finditer(
+            r"([^\s=<>'\"/]+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s>]+))",
+            tag,
+            flags=re.IGNORECASE,
+        ):
+            name = attr_match.group(1).strip().lower()
+            value = next(
+                (
+                    group
+                    for group in attr_match.groups()[1:]
+                    if group is not None
+                ),
+                "",
+            )
+            attrs[name] = value
+        rel_tokens = re.split(r"\s+", attrs.get("rel", "").strip()) if attrs.get("rel") else []
+        if "alternate" not in {token.lower() for token in rel_tokens if token}:
+            continue
+        media = attrs.get("media", "").strip().lower()
+        if not media:
+            continue
+        if not any(token in media for token in ("only screen", "max-width", "handheld", "mobile")):
+            continue
+        href = attrs.get("href")
+        if href:
+            return href
+    return None
+
+
 def _extract_header_value(
     extract: dict[str, Any], headers: dict[str, list[str]], links: list[dict[str, Any]]
 ) -> Optional[str]:
@@ -2047,6 +3133,514 @@ def _extract_blob_value(extract: dict[str, Any], blob: Any) -> Any:
     return None
 
 
+def _accessibility_tab_mode(tab_key: str) -> tuple[str, Optional[str]]:
+    mapping = {
+        "all_incomplete.csv": ("incomplete", None),
+        "all_violations.csv": ("violations", None),
+        "best_practice_all_incomplete.csv": ("incomplete", "best-practice"),
+        "best_practice_all_violations.csv": ("violations", "best-practice"),
+        "wcag_2_0_a_all_incomplete.csv": ("incomplete", "wcag2a"),
+        "wcag_2_0_a_all_violations.csv": ("violations", "wcag2a"),
+        "wcag_2_0_aa_all_incomplete.csv": ("incomplete", "wcag2aa"),
+        "wcag_2_0_aa_all_violations.csv": ("violations", "wcag2aa"),
+        "wcag_2_0_aaa_all_incomplete.csv": ("incomplete", "wcag2aaa"),
+        "wcag_2_0_aaa_all_violations.csv": ("violations", "wcag2aaa"),
+        "wcag_2_1_aa_all_incomplete.csv": ("incomplete", "wcag21aa"),
+        "wcag_2_1_aa_all_violations.csv": ("violations", "wcag21aa"),
+        "wcag_2_2_aa_all_incomplete.csv": ("incomplete", "wcag22aa"),
+        "wcag_2_2_aa_all_violations.csv": ("violations", "wcag22aa"),
+    }
+    return mapping.get(tab_key, ("violations", None))
+
+
+def _iter_accessibility_issue_entries(
+    payload: dict[str, Any], section: str, category: Optional[str]
+) -> Iterator[dict[str, Any]]:
+    for issue in payload.get(section) or []:
+        if not isinstance(issue, dict):
+            continue
+        tags = {str(tag).strip().lower() for tag in (issue.get("tags") or []) if tag}
+        if category and category not in tags:
+            continue
+        yield issue
+
+
+def _accessibility_issue_label(issue: dict[str, Any]) -> Optional[str]:
+    issue_id = (_safe_text(issue.get("id")) or "").lower()
+    if issue_id in _AXE_RULE_LABELS:
+        return _AXE_RULE_LABELS[issue_id]
+    return _safe_text(issue.get("help")) or _safe_text(issue.get("id"))
+
+
+def _accessibility_issue_location(node: Any) -> Optional[str]:
+    if not isinstance(node, dict):
+        return None
+    targets = node.get("target") or []
+    if isinstance(targets, list):
+        joined = " | ".join(str(item) for item in targets if item not in {None, ""})
+        if joined:
+            return joined
+    return _safe_text(node.get("html")) or _safe_text(node.get("xpath"))
+
+
+def _accessibility_guideline_label(issue: dict[str, Any]) -> Optional[str]:
+    tags = {str(tag).strip().lower() for tag in (issue.get("tags") or []) if tag}
+    for tag, label in (
+        ("best-practice", "Best Practice"),
+        ("wcag22aa", "WCAG 2.2 AA"),
+        ("wcag21aa", "WCAG 2.1 AA"),
+        ("wcag2aaa", "WCAG 2.0 AAA"),
+        ("wcag2aa", "WCAG 2.0 AA"),
+        ("wcag2a", "WCAG 2.0 A"),
+    ):
+        if tag in tags:
+            return label
+    return None
+
+
+def _accessibility_user_impact(issue: dict[str, Any]) -> Optional[str]:
+    impact = _safe_text(issue.get("impact"))
+    return impact.capitalize() if impact else None
+
+
+def _accessibility_priority(issue: dict[str, Any]) -> Optional[str]:
+    impact = (_safe_text(issue.get("impact")) or "").lower()
+    if impact in {"critical", "serious"}:
+        return "High"
+    if impact == "moderate":
+        return "Medium"
+    if impact == "minor":
+        return "Low"
+    return None
+
+
+_AXE_RULE_LABELS = {
+    "color-contrast": "Text Requires Higher Color Contrast to Background",
+    "color-contrast-enhanced": "Text Requires Higher Color Contrast Ratio",
+    "document-title": "Page Must Contain <title>",
+    "frame-tested": "Frames Should Be Tested With axe-core",
+    "html-has-lang": "HTML Element Requires Lang Attribute",
+    "identical-links-same-purpose": "Links With Same Accessible Name",
+    "image-alt": "Images Require Alternate Text",
+    "landmark-one-main": "Page Requires One Main Landmark",
+    "link-name": "Links Require Discernible Text",
+    "list": "Lists Must Only Contain <li> Content Elements",
+    "page-has-heading-one": "Page Must Contain <h1>",
+    "region": "All Page Content Must Be Contained By Landmarks",
+    "target-size": "Touch Targets Require Sufficient Size & Spacing",
+}
+
+
+def _sentence_text(value: Any) -> Optional[str]:
+    text = _safe_text(value)
+    if not text:
+        return None
+    return text if text.endswith(".") else f"{text}."
+
+
+def _pagespeed_opportunity_specs() -> dict[str, str]:
+    return {
+        "Reduce Unused JavaScript": "unused-javascript",
+        "Reduce Unused CSS": "unused-css-rules",
+        "Eliminate Render-Blocking Resources": "render-blocking-resources",
+        "Properly Size Images": "uses-responsive-images",
+        "Defer Offscreen Images": "offscreen-images",
+        "Minify CSS": "unminified-css",
+        "Minify JavaScript": "unminified-javascript",
+        "Efficiently Encode Images": "uses-optimized-images",
+        "Serve Images in Next-Gen Formats": "modern-image-formats",
+        "Enable Text Compression": "uses-text-compression",
+        "Preload Key Requests": "uses-rel-preload",
+        "Use Video Formats for Animated Content": "efficient-animated-content",
+        "Avoid Serving Legacy JavaScript to Modern Browsers": "legacy-javascript",
+        "Preconnect to Required Origins": "uses-rel-preconnect",
+        "Avoid Multiple Page Redirects": "redirects",
+    }
+
+
+def _pagespeed_details_are_affected(details: dict[str, Any]) -> bool:
+    savings_ms = _safe_float(details.get("overallSavingsMs"))
+    if savings_ms is not None:
+        return savings_ms > 0
+    savings_bytes = _safe_float(details.get("overallSavingsBytes"))
+    return bool((savings_bytes or 0) > 0)
+
+
+def _iter_pagespeed_detail_rows_for_audit(
+    tab_key: str, encoded_url: str, details: dict[str, Any]
+) -> Iterator[dict[str, Any]]:
+    items = details.get("items") or []
+    if not isinstance(items, list):
+        return
+
+    if tab_key == "avoid_excessive_dom_size_report.csv":
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            row = {
+                "URL": encoded_url,
+                "Statistic": _safe_text(
+                    item.get("statistic") or item.get("label") or item.get("name")
+                ),
+                "Selector": _pagespeed_item_selector(item),
+                "Snippet": _pagespeed_item_snippet(item),
+                "Value": _safe_int(item.get("value"))
+                or _safe_int(item.get("numericValue"))
+                or _safe_float(item.get("value"))
+                or _safe_float(item.get("numericValue")),
+            }
+            if any(value not in {None, ""} for value in row.values()):
+                yield row
+        return
+
+    if tab_key == "avoid_large_layout_shifts_report.csv":
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            row = {
+                "Source Page": encoded_url,
+                "Label": _pagespeed_item_label(item),
+                "Snippet": _pagespeed_item_snippet(item),
+                "CLS Contribution": _safe_float(
+                    item.get("score")
+                    or item.get("value")
+                    or item.get("cumulativeLayoutShiftScore")
+                ),
+            }
+            if any(value not in {None, ""} for value in row.values()):
+                yield row
+        return
+
+    if tab_key == "avoid_serving_legacy_javascript_to_modern_browsers_report.csv":
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            row = {
+                "Source Page": encoded_url,
+                "URL": _safe_text(item.get("url")),
+                "Size (Bytes)": _safe_int(item.get("totalBytes")),
+                "Potential Savings (Bytes)": _safe_int(
+                    item.get("wastedBytes") or item.get("overallSavingsBytes")
+                ),
+            }
+            if any(value not in {None, ""} for value in row.values()):
+                yield row
+        return
+
+    if tab_key == "reduce_javascript_execution_time_report.csv":
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            row = {
+                "Source Page": encoded_url,
+                "URL": _safe_text(item.get("url")),
+                "Total CPU Time (ms)": _safe_float(
+                    item.get("total") or item.get("totalMs")
+                ),
+                "Script Evaluation": _safe_float(
+                    item.get("scripting") or item.get("scriptEvaluation")
+                ),
+                "Script Parse": _safe_float(
+                    item.get("scriptParseCompile") or item.get("scriptParse")
+                ),
+            }
+            if any(value not in {None, ""} for value in row.values()):
+                yield row
+        return
+
+    if tab_key == "serve_static_assets_with_an_efficient_cache_policy_report.csv":
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            row = {
+                "Source Page": encoded_url,
+                "URL": _safe_text(item.get("url")),
+                "Cache TTL (ms)": _safe_int(item.get("cacheLifetimeMs")),
+                "Size (Bytes)": _safe_int(item.get("totalBytes")),
+            }
+            if any(value not in {None, ""} for value in row.values()):
+                yield row
+        return
+
+    if tab_key == "illegible_font_size_report.csv":
+        total_text = _safe_float(
+            details.get("totalTextLength")
+            or details.get("overallTextLength")
+            or details.get("failingTextLength")
+        )
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            text_length = _safe_float(item.get("textLength"))
+            pct_value = None
+            if total_text and text_length is not None:
+                pct_value = round((text_length * 100.0) / total_text, 3)
+            else:
+                pct_value = _safe_float(item.get("percent")) or _safe_float(
+                    item.get("coverage")
+                )
+            row = {
+                "Source Page": encoded_url,
+                "Font Size": _safe_float(item.get("fontSize") or item.get("fontSizePx")),
+                "% of Page Text": pct_value,
+                "Selector": _pagespeed_item_selector(item),
+                "URL": _safe_text(item.get("url")) or encoded_url,
+            }
+            if any(value not in {None, ""} for value in row.values()):
+                yield row
+        return
+
+    if tab_key == "image_elements_do_not_have_explicit_width_and_height_report.csv":
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            row = {
+                "Source Page": encoded_url,
+                "URL": _safe_text(item.get("url")),
+                "Label": _pagespeed_item_label(item),
+                "Snippet": _pagespeed_item_snippet(item),
+            }
+            if any(value not in {None, ""} for value in row.values()):
+                yield row
+        return
+
+    if tab_key in {
+        "defer_offscreen_images_report.csv",
+        "use_video_formats_for_animated_content_report.csv",
+    }:
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            row = {
+                "Source Page": encoded_url,
+                "Image URL": _safe_text(item.get("url")),
+                "Size (Bytes)": _safe_int(item.get("totalBytes")),
+                "Potential Savings (Bytes)": _safe_int(
+                    item.get("wastedBytes") or item.get("overallSavingsBytes")
+                ),
+            }
+            if any(value not in {None, ""} for value in row.values()):
+                yield row
+
+
+def _pagespeed_item_node(item: dict[str, Any]) -> dict[str, Any]:
+    node = item.get("node")
+    return node if isinstance(node, dict) else {}
+
+
+def _pagespeed_item_selector(item: dict[str, Any]) -> Optional[str]:
+    node = _pagespeed_item_node(item)
+    return _safe_text(
+        node.get("selector")
+        or item.get("selector")
+        or node.get("path")
+        or item.get("path")
+    )
+
+
+def _pagespeed_item_snippet(item: dict[str, Any]) -> Optional[str]:
+    node = _pagespeed_item_node(item)
+    return _safe_text(node.get("snippet") or item.get("snippet"))
+
+
+def _pagespeed_item_label(item: dict[str, Any]) -> Optional[str]:
+    node = _pagespeed_item_node(item)
+    return _safe_text(
+        node.get("nodeLabel")
+        or node.get("label")
+        or item.get("nodeLabel")
+        or item.get("label")
+        or item.get("name")
+    )
+
+
+def _rich_results_feature_entries(
+    json_blob: Any,
+    rich_types: Any,
+    valid_features: Iterable[str],
+    *,
+    rich_errors: Any = None,
+    rich_warnings: Any = None,
+) -> dict[str, dict[str, Any]]:
+    valid_set = {str(feature) for feature in valid_features if feature}
+    payload = _decode_gzip_json_blob(json_blob)
+    inspection = payload.get("inspectionResult") or {}
+    rich_result_root = inspection.get("richResultsResult") or payload.get("richResultsResult") or {}
+    detected_items = rich_result_root.get("detectedItems") or []
+    feature_map: dict[str, dict[str, Any]] = {}
+
+    if isinstance(detected_items, list):
+        for detected in detected_items:
+            if not isinstance(detected, dict):
+                continue
+            feature = _coerce_rich_results_feature_label(
+                detected.get("richResultType"), valid_set
+            )
+            if not feature:
+                continue
+            info = feature_map.setdefault(
+                feature,
+                {
+                    "occurrences": 0,
+                    "error_count": 0,
+                    "warning_count": 0,
+                    "error_messages": set(),
+                    "warning_messages": set(),
+                },
+            )
+            items = detected.get("items") or []
+            if not isinstance(items, list) or not items:
+                items = [{}]
+            info["occurrences"] += max(len(items), 1)
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                for issue in item.get("issues") or []:
+                    if not isinstance(issue, dict):
+                        continue
+                    severity = (_safe_text(issue.get("severity")) or "").upper()
+                    message = _safe_text(issue.get("issueMessage")) or _safe_text(
+                        issue.get("message")
+                    )
+                    if severity == "ERROR":
+                        info["error_count"] += 1
+                        if message:
+                            info["error_messages"].add(message)
+                    elif severity == "WARNING":
+                        info["warning_count"] += 1
+                        if message:
+                            info["warning_messages"].add(message)
+
+    if feature_map:
+        return feature_map
+
+    fallback_features = [
+        feature
+        for feature in _parse_rich_result_features(rich_types)
+        if feature in valid_set
+    ]
+    if not fallback_features:
+        return {}
+    return {
+        feature: {
+            "occurrences": 1,
+            "error_count": 0,
+            "warning_count": 0,
+            "error_messages": set(),
+            "warning_messages": set(),
+        }
+        for feature in fallback_features
+    }
+
+
+def _rich_results_issue_entries(json_blob: Any) -> list[dict[str, Optional[str]]]:
+    payload = _decode_gzip_json_blob(json_blob)
+    inspection = payload.get("inspectionResult") or {}
+    rich_result_root = inspection.get("richResultsResult") or payload.get("richResultsResult") or {}
+    detected_items = rich_result_root.get("detectedItems") or []
+    if not isinstance(detected_items, list):
+        return []
+
+    issues: list[dict[str, Optional[str]]] = []
+    for detected in detected_items:
+        if not isinstance(detected, dict):
+            continue
+        feature = _safe_text(detected.get("richResultType"))
+        items = detected.get("items") or []
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_name = _safe_text(
+                item.get("name") or item.get("itemName") or item.get("nodeName")
+            )
+            for issue in item.get("issues") or []:
+                if not isinstance(issue, dict):
+                    continue
+                severity = _safe_text(issue.get("severity"))
+                if severity:
+                    severity = severity.upper()
+                message = _safe_text(issue.get("issueMessage")) or _safe_text(
+                    issue.get("message")
+                )
+                issue_type = _safe_text(issue.get("issueType") or issue.get("type"))
+                issues.append(
+                    {
+                        "feature": feature,
+                        "item_name": item_name or feature,
+                        "severity": severity,
+                        "message": message,
+                        "issue_type": issue_type,
+                    }
+                )
+    return issues
+
+
+def _rich_results_first_issue(json_blob: Any) -> dict[str, Optional[str]]:
+    entries = _rich_results_issue_entries(json_blob)
+    if entries:
+        first = entries[0]
+        return {
+            "feature": first.get("feature"),
+            "severity": _safe_text(first.get("severity")).title()
+            if first.get("severity")
+            else None,
+            "item_name": first.get("item_name"),
+            "message": first.get("message"),
+            "issue_type": first.get("issue_type"),
+        }
+    payload = _decode_gzip_json_blob(json_blob)
+    inspection = payload.get("inspectionResult") or {}
+    rich_result_root = inspection.get("richResultsResult") or payload.get("richResultsResult") or {}
+    detected_items = rich_result_root.get("detectedItems") or []
+    if not isinstance(detected_items, list):
+        return {}
+    for detected in detected_items:
+        if not isinstance(detected, dict):
+            continue
+        feature = _safe_text(detected.get("richResultType"))
+        if feature:
+            return {"feature": feature, "item_name": feature}
+    return {}
+
+
+def _first_rich_result_feature(value: Any) -> Optional[str]:
+    features = _parse_rich_result_features(value)
+    return features[0] if features else None
+
+
+def _coerce_rich_results_feature_label(
+    raw_value: Any, valid_features: Iterable[str]
+) -> Optional[str]:
+    valid_list = [str(feature) for feature in valid_features if feature]
+    valid_map = {_normalize_rich_results_feature_key(feature): feature for feature in valid_list}
+    candidates = _parse_rich_result_features(raw_value)
+    aliases = {
+        "google merchant listings": "Google Product Merchant Listings",
+        "google merchant listing": "Google Product Merchant Listings",
+        "google product": "Google Product Snippet",
+        "google product snippets": "Google Product Snippet",
+        "google profile": "Google Profile Page",
+        "google subscription and paywalled content": "Google Subscription and Paywalled Content",
+    }
+    for candidate in candidates:
+        alias = aliases.get(candidate.lower(), candidate)
+        if alias in valid_list:
+            return alias
+        normalized = _normalize_rich_results_feature_key(alias)
+        if normalized in valid_map:
+            return valid_map[normalized]
+    return None
+
+
+def _normalize_rich_results_feature_key(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    text = text.replace("&", " and ")
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return " ".join(text.split())
+
+
 def _derived_extract_columns(entry: dict[str, Any]) -> list[str]:
     extract = entry.get("derived_extract") or {}
     columns = list(extract.get("columns") or [])
@@ -2081,6 +3675,27 @@ def _multi_row_extract_columns(entry: dict[str, Any]) -> list[str]:
 
 def _extract_derived_value(extract: dict[str, Any], values: dict[str, Any]) -> Any:
     kind = str(extract.get("type") or "").strip().lower()
+    if kind == "pixel_width":
+        profile = str(extract.get("profile") or "title").strip().lower() or "title"
+        columns = list(extract.get("columns") or [])
+        if not columns:
+            primary = extract.get("column") or "TITLE_1"
+            columns = [str(primary)]
+        text_value = None
+        for column in columns:
+            candidate = values.get(str(column))
+            if candidate not in {None, ""}:
+                text_value = candidate
+                break
+        return _estimate_pixel_width(text_value, profile)
+    if kind == "meta_description_pixel_width":
+        return _estimate_pixel_width(_extract_meta_description(values), "description")
+    if kind == "carbon_rating":
+        for column in extract.get("columns") or ["CO2"]:
+            value = _safe_float(values.get(str(column)))
+            if value is not None:
+                return _carbon_rating(value)
+        return None
     if kind == "folder_depth":
         address = _safe_text(values.get("ENCODED_URL"))
         if not address:
@@ -2104,6 +3719,64 @@ def _extract_derived_value(extract: dict[str, Any], values: dict[str, Any]) -> A
             if locations:
                 return urljoin(address or "", locations[0])
         return None
+    if kind == "ajax_url_variant":
+        address = _safe_text(values.get("ENCODED_URL"))
+        if not address:
+            return None
+        variant = str(extract.get("variant") or "").strip().lower() or "pretty"
+        parsed = urlparse(address)
+        raw_query = parsed.query or ""
+        raw_items = raw_query.split("&") if raw_query else []
+        escaped_raw = None
+        kept_raw_items: list[str] = []
+        for item in raw_items:
+            if item.startswith("_escaped_fragment_=") and escaped_raw is None:
+                escaped_raw = item.split("=", 1)[1]
+            else:
+                kept_raw_items.append(item)
+        query_items = parse_qsl(parsed.query, keep_blank_values=True)
+        kept_items: list[tuple[str, str]] = []
+        for key, value in query_items:
+            if key != "_escaped_fragment_":
+                kept_items.append((key, value))
+
+        if escaped_raw is not None:
+            if variant == "ugly":
+                return address
+            fragment = f"!{escaped_raw}"
+            return urlunparse(
+                parsed._replace(query="&".join(kept_raw_items), fragment=fragment)
+            )
+
+        fragment = parsed.fragment or ""
+        if fragment.startswith("!"):
+            if variant == "pretty":
+                return address
+            ugly_items = list(query_items)
+            ugly_items.append(("_escaped_fragment_", fragment[1:]))
+            return urlunparse(
+                parsed._replace(query=urlencode(ugly_items, doseq=True), fragment="")
+            )
+
+        return address
+    if kind == "html_link_element":
+        address = _safe_text(values.get("ENCODED_URL"))
+        html = _clob_text(values.get("ORIGINAL_CONTENT"))
+        href = _html_link_href(
+            html,
+            str(extract.get("rel") or ""),
+            media_pattern=_safe_text(extract.get("media_pattern")),
+        )
+        if not href:
+            return None
+        return urljoin(address or "", href)
+    if kind == "mobile_alternate_link":
+        address = _safe_text(values.get("ENCODED_URL"))
+        html = _clob_text(values.get("ORIGINAL_CONTENT"))
+        href = _html_mobile_alternate_href(html)
+        if not href:
+            return None
+        return urljoin(address or "", href)
     return None
 
 
@@ -2149,6 +3822,66 @@ def _extract_multi_row_value(
     if zero_index >= len(matches):
         return None
     return matches[zero_index]
+
+
+def _estimate_pixel_width(value: Any, profile: str) -> int | None:
+    text = _safe_text(value)
+    if not text:
+        return 0 if value == "" else None
+    profile_spec = _SERP_PIXEL_PROFILES.get(profile) or _SERP_PIXEL_PROFILES["title"]
+    measured = _measure_text_pixels_tk(
+        text,
+        family=str(profile_spec["family"]),
+        size=int(profile_spec["size"]),
+        weight=str(profile_spec["weight"]),
+    )
+    if measured is None:
+        measured = len(text) * float(profile_spec["fallback_avg"])
+    scaled = measured * float(profile_spec["scale"])
+    return max(int(round(scaled)), 0)
+
+
+def _measure_text_pixels_tk(text: str, *, family: str, size: int, weight: str) -> int | None:
+    global _TK_ROOT
+    if not text:
+        return 0
+    try:
+        import tkinter as tk
+        import tkinter.font as tkfont
+    except Exception:
+        return None
+    try:
+        if _TK_ROOT is None:
+            root = tk.Tk()
+            root.withdraw()
+            _TK_ROOT = root
+        key = (family, size, weight)
+        font = _TK_FONT_CACHE.get(key)
+        if font is None:
+            font = tkfont.Font(root=_TK_ROOT, family=family, size=size, weight=weight)
+            _TK_FONT_CACHE[key] = font
+        return int(font.measure(text))
+    except Exception:
+        return None
+
+
+def _carbon_rating(value: float) -> str:
+    for threshold, rating in _CARBON_RATING_THRESHOLDS_MG:
+        if value <= threshold:
+            return rating
+    return "G"
+
+
+def _extract_meta_description(values: dict[str, Any]) -> str | None:
+    for prefix in ("", "_JS"):
+        for index in range(1, 21):
+            name = (_safe_text(values.get(f"META_NAME{prefix}_{index}")) or "").lower()
+            if name != "description":
+                continue
+            content = _safe_text(values.get(f"META_CONTENT{prefix}_{index}"))
+            if content:
+                return content
+    return None
 
 
 def _resolve_multi_row_encoded_url(

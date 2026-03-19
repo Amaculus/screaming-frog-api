@@ -99,8 +99,6 @@ def test_pagespeed_report_savings_map_to_pagespeed_api_columns() -> None:
         ("serve_images_in_next_gen_formats_report.csv", "Potential Savings (Bytes)"): "NEXT_GEN_IMAGES_SIZE",
         ("reduce_unused_css_report.csv", "Potential Savings (Bytes)"): "REMOVE_UNUSED_CSS_SIZE",
         ("reduce_unused_javascript_report.csv", "Potential Savings (Bytes)"): "REMOVE_UNUSED_JAVASCRIPT_SIZE",
-        ("defer_offscreen_images_report.csv", "Potential Savings (Bytes)"): "DEFER_OFFSCREEN_IMAGES_SIZE",
-        ("use_video_formats_for_animated_content_report.csv", "Potential Savings (Bytes)"): "VIDEO_FORMAT_SIZE",
     }
 
     for (tab, csv_column), db_column in expected.items():
@@ -110,6 +108,80 @@ def test_pagespeed_report_savings_map_to_pagespeed_api_columns() -> None:
             "db_column": db_column,
             "db_table": "APP.PAGE_SPEED_API",
         }
+
+
+def test_pagespeed_detail_tabs_mark_runtime_rows() -> None:
+    detail_tabs = {
+        "avoid_excessive_dom_size_report.csv": [
+            "URL",
+            "Statistic",
+            "Selector",
+            "Snippet",
+            "Value",
+        ],
+        "avoid_large_layout_shifts_report.csv": [
+            "Source Page",
+            "Label",
+            "Snippet",
+            "CLS Contribution",
+        ],
+        "avoid_serving_legacy_javascript_to_modern_browsers_report.csv": [
+            "Source Page",
+            "URL",
+            "Size (Bytes)",
+            "Potential Savings (Bytes)",
+        ],
+        "reduce_javascript_execution_time_report.csv": [
+            "Source Page",
+            "URL",
+            "Total CPU Time (ms)",
+            "Script Evaluation",
+            "Script Parse",
+        ],
+        "serve_static_assets_with_an_efficient_cache_policy_report.csv": [
+            "Source Page",
+            "URL",
+            "Cache TTL (ms)",
+            "Size (Bytes)",
+        ],
+        "illegible_font_size_report.csv": [
+            "Source Page",
+            "Font Size",
+            "% of Page Text",
+            "Selector",
+            "URL",
+        ],
+        "image_elements_do_not_have_explicit_width_&_height_report.csv": [
+            "Source Page",
+            "URL",
+            "Label",
+            "Snippet",
+        ],
+        "defer_offscreen_images_report.csv": [
+            "Source Page",
+            "Image URL",
+            "Size (Bytes)",
+            "Potential Savings (Bytes)",
+        ],
+        "use_video_formats_for_animated_content_report.csv": [
+            "Source Page",
+            "Image URL",
+            "Size (Bytes)",
+            "Potential Savings (Bytes)",
+        ],
+    }
+    for tab, columns in detail_tabs.items():
+        for column in columns:
+            assert _entry(tab, column) == {
+                "csv_column": column,
+                "db_expression": "NULL",
+                "db_table": "APP.PAGE_SPEED_API",
+                "runtime_extract": {
+                    "type": "pagespeed_detail",
+                    "tab": tab,
+                    "field": column,
+                },
+            }
 
 
 def test_additional_pagespeed_report_mappings_use_verified_columns() -> None:
@@ -199,6 +271,172 @@ def test_directive_tabs_map_occurrences_from_meta_and_xrobots() -> None:
             "csv_column": "Occurrences",
             "db_expression": expression,
             "db_table": "APP.URLS",
+        }
+
+
+def test_chain_tabs_mark_runtime_supported_fields_as_chain_runtime_extract() -> None:
+    for tab in [
+        "redirects.csv",
+        "redirect_chains.csv",
+        "redirect_and_canonical_chains.csv",
+        "canonical_chains.csv",
+    ]:
+        assert _entry(tab, "Final Address") == {
+            "csv_column": "Final Address",
+            "db_table": "APP.URLS",
+            "runtime_extract": {"type": "chain_row", "field": "Final Address"},
+        }
+        assert _entry(tab, "Redirect Type 1") == {
+            "csv_column": "Redirect Type 1",
+            "db_table": "APP.URLS",
+            "runtime_extract": {"type": "chain_row", "field": "Redirect Type 1"},
+        }
+
+    for tab in [
+        "redirects.csv",
+        "redirect_chains.csv",
+        "redirect_and_canonical_chains.csv",
+    ]:
+        assert _entry(tab, "Temp Redirect in Chain") == {
+            "csv_column": "Temp Redirect in Chain",
+            "db_table": "APP.URLS",
+            "runtime_extract": {
+                "type": "chain_row",
+                "field": "Temp Redirect in Chain",
+            },
+        }
+
+
+def test_accessibility_special_tabs_mark_runtime_supported_columns() -> None:
+    for tab in [
+        "all_violations.csv",
+        "all_incomplete.csv",
+        "best_practice_all_violations.csv",
+        "wcag_2_0_a_all_violations.csv",
+    ]:
+        assert _entry(tab, "Issue") == {
+            "csv_column": "Issue",
+            "db_expression": "NULL",
+            "db_table": "APP.URLS",
+            "runtime_extract": {
+                "type": "accessibility_detail",
+                "field": "Issue",
+            },
+        }
+        assert _entry(tab, "Help URL") == {
+            "csv_column": "Help URL",
+            "db_expression": "NULL",
+            "db_table": "APP.URLS",
+            "runtime_extract": {
+                "type": "accessibility_detail",
+                "field": "Help URL",
+            },
+        }
+
+    assert _entry("accessibility_violations_summary.csv", "Issue") == {
+        "csv_column": "Issue",
+        "db_expression": "NULL",
+        "db_table": "APP.URLS",
+        "runtime_extract": {
+            "type": "accessibility_summary",
+            "field": "Issue",
+        },
+    }
+    assert _entry("accessibility_violations_summary.csv", "% URLs in Violation") == {
+        "csv_column": "% URLs in Violation",
+        "db_expression": "NULL",
+        "db_table": "APP.URLS",
+        "runtime_extract": {
+            "type": "accessibility_summary",
+            "field": "% URLs in Violation",
+        },
+    }
+
+
+def test_pagespeed_summary_tabs_mark_runtime_supported_columns() -> None:
+    assert _entry("pagespeed_opportunities_summary.csv", "Opportunity") == {
+        "csv_column": "Opportunity",
+        "db_expression": "NULL",
+        "db_table": "APP.URLS",
+        "runtime_extract": {
+            "type": "pagespeed_opportunity_summary",
+            "field": "Opportunity",
+        },
+    }
+    for tab in ["css_coverage_summary.csv", "js_coverage_summary.csv"]:
+        assert _entry(tab, "Resource") == {
+            "csv_column": "Resource",
+            "db_expression": "NULL",
+            "db_table": "APP.URLS",
+            "runtime_extract": {
+            "type": "pagespeed_coverage_summary",
+            "field": "Resource",
+        },
+    }
+
+
+def test_google_rich_results_tabs_mark_runtime_supported_columns() -> None:
+    assert _entry("google_rich_results_features_report.csv", "Google FAQ") == {
+        "csv_column": "Google FAQ",
+        "db_expression": "NULL",
+        "db_table": "APP.URLS",
+        "runtime_extract": {
+            "type": "google_rich_results_features_report",
+            "field": "Google FAQ",
+        },
+    }
+    assert _entry(
+        "google_rich_results_features_summary_report.csv", "Rich Results Feature"
+    ) == {
+        "csv_column": "Rich Results Feature",
+        "db_expression": "NULL",
+        "db_table": "APP.LANGUAGE_ERROR_COUNTS",
+        "runtime_extract": {
+            "type": "google_rich_results_features_summary",
+            "field": "Rich Results Feature",
+        },
+    }
+
+
+def test_image_report_tabs_map_dimension_fields_from_links_and_target_urls() -> None:
+    real_dims_expr = (
+        "(SELECT CASE WHEN u.IMAGE_WIDTH > 0 AND u.IMAGE_HEIGHT > 0 "
+        "THEN CAST(u.IMAGE_WIDTH AS VARCHAR(10)) || 'x' || CAST(u.IMAGE_HEIGHT AS VARCHAR(10)) END "
+        "FROM APP.URLS u JOIN APP.UNIQUE_URLS d ON d.ID = APP.LINKS.DST_ID "
+        "WHERE u.ENCODED_URL = d.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+    )
+    attr_dims_expr = (
+        "CASE WHEN APP.LINKS.IMAGE_WIDTH_ATTRIBUTE > 0 AND APP.LINKS.IMAGE_HEIGHT_ATTRIBUTE > 0 "
+        "THEN CAST(APP.LINKS.IMAGE_WIDTH_ATTRIBUTE AS VARCHAR(10)) || 'x' || "
+        "CAST(APP.LINKS.IMAGE_HEIGHT_ATTRIBUTE AS VARCHAR(10)) END"
+    )
+    display_dims_expr = (
+        "CASE WHEN APP.LINKS.IMAGE_DISPLAY_WIDTH > 0 AND APP.LINKS.IMAGE_DISPLAY_HEIGHT > 0 "
+        "THEN CAST(APP.LINKS.IMAGE_DISPLAY_WIDTH AS VARCHAR(10)) || 'x' || "
+        "CAST(APP.LINKS.IMAGE_DISPLAY_HEIGHT AS VARCHAR(10)) END"
+    )
+    length_expr = "CASE WHEN APP.LINKS.ALT_TEXT IS NULL THEN NULL ELSE LENGTH(APP.LINKS.ALT_TEXT) END"
+
+    for tab in ["incorrectly_sized_images.csv", "missing_size_attributes.csv"]:
+        assert _entry(tab, "Length") == {
+            "csv_column": "Length",
+            "db_expression": length_expr,
+            "db_table": "APP.LINKS",
+        }
+        assert _entry(tab, "Real Dimensions") == {
+            "csv_column": "Real Dimensions",
+            "db_expression": real_dims_expr,
+            "db_table": "APP.LINKS",
+        }
+        assert _entry(tab, "Dimensions in Attributes") == {
+            "csv_column": "Dimensions in Attributes",
+            "db_expression": attr_dims_expr,
+            "db_table": "APP.LINKS",
+        }
+        assert _entry(tab, "Display Dimensions") == {
+            "csv_column": "Display Dimensions",
+            "db_expression": display_dims_expr,
+            "db_table": "APP.LINKS",
         }
 
 
@@ -561,6 +799,380 @@ def test_javascript_meta_description_and_robots_tabs_map_original_and_rendered_f
         }
 
 
+def test_javascript_all_maps_current_rendered_and_console_fields() -> None:
+    assert _entry("javascript_all.csv", "HTML Word Count") == {
+        "csv_column": "HTML Word Count",
+        "db_column": "WORD_COUNT",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "Rendered HTML Word Count") == {
+        "csv_column": "Rendered HTML Word Count",
+        "db_expression": "COALESCE(WORD_COUNT, 0) + COALESCE(WORD_COUNT_JS, 0)",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "Word Count Change") == {
+        "csv_column": "Word Count Change",
+        "db_expression": "COALESCE(WORD_COUNT_JS, 0)",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "JS Word Count %") == {
+        "csv_column": "JS Word Count %",
+        "db_expression": (
+            "CAST((100.0 * COALESCE(WORD_COUNT_JS, 0)) / "
+            "NULLIF(COALESCE(WORD_COUNT, 0) + COALESCE(WORD_COUNT_JS, 0), 0) "
+            "AS DECIMAL(12, 3))"
+        ),
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "HTML Title") == {
+        "csv_column": "HTML Title",
+        "db_column": "TITLE_1",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "Rendered HTML Title") == {
+        "csv_column": "Rendered HTML Title",
+        "db_column": "TITLE_JS_1",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "HTML H1") == {
+        "csv_column": "HTML H1",
+        "db_column": "H1_1",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "Rendered HTML H1") == {
+        "csv_column": "Rendered HTML H1",
+        "db_column": "H1_JS_1",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "HTML Meta Description") == {
+        "csv_column": "HTML Meta Description",
+        "db_expression": _coalesced_meta_expression("", ("description",)),
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "Rendered HTML Meta Description") == {
+        "csv_column": "Rendered HTML Meta Description",
+        "db_expression": _coalesced_meta_expression("_JS", ("description",)),
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "HTML Meta Robots 1") == {
+        "csv_column": "HTML Meta Robots 1",
+        "db_expression": _coalesced_meta_expression(
+            "",
+            ("robots", "googlebot", "bingbot", "yandex", "baiduspider", "slurp"),
+        ),
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "Rendered HTML Meta Robots 1") == {
+        "csv_column": "Rendered HTML Meta Robots 1",
+        "db_expression": _coalesced_meta_expression(
+            "_JS",
+            ("robots", "googlebot", "bingbot", "yandex", "baiduspider", "slurp"),
+        ),
+        "db_table": "APP.URLS",
+    }
+    assert _entry("javascript_all.csv", "JS Error") == {
+        "csv_column": "JS Error",
+        "db_column": "NUM_ERRORS",
+        "db_table": "APP.CHROME_CONSOLE_DATA",
+    }
+    assert _entry("javascript_all.csv", "JS Warning") == {
+        "csv_column": "JS Warning",
+        "db_column": "NUM_WARNINGS",
+        "db_table": "APP.CHROME_CONSOLE_DATA",
+    }
+    assert _entry("javascript_all.csv", "JS Info") == {
+        "csv_column": "JS Info",
+        "db_column": "NUM_INFO",
+        "db_table": "APP.CHROME_CONSOLE_DATA",
+    }
+    assert _entry("javascript_all.csv", "JS Debug") == {
+        "csv_column": "JS Debug",
+        "db_column": "NUM_DEBUG",
+        "db_table": "APP.CHROME_CONSOLE_DATA",
+    }
+    assert _entry("javascript_all.csv", "JS Issue") == {
+        "csv_column": "JS Issue",
+        "db_column": "NUM_ISSUES",
+        "db_table": "APP.CHROME_CONSOLE_DATA",
+    }
+
+
+def test_javascript_canonical_tabs_split_html_and_rendered_canonicals() -> None:
+    html_expr = (
+        "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+        "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL "
+        "AND l.LINK_TYPE = 6 AND l.ORIGIN = 1 FETCH FIRST 1 ROWS ONLY)"
+    )
+    rendered_expr = (
+        "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+        "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL "
+        "AND l.LINK_TYPE = 6 AND l.ORIGIN = 3 FETCH FIRST 1 ROWS ONLY)"
+    )
+    for tab in [
+        "javascript_all.csv",
+        "javascript_canonical_mismatch.csv",
+        "javascript_canonical_only_in_rendered_html.csv",
+    ]:
+        assert _entry(tab, "HTML Canonical") == {
+            "csv_column": "HTML Canonical",
+            "db_expression": html_expr,
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "Rendered HTML Canonical") == {
+            "csv_column": "Rendered HTML Canonical",
+            "db_expression": rendered_expr,
+            "db_table": "APP.URLS",
+        }
+
+
+def test_javascript_issue_tabs_map_console_counts_from_chrome_console_table() -> None:
+    for tab in [
+        "javascript_pages_with_chrome_issues.csv",
+        "javascript_pages_with_javascript_errors.csv",
+        "javascript_pages_with_javascript_warnings.csv",
+    ]:
+        assert _entry(tab, "JS Error") == {
+            "csv_column": "JS Error",
+            "db_column": "NUM_ERRORS",
+            "db_table": "APP.CHROME_CONSOLE_DATA",
+        }
+        assert _entry(tab, "JS Warning") == {
+            "csv_column": "JS Warning",
+            "db_column": "NUM_WARNINGS",
+            "db_table": "APP.CHROME_CONSOLE_DATA",
+        }
+        assert _entry(tab, "JS Issue") == {
+            "csv_column": "JS Issue",
+            "db_column": "NUM_ISSUES",
+            "db_table": "APP.CHROME_CONSOLE_DATA",
+        }
+
+
+def test_url_inspection_rich_results_marks_runtime_fields() -> None:
+    for column in [
+        "Rich Results",
+        "Rich Results Type",
+        "Severity",
+        "Item Name",
+        "Rich Results Issue Type",
+    ]:
+        assert _entry("url_inspection_rich_results.csv", column) == {
+            "csv_column": column,
+            "db_expression": "NULL",
+            "db_table": "APP.URL_INSPECTION",
+            "runtime_extract": {
+                "type": "url_inspection_rich_results",
+                "field": column,
+            },
+        }
+
+
+def test_url_inspection_tab_mappings_cover_sitemaps_and_referrers() -> None:
+    assert _entry("url_inspection_sitemaps.csv", "Inspected URL") == {
+        "csv_column": "Inspected URL",
+        "db_column": "SRC",
+        "db_table": "APP.SITEMAP_RESULTS",
+    }
+    assert _entry("url_inspection_sitemaps.csv", "Sitemap") == {
+        "csv_column": "Sitemap",
+        "db_column": "SITEMAP_URL",
+        "db_table": "APP.SITEMAP_RESULTS",
+    }
+    assert _entry("url_inspection_referring_pages.csv", "Referring Page") == {
+        "csv_column": "Referring Page",
+        "db_expression": (
+            "(SELECT s.ENCODED_URL FROM APP.UNIQUE_URLS s "
+            "WHERE s.ID = APP.LINKS.SRC_ID FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.LINKS",
+    }
+    assert _entry("url_inspection_referring_pages.csv", "Inspected URL") == {
+        "csv_column": "Inspected URL",
+        "db_expression": (
+            "(SELECT d.ENCODED_URL FROM APP.UNIQUE_URLS d "
+            "WHERE d.ID = APP.LINKS.DST_ID FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.LINKS",
+    }
+
+
+def test_hreflang_tabs_map_second_html_variant_from_links() -> None:
+    lang_expr = (
+        "(SELECT l.HREF_LANG FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+        "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL AND l.LINK_TYPE = 13 "
+        "ORDER BY l.DST_ID OFFSET 1 ROW FETCH NEXT 1 ROW ONLY)"
+    )
+    url_expr = (
+        "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+        "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL "
+        "AND l.LINK_TYPE = 13 ORDER BY l.DST_ID OFFSET 1 ROW FETCH NEXT 1 ROW ONLY)"
+    )
+    for tab in ["hreflang_all.csv", "hreflang_contains_hreflang.csv"]:
+        assert _entry(tab, "HTML hreflang 2") == {
+            "csv_column": "HTML hreflang 2",
+            "db_expression": lang_expr,
+            "db_table": "APP.URLS",
+        }
+        assert _entry(tab, "HTML hreflang 2 URL") == {
+            "csv_column": "HTML hreflang 2 URL",
+            "db_expression": url_expr,
+            "db_table": "APP.URLS",
+        }
+
+
+def test_hreflang_multimap_tabs_mark_runtime_fields() -> None:
+    cases = {
+        "hreflang_missing_return_links.csv": [
+            "URL Missing Return Link",
+            "URL Not Returning Link",
+            "Expected Link",
+            "hreflang",
+        ],
+        "hreflang_inconsistent_language_return_links.csv": [
+            "URL with Inconsistent Language Return Link",
+            "URL Target",
+            "URL Returning with Inconsistent Language",
+            "Expected Language",
+            "Actual Language",
+        ],
+        "hreflang_non_canonical_return_links.csv": [
+            "Non Canonical Return Link URL",
+            "Canonical",
+        ],
+        "hreflang_no_index_return_links.csv": [
+            "Noindex URL",
+            "Language",
+        ],
+    }
+    for tab, columns in cases.items():
+        for column in columns:
+            assert _entry(tab, column) == {
+                "csv_column": column,
+                "db_expression": "NULL",
+                "db_table": "APP.URLS",
+                "runtime_extract": {
+                    "type": "hreflang_multimap",
+                    "tab": tab,
+                    "field": column,
+                },
+            }
+
+
+def test_javascript_ajax_tabs_derive_pretty_and_ugly_urls() -> None:
+    for tab in [
+        "javascript_all.csv",
+        "javascript_uses_old_ajax_crawling_scheme_urls.csv",
+        "javascript_uses_old_ajax_crawling_scheme_meta_fragment_tag.csv",
+    ]:
+        assert _entry(tab, "Pretty URL") == {
+            "csv_column": "Pretty URL",
+            "db_column": "ENCODED_URL",
+            "db_table": "APP.URLS",
+            "derived_extract": {
+                "type": "ajax_url_variant",
+                "variant": "pretty",
+                "columns": ["CRAWL_IN_ESCAPED_FRAGMENT_FORM"],
+            },
+        }
+        assert _entry(tab, "Ugly URL") == {
+            "csv_column": "Ugly URL",
+            "db_column": "ENCODED_URL",
+            "db_table": "APP.URLS",
+            "derived_extract": {
+                "type": "ajax_url_variant",
+                "variant": "ugly",
+                "columns": ["CRAWL_IN_ESCAPED_FRAGMENT_FORM"],
+            },
+        }
+
+
+def test_internal_tabs_derive_amphtml_link_from_original_content() -> None:
+    tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+    ]
+    expected = {
+        "csv_column": "amphtml Link Element",
+        "db_column": "ENCODED_URL",
+        "db_table": "APP.URLS",
+        "derived_extract": {
+            "type": "html_link_element",
+            "rel": "amphtml",
+            "columns": ["ORIGINAL_CONTENT"],
+        },
+    }
+    for tab in tabs:
+        assert _entry(tab, "amphtml Link Element") == expected
+
+
+def test_internal_tabs_derive_mobile_alternate_link_from_original_content() -> None:
+    tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "mobile_all.csv",
+        "mobile_mobile_alternate_link.csv",
+    ]
+    expected = {
+        "csv_column": "Mobile Alternate Link",
+        "db_column": "ENCODED_URL",
+        "db_table": "APP.URLS",
+        "derived_extract": {
+            "type": "mobile_alternate_link",
+            "columns": ["ORIGINAL_CONTENT"],
+        },
+    }
+    for tab in tabs:
+        assert _entry(tab, "Mobile Alternate Link") == expected
+
+
+def test_http_header_summary_marks_runtime_request_header_names() -> None:
+    assert _entry("http_header_summary.csv", "HTTP Request Headers") == {
+        "csv_column": "HTTP Request Headers",
+        "db_expression": "NULL",
+        "db_table": "APP.URLS",
+        "runtime_extract": {
+            "type": "http_header_summary",
+            "field": "HTTP Request Headers",
+        },
+    }
+
+
+def test_directives_outside_head_occurrences_sum_html_validation_flags() -> None:
+    assert _entry("directives_outside_head.csv", "Occurrences") == {
+        "csv_column": "Occurrences",
+        "db_expression": (
+            "(SELECT (CASE WHEN h.TITLE_OUTSIDE_HEAD THEN 1 ELSE 0 END) + "
+            "(CASE WHEN h.META_DESCRIPTION_OUTSIDE_HEAD THEN 1 ELSE 0 END) + "
+            "(CASE WHEN h.META_ROBOTS_OUTSIDE_HEAD THEN 1 ELSE 0 END) + "
+            "(CASE WHEN h.CANONICAL_OUTSIDE_HEAD THEN 1 ELSE 0 END) + "
+            "(CASE WHEN h.HREFLANG_OUTSIDE_HEAD THEN 1 ELSE 0 END) "
+            "FROM APP.HTML_VALIDATION_DATA h WHERE h.ENCODED_URL = APP.URLS.ENCODED_URL "
+            "FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.URLS",
+    }
+
+
 def test_lorem_ipsum_and_viewport_tabs_map_direct_fields() -> None:
     assert _entry("content_lorem_ipsum_placeholder.csv", "Occurrences") == {
         "csv_column": "Occurrences",
@@ -625,8 +1237,29 @@ def test_generate_mapping_nulls_only_counts_literal_null_placeholders() -> None:
             "example.csv": [
                 {"csv_column": "Literal NULL", "db_expression": "NULL"},
                 {
+                    "csv_column": "Runtime Backed NULL",
+                    "db_expression": "NULL",
+                    "runtime_extract": {"type": "chain_row", "field": "Source"},
+                },
+                {
                     "csv_column": "Expression NULL",
                     "db_expression": "CASE WHEN foo IS NULL THEN NULL ELSE 1 END",
+                },
+                {
+                    "csv_column": "Derived Backed NULL",
+                    "db_expression": "NULL",
+                    "derived_extract": {"type": "folder_depth", "columns": ["ENCODED_URL"]},
+                },
+                {
+                    "csv_column": "Multi Row Backed NULL",
+                    "db_expression": "NULL",
+                    "multi_row_extract": {
+                        "type": "custom_extraction_match",
+                        "source": "encoded_url",
+                        "extractor_idx": 0,
+                        "match_index": 1,
+                        "columns": ["ENCODED_URL"],
+                    },
                 },
             ]
         },
@@ -634,7 +1267,10 @@ def test_generate_mapping_nulls_only_counts_literal_null_placeholders() -> None:
     )
 
     assert "- example.csv: Literal NULL" in content
+    assert "Runtime Backed NULL" not in content
     assert "Expression NULL" not in content
+    assert "Derived Backed NULL" not in content
+    assert "Multi Row Backed NULL" not in content
 
 
 def test_readability_label_rollout_uses_flesch_score_bands() -> None:
@@ -877,6 +1513,220 @@ def test_internal_tabs_map_folder_depth_via_derived_extract() -> None:
         }
 
 
+def test_title_and_meta_pixel_widths_use_derived_extracts() -> None:
+    title_tabs = [
+        "amp_all.csv",
+        "amp_contains_disallowed_html.csv",
+        "amp_indexable.csv",
+        "amp_missing_body_tag.csv",
+        "amp_missing_canonical.csv",
+        "amp_missing_canonical_to_nonamp.csv",
+        "amp_missing_head_tag.csv",
+        "amp_missing_html_amp_tag.csv",
+        "amp_missing_invalid_amp_boilerplate.csv",
+        "amp_missing_invalid_amp_script.csv",
+        "amp_missing_invalid_doctype_html_tag.csv",
+        "amp_missing_invalid_meta_charset_tag.csv",
+        "amp_missing_invalid_meta_viewport_tag.csv",
+        "amp_missing_nonamp_return_link.csv",
+        "amp_non200_response.csv",
+        "amp_nonindexable.csv",
+        "amp_nonindexable_canonical.csv",
+        "amp_other_validation_errors.csv",
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "page_titles_all.csv",
+        "page_titles_below_200_pixels.csv",
+        "page_titles_below_30_characters.csv",
+        "page_titles_duplicate.csv",
+        "page_titles_missing.csv",
+        "page_titles_multiple.csv",
+        "page_titles_outside_head.csv",
+        "page_titles_over_561_pixels.csv",
+        "page_titles_over_60_characters.csv",
+        "page_titles_same_as_h1.csv",
+    ]
+    meta_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "meta_description_all.csv",
+        "meta_description_below_400_pixels.csv",
+        "meta_description_below_70_characters.csv",
+        "meta_description_duplicate.csv",
+        "meta_description_missing.csv",
+        "meta_description_multiple.csv",
+        "meta_description_outside_head.csv",
+        "meta_description_over_155_characters.csv",
+        "meta_description_over_985_pixels.csv",
+    ]
+
+    for tab in title_tabs:
+        assert _entry(tab, "Title 1 Pixel Width") == {
+            "csv_column": "Title 1 Pixel Width",
+            "db_column": "TITLE_1",
+            "db_table": "APP.URLS",
+            "derived_extract": {
+                "type": "pixel_width",
+                "profile": "title",
+                "columns": ["TITLE_1"],
+            },
+        }
+
+    for tab in meta_tabs:
+        assert _entry(tab, "Meta Description 1 Pixel Width") == {
+            "csv_column": "Meta Description 1 Pixel Width",
+            "db_column": "META_NAME_1",
+            "db_table": "APP.URLS",
+            "derived_extract": {
+                "type": "meta_description_pixel_width",
+                "columns": [
+                    *[item for i in range(1, 21) for item in (f"META_NAME_{i}", f"META_CONTENT_{i}")],
+                    *[
+                        item
+                        for i in range(1, 21)
+                        for item in (f"META_NAME_JS_{i}", f"META_CONTENT_JS_{i}")
+                    ],
+                ],
+            },
+        }
+
+
+def test_carbon_rating_uses_co2_derived_extract() -> None:
+    carbon_tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "validation_all.csv",
+        "validation_body_element_preceding_html.csv",
+        "validation_head_not_first_in_html_element.csv",
+        "validation_high_carbon_rating.csv",
+        "validation_html_document_over_15mb.csv",
+        "validation_invalid_html_elements_in_head.csv",
+        "validation_missing_body_tag.csv",
+        "validation_missing_head_tag.csv",
+        "validation_multiple_body_tags.csv",
+        "validation_multiple_head_tags.csv",
+        "validation_resource_over_15mb.csv",
+    ]
+
+    for tab in carbon_tabs:
+        assert _entry(tab, "Carbon Rating") == {
+            "csv_column": "Carbon Rating",
+            "db_column": "CO2",
+            "db_table": "APP.URLS",
+            "derived_extract": {"type": "carbon_rating", "columns": ["CO2"]},
+        }
+
+
+def test_percent_of_total_maps_from_unique_inlinks_against_internal_html_denominator() -> None:
+    tabs = [
+        "internal_all.csv",
+        "internal_css.csv",
+        "internal_fonts.csv",
+        "internal_html.csv",
+        "internal_images.csv",
+        "internal_javascript.csv",
+        "internal_media.csv",
+        "internal_other.csv",
+        "internal_pdf.csv",
+        "internal_plugins.csv",
+        "internal_unknown.csv",
+        "internal_xml.csv",
+        "links_all.csv",
+        "links_follow_nofollow_internal_inlinks_to_page.csv",
+        "links_internal_nofollow_inlinks_only.csv",
+        "links_internal_nofollow_outlinks.csv",
+        "links_internal_outlinks_with_no_anchor_text.csv",
+        "links_nondescriptive_anchor_text_in_internal_outlinks.csv",
+        "links_nonindexable_page_inlinks_only.csv",
+        "links_outlinks_to_localhost.csv",
+        "links_pages_with_high_crawl_depth.csv",
+        "links_pages_with_high_external_outlinks.csv",
+        "links_pages_with_high_internal_outlinks.csv",
+        "links_pages_without_internal_outlinks.csv",
+    ]
+    expr = (
+        "CASE WHEN (SELECT COUNT(*) FROM APP.URLS total WHERE total.IS_INTERNAL = TRUE "
+        "AND LOWER(total.CONTENT_TYPE) LIKE 'text/html%') = 0 THEN NULL ELSE CAST("
+        "(COALESCE((SELECT ic.NUM_UNIQUE_HYPER_LINKS FROM APP.INLINK_COUNTS ic "
+        "WHERE ic.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY), 0) * 100.0) / "
+        "(SELECT COUNT(*) FROM APP.URLS total WHERE total.IS_INTERNAL = TRUE "
+        "AND LOWER(total.CONTENT_TYPE) LIKE 'text/html%') AS DECIMAL(18, 3)) END"
+    )
+
+    for tab in tabs:
+        assert _entry(tab, "% of Total") == {
+            "csv_column": "% of Total",
+            "db_expression": expr,
+            "db_table": "APP.URLS",
+        }
+
+
+def test_structured_data_detail_tabs_mark_core_runtime_columns() -> None:
+    tabs = [
+        "jsonld_urls_detailed_report.csv",
+        "microdata_urls_detailed_report.csv",
+        "rdfa_urls_detailed_report.csv",
+        "validation_errors_detailed_report.csv",
+        "validation_warnings_detailed_report.csv",
+    ]
+    for tab in tabs:
+        for column in ["Subject", "Predicate", "Object", "Errors", "Warnings"]:
+            assert _entry(tab, column) == {
+                "csv_column": column,
+                "db_expression": "NULL",
+                "db_table": "APP.URLS",
+                "runtime_extract": {
+                    "type": "structured_data_detailed",
+                    "field": column,
+                },
+            }
+        for index in range(1, 11):
+            for column in (
+                f"Validation Type {index}",
+                f"Severity {index}",
+                f"Issue {index}",
+            ):
+                assert _entry(tab, column) == {
+                    "csv_column": column,
+                    "db_expression": "NULL",
+                    "db_table": "APP.URLS",
+                    "runtime_extract": {
+                        "type": "structured_data_detailed",
+                        "field": column,
+                    },
+                }
+
+
 def test_pending_link_reports_map_unlinked_flags() -> None:
     expected = {
         "canonicals_nonindexable_canonicals.csv": "APP.MULTIMAP_CANONICALS_PENDING_LINK",
@@ -895,6 +1745,36 @@ def test_pending_link_reports_map_unlinked_flags() -> None:
             ),
             "db_table": "APP.URLS",
         }
+
+
+def test_all_inlinks_and_hreflang_url_tabs_map_unlinked_flags_from_inlink_counts() -> None:
+    expected_expr = (
+        "CASE WHEN COALESCE((SELECT ic.NUM_HYPER_LINKS FROM APP.INLINK_COUNTS ic "
+        "WHERE ic.ENCODED_URL = (SELECT d.ENCODED_URL FROM APP.UNIQUE_URLS d "
+        "WHERE d.ID = APP.LINKS.DST_ID FETCH FIRST 1 ROWS ONLY) FETCH FIRST 1 ROWS ONLY), 0) = 0 "
+        "THEN 'true' ELSE 'false' END"
+    )
+    for tab in [
+        "all_inlinks.csv",
+        "hreflang_non200_hreflang_urls.csv",
+        "hreflang_unlinked_hreflang_urls.csv",
+    ]:
+        assert _entry(tab, "Unlinked") == {
+            "csv_column": "Unlinked",
+            "db_expression": expected_expr,
+            "db_table": "APP.LINKS",
+        }
+
+
+def test_orphan_pages_map_url_to_destination() -> None:
+    assert _entry("orphan_pages.csv", "URL") == {
+        "csv_column": "URL",
+        "db_expression": (
+            "(SELECT d.ENCODED_URL FROM APP.UNIQUE_URLS d "
+            "WHERE d.ID = APP.LINKS.DST_ID FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.LINKS",
+    }
 
 
 def test_custom_filter_rollout_maps_filter_counts_across_url_tabs() -> None:

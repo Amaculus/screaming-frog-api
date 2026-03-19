@@ -1,10 +1,13 @@
 # Mapping Backlog
 
-Current mapping coverage after the 2026-03-19 directives-occurrence pass:
+Current effective mapping coverage after the 2026-03-19 mobile-alternate pass:
 
-- Field-level mapped coverage: `94.0%` (`14659 / 15589`)
-- Fully mapped tabs: `74.2%` (`466 / 628`)
-- Remaining literal `NULL` cells: `930`
+- Field-level mapped coverage: `99.36%` (`15490 / 15589`)
+- Fully mapped tabs: `95.7%` (`601 / 628`)
+- Remaining effective gap cells: `99`
+
+Effective coverage treats `runtime_extract`, `derived_extract`,
+`multi_row_extract`, `blob_extract`, and `header_extract` as mapped.
 
 This file is the working backlog for the remaining mapping work. It separates
 exact-safe next batches from families that still need more evidence or backend
@@ -31,14 +34,16 @@ directive occurrences. The next defensible items are narrower validations.
 Only map `Occurrences` if a real count field exists in `APP.HTML_VALIDATION_DATA`
 or another Derby table. Do not infer it from the boolean flag alone.
 
-### 2. Potential Savings on inlink tabs
+### 2. Potential Savings / Explanation carryovers
 
 Remaining gaps:
 
 - `all_image_inlinks.csv -> Potential Savings (bytes)`
 - `all_inlinks.csv -> Potential Savings (bytes)`
+- `incorrectly_sized_images.csv -> Potential Savings (bytes)`
+- `content_not_sized_correctly_report.csv -> Explanation`
 
-Only map once the exact PageSpeed source field is verified.
+Only map once the exact PageSpeed source field or detail payload is verified.
 
 ### 3. Change Detection: Previous / Delta Side
 
@@ -56,27 +61,22 @@ These should not be guessed from a single crawl.
 
 These look possible, but not as a plain direct-column rollout.
 
-### Structured Data / Validation Detail Tabs
+### Structured Data Error Summary / Issue Tabs
 
-- `jsonld_urls_detailed_report.csv`
-- `microdata_urls_detailed_report.csv`
-- `rdfa_urls_detailed_report.csv`
-- `validation_errors_detailed_report.csv`
-- `validation_warnings_detailed_report.csv`
-- `google_rich_results_features_report.csv`
-- `google_rich_results_features_summary_report.csv`
+- `structured_data_error_report.csv`
+- `structured_data_error_summary_report.csv`
+- `issues_overview_report.csv`
 
-These need real payload parsing, not blob passthrough.
+These need a stable issue dictionary / payload mapping, not raw blob passthrough.
 
-### Chain Reports
+### JavaScript Console / Target Size Detail Tabs
 
-- `redirects.csv`
-- `redirect_chains.csv`
-- `redirect_and_canonical_chains.csv`
-- `canonical_chains.csv`
+- `pages_with_javascript_issues.csv`
+- `chrome_console_log_summary_report.csv`
+- `target_size_report.csv`
 
-Remaining gaps are concentrated here. Most are chain-detail fields, not simple
-carryovers.
+These look runtime-parseable, but current local sample crawls do not persist the
+needed populated payloads to prove exact-safe extraction.
 
 ### Accessibility Issue Metadata
 
@@ -102,16 +102,19 @@ Do not guess these.
 - `Meta Description 1 Pixel Width`
 - `% of Total`
 - `Carbon Rating`
-- `Mobile Alternate Link`
-- `amphtml Link Element`
 - `Current/Previous Unique Types`
-- generic rich-result validation issue details without confirmed Derby source
+- `serp_summary.csv` duplicate `Character Length` / `Pixel Length` headers
+- `crawl_overview.csv` row-oriented summary layout
+- `change_detection_*` previous/delta values from a single crawl
 
 ## Operational Notes
 
 - `multi_row_extract` is now the correct mechanism for repeated
   `APP.CUSTOM_EXTRACTION` / `APP.CUSTOM_JAVASCRIPT` matches when Derby stores
   one row per match.
+- `Mobile Alternate Link` is now derived from `APP.URLS.ORIGINAL_CONTENT`
+  wherever the tab can source HTML directly; `mobile_all.csv` uses a dedicated
+  join-based runtime path because its base table is `APP.PAGE_SPEED_API`.
 - Live probe note: Screaming Frog CSV exports can use the extraction name as the
   header (`Items 1`, `Items 2`, ...) while the typed Derby mapping currently
   exposes normalized generic slots (`Extractor 1 1`, `Extractor 1 2`, ...).
