@@ -2010,6 +2010,40 @@ def _extract_blob_value(extract: dict[str, Any], blob: Any) -> Any:
         payload = _decode_gzip_json_blob(blob)
         cookies = payload.get("mCookies") or []
         return len(cookies) if isinstance(cookies, list) else None
+    if kind == "pagespeed_main_thread_work":
+        payload = _decode_gzip_json_blob(blob)
+        items = (
+            payload.get("lighthouseResult", {})
+            .get("audits", {})
+            .get("mainthread-work-breakdown", {})
+            .get("details", {})
+            .get("items", [])
+        )
+        if not isinstance(items, list):
+            return None
+        wanted = str(extract.get("key") or "").strip()
+        if not wanted:
+            return None
+        total = 0.0
+        matched = False
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("group") or "").strip() != wanted:
+                continue
+            duration = _safe_float(item.get("duration"))
+            if duration is None:
+                duration = _safe_float(item.get("durationMs"))
+            if duration is None:
+                continue
+            total += duration
+            matched = True
+        if not matched:
+            return None
+        rounded = round(total, 3)
+        if abs(rounded - round(rounded)) < 1e-9:
+            return int(round(rounded))
+        return rounded
     return None
 
 
@@ -2453,6 +2487,22 @@ def _safe_int(value: Any) -> Optional[int]:
         return None
     try:
         return int(float(text))
+    except ValueError:
+        return None
+
+
+def _safe_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return float(int(value))
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return float(text)
     except ValueError:
         return None
 

@@ -1,0 +1,129 @@
+# Mapping Backlog
+
+Current mapping coverage after the 2026-03-19 housekeeping/mapping pass:
+
+- Field-level mapped coverage: `93.9%` (`14643 / 15589`)
+- Fully mapped tabs: `71.7%` (`450 / 628`)
+- Remaining literal `NULL` cells: `946`
+
+This file is the working backlog for the remaining mapping work. It separates
+exact-safe next batches from families that still need more evidence or backend
+parsing.
+
+## Completed Recently
+
+- `multi_row_extract` backend support for repeated custom extraction matches
+- `custom_extraction_all`, `internal_all`, `internal_html`, `all_inlinks`
+  multi-match extractor rollout
+- `change_detection_*` current-state carryovers plus crawl timestamp where exact
+- `minimize_main_thread_work_report.csv` main-thread breakdown from
+  `APP.PAGE_SPEED_API.JSON_RESPONSE`
+- Live smoke test harness for custom extraction multi-row materialization
+
+## Exact-Safe Next
+
+These are the next batches that are still defensible from current Derby
+evidence and should not require CSV fallback or guesswork.
+
+### 1. Directives: Occurrences
+
+Safe if computed per-token from the same predicates already used in
+`screamingfrog/filters/directives.py`.
+
+- `directives_follow.csv`
+- `directives_index.csv`
+- `directives_maximagepreview.csv`
+- `directives_maxsnippet.csv`
+- `directives_maxvideopreview.csv`
+- `directives_noarchive.csv`
+- `directives_nofollow.csv`
+- `directives_noimageindex.csv`
+- `directives_noindex.csv`
+- `directives_none.csv`
+- `directives_noodp.csv`
+- `directives_nosnippet.csv`
+- `directives_notranslate.csv`
+- `directives_noydir.csv`
+- `directives_refresh.csv`
+- `directives_unavailable_after.csv`
+
+Do not treat `directives_outside_head.csv` the same way. That one appears to be
+boolean-backed, not count-backed.
+
+### 2. Change Detection: Previous / Delta Side
+
+Current-side fields are now mapped. Remaining gaps are:
+
+- `Previous *`
+- `Change`
+- `Change %`
+- `Similarity Match %`
+- `Current/Previous Unique Types`
+
+These should not be guessed from a single crawl.
+
+## Needs Backend Parsing / More Work
+
+These look possible, but not as a plain direct-column rollout.
+
+### Structured Data / Validation Detail Tabs
+
+- `jsonld_urls_detailed_report.csv`
+- `microdata_urls_detailed_report.csv`
+- `rdfa_urls_detailed_report.csv`
+- `validation_errors_detailed_report.csv`
+- `validation_warnings_detailed_report.csv`
+- `google_rich_results_features_report.csv`
+- `google_rich_results_features_summary_report.csv`
+
+These need real payload parsing, not blob passthrough.
+
+### Chain Reports
+
+- `redirects.csv`
+- `redirect_chains.csv`
+- `redirect_and_canonical_chains.csv`
+- `canonical_chains.csv`
+
+Remaining gaps are concentrated here. Most are chain-detail fields, not simple
+carryovers.
+
+### Accessibility Issue Metadata
+
+Repeated null family:
+
+- `Issue`
+- `Guidelines`
+- `User Impact`
+- `Priority`
+- `How To Fix`
+- `Help URL`
+- `Location on Page`
+- `Issue Description`
+
+These likely need a dedicated issue dictionary/parsing path rather than direct
+table columns.
+
+## Currently Blocked / Not Defensible Yet
+
+Do not guess these.
+
+- `Title 1 Pixel Width`
+- `Meta Description 1 Pixel Width`
+- `% of Total`
+- `Carbon Rating`
+- `Mobile Alternate Link`
+- `amphtml Link Element`
+- `Current/Previous Unique Types`
+- generic rich-result validation issue details without confirmed Derby source
+
+## Operational Notes
+
+- `multi_row_extract` is now the correct mechanism for repeated
+  `APP.CUSTOM_EXTRACTION` / `APP.CUSTOM_JAVASCRIPT` matches when Derby stores
+  one row per match.
+- Live probe note: Screaming Frog CSV exports can use the extraction name as the
+  header (`Items 1`, `Items 2`, ...) while the typed Derby mapping currently
+  exposes normalized generic slots (`Extractor 1 1`, `Extractor 1 2`, ...).
+  That is acceptable for Derby-first access, but it is worth documenting if we
+  want stricter CSV-header parity later.

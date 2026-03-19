@@ -33,21 +33,21 @@ Columns currently mapped to NULL in Derby:
 - best_practice_all_incomplete.csv: Issue, Location on Page, Guidelines, User Impact, Priority, Issue Description, How To Fix, Help URL
 - best_practice_all_violations.csv: Issue, Location on Page, Guidelines, User Impact, Priority, Issue Description, How To Fix, Help URL
 - canonical_chains.csv: Chain Type, Number of Canonicals, Loop, Final Address, Final Indexability, Final Indexability Status, Final Content, Final Status Code, Final Status, Content 1, Status Code 1, Status 1, Redirect Type 1, Redirect URL 1, Content 2, Status Code 2, Status 2, Redirect Type 2, Redirect URL 2, Content 3, Status Code 3, Status 3, Redirect Type 3, Redirect URL 3, Content 4, Status Code 4, Status 4, Redirect Type 4, Redirect URL 4, Content 5, Status Code 5, Status 5, Redirect Type 5, Redirect URL 5, Content 6, Status Code 6, Status 6, Redirect Type 6, Redirect URL 6, Content 7, Status Code 7, Status 7, Redirect Type 7, Redirect URL 7, Content 8, Status Code 8, Status 8, Redirect Type 8, Redirect URL 8, Content 9, Status Code 9, Status 9, Redirect Type 9, Redirect URL 9, Content 10, Status Code 10, Status 10, Redirect Type 10, Redirect URL 10
-- change_detection_all.csv: Current Indexability, Previous Indexability, Current Page Title, Previous Page Title, Current Meta Description, Previous Meta Description, Current H1, Previous H1, Current Word Count, Previous Word Count, Current Crawl Depth, Previous Crawl Depth, Current Inlinks, Previous Inlinks, Current Unique Inlinks, Previous Unique Inlinks, Current Outlinks, Previous Outlinks, Current Unique Outlinks, Previous Unique Outlinks, Current External Outlinks, Previous External Outlinks, Current Unique External Outlinks, Previous Unique External Outlinks
-- change_detection_content.csv: Similarity Match %, Change %, Current Word Count, Previous Word Count, Current Indexability, Current Indexability Status, Previous Indexability, Previous Indexability Status, Crawl Timestamp
-- change_detection_crawl_depth.csv: Previous Crawl Depth, Current Crawl Depth, Change, Change %, Crawl Timestamp
-- change_detection_external_outlinks.csv: Current External Outlinks, Previous External Outlinks, Change, Change %, Crawl Timestamp
-- change_detection_h1.csv: Current H1, Previous H1, Current Indexability, Current Indexability Status, Previous Indexability, Previous Indexability Status, Crawl Timestamp
-- change_detection_indexability.csv: Current Indexability, Current Indexability Status, Previous Indexability, Previous Indexability Status, Crawl Timestamp
+- change_detection_all.csv: Previous Indexability, Previous Page Title, Previous Meta Description, Previous H1, Previous Word Count, Previous Crawl Depth, Previous Inlinks, Previous Unique Inlinks, Previous Outlinks, Previous Unique Outlinks, Previous External Outlinks, Previous Unique External Outlinks
+- change_detection_content.csv: Similarity Match %, Change %, Previous Word Count, Previous Indexability, Previous Indexability Status
+- change_detection_crawl_depth.csv: Previous Crawl Depth, Change, Change %
+- change_detection_external_outlinks.csv: Previous External Outlinks, Change, Change %
+- change_detection_h1.csv: Previous H1, Previous Indexability, Previous Indexability Status
+- change_detection_indexability.csv: Previous Indexability, Previous Indexability Status
 - change_detection_inlinks.csv: Previous Inlinks, Change, Change %
-- change_detection_internal_outlinks.csv: Current Outlinks, Previous Outlinks, Change, Change %, Crawl Timestamp
-- change_detection_meta_description.csv: Current Meta Description, Previous Meta Description, Current Indexability, Current Indexability Status, Previous Indexability, Previous Indexability Status, Crawl Timestamp
-- change_detection_page_titles.csv: Current Page Title, Previous Page Title, Current Indexability, Current Indexability Status, Previous Indexability, Previous Indexability Status, Crawl Timestamp
-- change_detection_structured_data_unique_types.csv: Current Unique Types, Previous Unique Types, Change, Change %, Crawl Timestamp
-- change_detection_unique_external_outlinks.csv: Current Unique External Outlinks, Previous Unique External Outlinks, Change, Change %, Crawl Timestamp
+- change_detection_internal_outlinks.csv: Previous Outlinks, Change, Change %
+- change_detection_meta_description.csv: Previous Meta Description, Previous Indexability, Previous Indexability Status
+- change_detection_page_titles.csv: Previous Page Title, Previous Indexability, Previous Indexability Status
+- change_detection_structured_data_unique_types.csv: Current Unique Types, Previous Unique Types, Change, Change %
+- change_detection_unique_external_outlinks.csv: Previous Unique External Outlinks, Change, Change %
 - change_detection_unique_inlinks.csv: Previous Unique Inlinks, Change, Change %
-- change_detection_unique_internal_outlinks.csv: Current Unique Outlinks, Previous Unique Outlinks, Change, Change %, Crawl Timestamp
-- change_detection_word_count.csv: Current Word Count, Previous Word Count, Change, Change %, Current Indexability, Current Indexability Status, Previous Indexability, Previous Indexability Status, Crawl Timestamp
+- change_detection_unique_internal_outlinks.csv: Previous Unique Outlinks, Change, Change %
+- change_detection_word_count.csv: Previous Word Count, Change, Change %, Previous Indexability, Previous Indexability Status
 - chrome_console_log_summary_report.csv: Description, Number of URLs Affected, Sample URL Affected
 - content_not_sized_correctly_report.csv: Explanation
 - crawl_overview.csv: Site Crawled, https://www.actionnetwork.com/
@@ -129,7 +129,6 @@ Columns currently mapped to NULL in Derby:
 - meta_description_over_155_characters.csv: Meta Description 1 Pixel Width
 - meta_description_over_985_pixels.csv: Meta Description 1 Pixel Width
 - microdata_urls_detailed_report.csv: Subject, Predicate, Object, Errors, Warnings, Validation Type 1, Severity 1, Issue 1, Validation Type 2, Severity 2, Issue 2, Validation Type 3, Severity 3, Issue 3, Validation Type 4, Severity 4, Issue 4, Validation Type 5, Severity 5, Issue 5, Validation Type 6, Severity 6, Issue 6, Validation Type 7, Severity 7, Issue 7, Validation Type 8, Severity 8, Issue 8, Validation Type 9, Severity 9, Issue 9, Validation Type 10, Severity 10, Issue 10
-- minimize_main_thread_work_report.csv: Script Evaluation, Style & Layout, Other, Script Parsing & Compilation, Parse HTML & CSS, Rendering, Garbage Collection
 - missing_size_attributes.csv: Length, Real Dimensions, Dimensions in Attributes, Display Dimensions
 - mobile_all.csv: Mobile Alternate Link
 - mobile_mobile_alternate_link.csv: Mobile Alternate Link

@@ -982,6 +982,66 @@ def test_custom_extractor_multi_match_rollout_maps_remaining_match_columns() -> 
     }
 
 
+def test_minimize_main_thread_work_report_maps_pagespeed_blob_breakdown() -> None:
+    expected = {
+        "csv_column": "Script Evaluation",
+        "db_column": "JSON_RESPONSE",
+        "db_table": "APP.PAGE_SPEED_API",
+        "blob_extract": {
+            "type": "pagespeed_main_thread_work",
+            "key": "scriptEvaluation",
+        },
+    }
+    assert _entry("minimize_main_thread_work_report.csv", "Script Evaluation") == expected
+    assert _entry("minimize_main_thread_work_report.csv", "Rendering") == {
+        "csv_column": "Rendering",
+        "db_column": "JSON_RESPONSE",
+        "db_table": "APP.PAGE_SPEED_API",
+        "blob_extract": {
+            "type": "pagespeed_main_thread_work",
+            "key": "paintCompositeRender",
+        },
+    }
+
+
+def test_change_detection_current_state_rollout_maps_exact_current_fields() -> None:
+    assert _entry("change_detection_indexability.csv", "Current Indexability") == _entry(
+        "internal_all.csv",
+        "Indexability",
+    ) | {"csv_column": "Current Indexability"}
+    assert _entry("change_detection_all.csv", "Current Page Title") == {
+        "csv_column": "Current Page Title",
+        "db_column": "TITLE_1",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("change_detection_all.csv", "Current Inlinks") == {
+        "csv_column": "Current Inlinks",
+        "db_expression": (
+            "(SELECT ic.NUM_HYPER_LINKS FROM APP.INLINK_COUNTS ic "
+            "WHERE ic.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        ),
+        "db_table": "APP.URLS",
+    }
+    assert _entry("change_detection_word_count.csv", "Current Word Count") == {
+        "csv_column": "Current Word Count",
+        "db_column": "WORD_COUNT",
+        "db_table": "APP.URLS",
+    }
+    assert _entry("change_detection_word_count.csv", "Crawl Timestamp") == {
+        "csv_column": "Crawl Timestamp",
+        "db_column": "TIMESTAMP",
+        "db_table": "APP.URLS",
+    }
+    assert _entry(
+        "change_detection_unique_external_outlinks.csv",
+        "Current Unique External Outlinks",
+    ) == {
+        "csv_column": "Current Unique External Outlinks",
+        "db_column": "NUM_UNIQUE_EXTERNAL_OUTLINKS",
+        "db_table": "APP.URLS",
+    }
+
+
 def test_internal_tabs_roll_out_pagespeed_semantic_and_text_ratio_mappings() -> None:
     internal_tabs = [
         "internal_all.csv",

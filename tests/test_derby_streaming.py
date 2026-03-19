@@ -88,6 +88,10 @@ def _headers_blob(**headers: list[str]) -> _FakeBlob:
     return _FakeBlob(gzip.compress(json.dumps(payload).encode("utf-8")))
 
 
+def _json_blob(payload: dict[str, Any]) -> _FakeBlob:
+    return _FakeBlob(gzip.compress(json.dumps(payload).encode("utf-8")))
+
+
 def test_iter_cursor_rows_uses_fetchmany_chunks() -> None:
     cursor = _FakeCursor(
         ["A"],
@@ -449,3 +453,82 @@ def test_get_tab_materializes_multi_row_inlink_custom_extraction_matches() -> No
         "FROM APP.CUSTOM_EXTRACTION WHERE ENCODED_URL = ?"
     )
     assert extraction_cursor.executed_params == ["https://example.com/destination"]
+
+
+def test_get_tab_extracts_pagespeed_main_thread_work_from_json_blob() -> None:
+    cursor = _FakeCursor(
+        ["ENCODED_URL", "JSON_RESPONSE"],
+        [
+            (
+                "https://example.com/page",
+                _json_blob(
+                    {
+                        "lighthouseResult": {
+                            "audits": {
+                                "mainthread-work-breakdown": {
+                                    "details": {
+                                        "items": [
+                                            {"group": "scriptEvaluation", "duration": 111},
+                                            {"group": "styleLayout", "duration": 22.5},
+                                            {"group": "paintCompositeRender", "duration": 10},
+                                            {"group": "paintCompositeRender", "duration": 5},
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ),
+            )
+        ],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _FakeConnection(cursor)
+    backend._mapping = {
+        "minimize_main_thread_work_report.csv": [
+            {
+                "csv_column": "Source Page",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.PAGE_SPEED_API",
+            },
+            {
+                "csv_column": "Script Evaluation",
+                "db_column": "JSON_RESPONSE",
+                "db_table": "APP.PAGE_SPEED_API",
+                "blob_extract": {
+                    "type": "pagespeed_main_thread_work",
+                    "key": "scriptEvaluation",
+                },
+            },
+            {
+                "csv_column": "Style & Layout",
+                "db_column": "JSON_RESPONSE",
+                "db_table": "APP.PAGE_SPEED_API",
+                "blob_extract": {
+                    "type": "pagespeed_main_thread_work",
+                    "key": "styleLayout",
+                },
+            },
+            {
+                "csv_column": "Rendering",
+                "db_column": "JSON_RESPONSE",
+                "db_table": "APP.PAGE_SPEED_API",
+                "blob_extract": {
+                    "type": "pagespeed_main_thread_work",
+                    "key": "paintCompositeRender",
+                },
+            },
+        ]
+    }
+
+    rows = list(backend.get_tab("minimize_main_thread_work_report"))
+
+    assert rows == [
+        {
+            "Source Page": "https://example.com/page",
+            "Script Evaluation": 111,
+            "Style & Layout": 22.5,
+            "Rendering": 15,
+        }
+    ]
+    assert cursor.executed_sql == "SELECT ENCODED_URL, JSON_RESPONSE FROM APP.PAGE_SPEED_API"
