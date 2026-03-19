@@ -5,6 +5,11 @@ from .config import ConfigPatches, CustomJavaScript, CustomSearch, write_seospid
 from .cli import export_crawl, run_cli, start_crawl
 from .db import (
     CrawlInfo,
+    DEFAULT_DUCKDB_TABLES,
+    DEFAULT_DUCKDB_TABS,
+    export_duckdb_from_backend,
+    export_duckdb_from_db_id,
+    export_duckdb_from_derby,
     export_dbseospider_from_seospider,
     list_crawls,
     load_seospider_db_project,
@@ -16,9 +21,14 @@ from .db import (
 __all__ = [
     "Crawl",
     "CrawlInfo",
+    "DEFAULT_DUCKDB_TABLES",
+    "DEFAULT_DUCKDB_TABS",
     "ConfigPatches",
     "CustomJavaScript",
     "CustomSearch",
+    "export_duckdb_from_backend",
+    "export_duckdb_from_db_id",
+    "export_duckdb_from_derby",
     "write_seospider_config",
     "export_crawl",
     "list_crawls",

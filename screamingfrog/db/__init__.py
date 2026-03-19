@@ -1,4 +1,11 @@
 from .connection import connect
+from .duckdb import (
+    DEFAULT_DUCKDB_TABLES,
+    DEFAULT_DUCKDB_TABS,
+    export_duckdb_from_backend,
+    export_duckdb_from_db_id,
+    export_duckdb_from_derby,
+)
 from .models import InternalRow
 from .packaging import (
     CrawlInfo,
@@ -13,7 +20,12 @@ from .packaging import (
 __all__ = [
     "connect",
     "CrawlInfo",
+    "DEFAULT_DUCKDB_TABLES",
+    "DEFAULT_DUCKDB_TABS",
     "InternalRow",
+    "export_duckdb_from_backend",
+    "export_duckdb_from_db_id",
+    "export_duckdb_from_derby",
     "list_crawls",
     "pack_dbseospider",
     "pack_dbseospider_from_db_id",

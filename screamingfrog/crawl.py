@@ -13,10 +13,12 @@ from screamingfrog.backends import (
     CrawlBackend,
     DatabaseBackend,
     DerbyBackend,
+    DuckDBBackend,
     HybridBackend,
 )
 from screamingfrog.backends.hybrid_backend import FallbackConfig
 from screamingfrog.db.derby import find_derby_db_root
+from screamingfrog.db.duckdb import export_duckdb_from_backend
 from screamingfrog.db.packaging import find_project_dir, load_seospider_db_project, pack_dbseospider
 from screamingfrog.filters.registry import list_filters as list_gui_filters
 from screamingfrog.filters.names import normalize_name
@@ -324,6 +326,10 @@ class Crawl:
         return cls(DatabaseBackend(db_path))
 
     @classmethod
+    def from_duckdb(cls, db_path: str) -> "Crawl":
+        return cls(DuckDBBackend(db_path))
+
+    @classmethod
     def from_derby(
         cls,
         db_path: str,
@@ -613,6 +619,8 @@ class Crawl:
             suffix = path_obj.suffix.lower()
             if suffix in {".sqlite", ".db"}:
                 return cls.from_database(str(path_obj))
+            if suffix == ".duckdb":
+                return cls.from_duckdb(str(path_obj))
             if suffix == ".dbseospider":
                 if _looks_like_sqlite(path_obj):
                     return cls.from_database(str(path_obj))
@@ -702,6 +710,25 @@ class Crawl:
     def section(self, prefix: str) -> CrawlSection:
         """Scope page/link views to a URL prefix or path prefix."""
         return CrawlSection(self, prefix)
+
+    def export_duckdb(
+        self,
+        path: str,
+        *,
+        tables: Sequence[str] | None = None,
+        tabs: Sequence[str] | None = None,
+        if_exists: str = "replace",
+        source_label: str | None = None,
+    ) -> Path:
+        """Export the current crawl into a DuckDB analytics cache."""
+        return export_duckdb_from_backend(
+            self._duckdb_export_backend(),
+            path,
+            tables=tables,
+            tabs=tabs,
+            if_exists=if_exists,
+            source_label=source_label,
+        )
 
     def inlinks(self, url: str) -> Iterator["Link"]:
         """Return inlinks for a given URL (backend-dependent support)."""
@@ -877,7 +904,7 @@ class Crawl:
                 entries = mapping.get(alt, [])
             return [entry.get("csv_column") for entry in entries if entry.get("csv_column")]
 
-        if isinstance(backend, DatabaseBackend):
+        if isinstance(backend, (DatabaseBackend, DuckDBBackend)):
             try:
                 return backend.tab_columns(name)
             except Exception:
@@ -1046,6 +1073,16 @@ class Crawl:
         except NotImplementedError:
             return []
 
+    def _duckdb_export_backend(self) -> Any:
+        backend = self._backend
+        if isinstance(backend, HybridBackend):
+            primary = getattr(backend, "_primary", None)
+            if primary is not None:
+                return primary
+        if hasattr(backend, "raw") and hasattr(backend, "get_tab"):
+            return backend
+        raise NotImplementedError("DuckDB export requires a DB-backed crawl backend.")
+
     @classmethod
     def _load_by_type(
         cls,
@@ -1080,6 +1117,8 @@ class Crawl:
         normalized = source_type.strip().lower()
         if normalized in {"exports", "csv"}:
             return cls.from_exports(path)
+        if normalized in {"duckdb"}:
+            return cls.from_duckdb(path)
         if normalized in {"sqlite", "db"}:
             return cls.from_database(path)
         if normalized in {"derby", "dbseospider"}:

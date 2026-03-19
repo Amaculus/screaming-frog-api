@@ -24,6 +24,7 @@ classifiers = [
 ]
 
 dependencies = [
+  "duckdb>=1.5.0",
   "jaydebeapi>=1.2.3",
   "JPype1>=1.5.0",
   "sf-config-builder>=0.1.6",
@@ -41,7 +42,11 @@ derby = [
 config = [
   "sf-config-builder>=0.1.6"
 ]
+duckdb = [
+  "duckdb>=1.5.0"
+]
 alpha = [
+  "duckdb>=1.5.0",
   "jaydebeapi>=1.2.3",
   "JPype1>=1.5.0",
   "sf-config-builder>=0.1.6"

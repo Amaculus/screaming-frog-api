@@ -32,6 +32,9 @@ crawl = Crawl.load("./exports")
 # SQLite database
 crawl = Crawl.load("./crawl.db")
 
+# DuckDB analytics cache
+crawl = Crawl.load("./crawl.duckdb")
+
 # Derby .dbseospider file
 crawl = Crawl.load("./crawl.dbseospider")
 
@@ -81,6 +84,35 @@ crawl = Crawl.load(latest.db_id, source_type="db_id")
 - `export_profile="kitchen_sink"` uses bundled export lists captured from the SF UI.
 - Derby loads can auto-fallback to CSV exports for missing columns or GUI filters (`csv_fallback=True`, `csv_fallback_profile="kitchen_sink"`).
 - CSV fallback cache defaults to `csv_fallback_cache_dir` (next to the crawl); set `csv_fallback=False` to disable.
+- `.duckdb` loads use the DuckDB analytics backend and are best for repeated scan-heavy analysis once a cache exists.
+
+## DuckDB analytics cache
+
+Use DuckDB as an optional fast analytics layer on top of Derby crawls:
+
+```python
+from screamingfrog import Crawl
+
+derby_crawl = Crawl.load("./crawl.dbseospider", csv_fallback=False)
+derby_crawl.export_duckdb("./crawl.duckdb")
+
+fast = Crawl.load("./crawl.duckdb")
+
+pages_404 = fast.pages().filter(status_code=404).collect()
+links = fast.links("in").filter(status_code=404).collect()
+rows = (
+    fast.query("APP", "URLS")
+    .select("ENCODED_URL", "RESPONSE_CODE")
+    .where("RESPONSE_CODE >= ?", 400)
+    .collect()
+)
+```
+
+Notes:
+- Derby remains the source-of-truth crawl store.
+- DuckDB is the fast analytics cache for repeated analysis.
+- Current DuckDB export materializes key tabs (`internal_all`, `all_inlinks`, `all_outlinks`, redirect/canonical chain tabs) plus raw `APP.URLS`, `APP.LINKS`, and `APP.UNIQUE_URLS`.
+- You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
 
 ### Discover DB crawls (`list_crawls`)
 

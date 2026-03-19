@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Added DuckDB analytics-cache support:
+  - `Crawl.from_duckdb(...)`
+  - `crawl.export_duckdb(...)`
+  - top-level `export_duckdb_from_derby(...)` / `export_duckdb_from_db_id(...)`
+  - new `DuckDBBackend` for fast `pages()`, `links()`, `raw()`, `sql()`, `query()`, and chain-report workflows once a cache exists.
 - Added thin audit/report helpers on `Crawl`: `broken_links_report()`, `title_meta_audit()`, `indexability_audit()`, and `redirect_chain_report()`.
 - Added ergonomic sitewide views: `crawl.pages()`, `crawl.links(direction=...)`, and `crawl.section(prefix)` for page/link workflows without remembering tab names.
 - Added `collect()`, `first()`, `to_pandas()`, and `to_polars()` helpers on `InternalView` / `TabView`, plus dataframe exports on `QueryView` and `CrawlDiff`.

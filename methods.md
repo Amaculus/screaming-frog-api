@@ -9,6 +9,7 @@ This file lists the current callable API in `sf-alpha`.
 - `Crawl.load(path, ..., source_type="auto", ...) -> Crawl`
 - `Crawl.from_exports(export_dir) -> Crawl`
 - `Crawl.from_database(db_path) -> Crawl`
+- `Crawl.from_duckdb(db_path) -> Crawl`
 - `Crawl.from_derby(db_path, ..., csv_fallback=True, ...) -> Crawl`
 - `Crawl.from_seospider(crawl_path, ..., backend="derby", ...) -> Crawl`
 - `Crawl.from_db_id(crawl_id, ..., backend="derby", ...) -> Crawl`
@@ -35,7 +36,11 @@ This file lists the current callable API in `sf-alpha`.
 - `crawl.query(schema, table) -> QueryView`
 - `crawl.raw(table) -> Iterator[dict[str, Any]]`
 - `crawl.sql(query, params=None) -> Iterator[dict[str, Any]]`
+- `crawl.export_duckdb(path, tables=None, tabs=None, if_exists="replace", source_label=None) -> Path`
 - `crawl.compare(other, ..., title_fields=None, redirect_fields=None, redirect_type_fields=None, field_groups=None) -> CrawlDiff`
+
+- `export_duckdb_from_derby(db_path, duckdb_path, ..., tables=None, tabs=None, if_exists="replace") -> Path`
+- `export_duckdb_from_db_id(db_id, duckdb_path, ..., tables=None, tabs=None, if_exists="replace") -> Path`
 
 ### Config patching
 - `ConfigPatches()`
