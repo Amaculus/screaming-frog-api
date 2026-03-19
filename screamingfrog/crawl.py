@@ -973,6 +973,29 @@ class Crawl:
             rows.append(report_row)
         return rows
 
+    def broken_inlinks_report(
+        self,
+        *,
+        min_status: int = 400,
+        max_status: int = 599,
+    ) -> list[dict[str, Any]]:
+        """Return sitewide inlinks pointing to broken destinations."""
+        rows: list[dict[str, Any]] = []
+        for row in self.links("in"):
+            status = _coerce_status_code(row.get("Status Code"))
+            if status is None or status < min_status or status > max_status:
+                continue
+            rows.append(dict(row))
+        return rows
+
+    def nofollow_inlinks_report(self) -> list[dict[str, Any]]:
+        """Return sitewide inlinks marked as nofollow."""
+        rows: list[dict[str, Any]] = []
+        for row in self.links("in"):
+            if _row_is_nofollow(row):
+                rows.append(dict(row))
+        return rows
+
     def title_meta_audit(self) -> list[dict[str, Any]]:
         """Return page-level missing title/meta issues as flat rows."""
         rows: list[dict[str, Any]] = []
@@ -1011,6 +1034,53 @@ class Crawl:
                         page.data,
                         _DEFAULT_FIELD_GROUPS.get("X-Robots-Tag", ("X-Robots-Tag 1",)),
                     ),
+                }
+            )
+        return rows
+
+    def orphan_pages_report(
+        self,
+        *,
+        ignore_self_links: bool = True,
+        only_indexable: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Return pages that have no incoming links in the crawl graph."""
+        incoming: dict[str, int] = {}
+        for row in self.links("in"):
+            address = str(
+                row.get("Address") or row.get("Destination") or row.get("To") or ""
+            ).strip()
+            if not address:
+                continue
+            source = str(row.get("Source") or row.get("From") or "").strip()
+            if ignore_self_links and source and source == address:
+                continue
+            incoming[address] = incoming.get(address, 0) + 1
+
+        rows: list[dict[str, Any]] = []
+        for row in self.pages():
+            address = str(row.get("Address") or "").strip()
+            if not address:
+                continue
+            if incoming.get(address, 0) > 0:
+                continue
+            if only_indexable and _row_is_non_indexable(row):
+                continue
+            rows.append(
+                {
+                    "Address": address,
+                    "Status Code": row.get("Status Code"),
+                    "Title 1": row.get("Title 1"),
+                    "Indexability": _get_first_value(
+                        row, _DEFAULT_FIELD_GROUPS.get("Indexability", ("Indexability",))
+                    ),
+                    "Indexability Status": _get_first_value(
+                        row,
+                        _DEFAULT_FIELD_GROUPS.get(
+                            "Indexability Status", ("Indexability Status",)
+                        ),
+                    ),
+                    "Inlinks": 0,
                 }
             )
         return rows
@@ -1495,6 +1565,58 @@ def _is_non_indexable(page: InternalPage) -> bool:
             return True
     directives = _directives_summary(page) or ""
     return "noindex" in directives.split(",")
+
+
+def _row_is_non_indexable(row: dict[str, Any]) -> bool:
+    idx = _get_first_value(
+        row, ("Indexability", "Indexability Status", "INDEXABILITY", "INDEXABILITY_STATUS")
+    )
+    if idx is not None:
+        text = str(idx).lower()
+        if "non-indexable" in text or "noindex" in text:
+            return True
+    directives = _row_directives_summary(row) or ""
+    return "noindex" in directives.split(",")
+
+
+def _row_directives_summary(row: dict[str, Any]) -> Optional[str]:
+    meta = _get_first_value(
+        row,
+        _DEFAULT_FIELD_GROUPS.get("Meta Robots", ("Meta Robots 1", "Meta Robots")),
+    )
+    xrobots = _get_first_value(
+        row,
+        _DEFAULT_FIELD_GROUPS.get("X-Robots-Tag", ("X-Robots-Tag 1", "X-Robots-Tag")),
+    )
+    tokens = _parse_directives(meta) | _parse_directives(xrobots)
+    if not tokens:
+        return None
+    return ",".join(sorted(tokens))
+
+
+def _coerce_status_code(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(str(value).strip())
+    except Exception:
+        return None
+
+
+def _row_is_nofollow(row: dict[str, Any]) -> bool:
+    follow = _get_first_value(row, ("Follow", "follow", "REL_FOLLOW"))
+    if follow is not None:
+        text = str(follow).strip().lower()
+        if "nofollow" in text:
+            return True
+        if text in {"false", "0", "no"}:
+            return True
+        if text in {"true", "1", "yes", "follow"}:
+            return False
+    rel = _get_first_value(row, ("Rel", "REL", "Link Details"))
+    if rel is None:
+        return False
+    return "nofollow" in str(rel).lower()
 
 
 def _has_http_header_canonical(page: InternalPage) -> bool:

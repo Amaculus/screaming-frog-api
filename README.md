@@ -137,6 +137,8 @@ crawl = Crawl.load("./crawl.dbseospider")
 matching_pages = crawl.search("blog", fields=["Address", "Title 1"]).collect()
 nofollow_links = crawl.links("in").search("nofollow", fields=["Follow"]).collect()
 blog_inlinks = crawl.section("/blog").tab("all_inlinks").collect()
+orphans = crawl.orphan_pages_report(only_indexable=True)
+broken_inlinks = crawl.broken_inlinks_report()
 ```
 
 ### Discover DB crawls (`list_crawls`)

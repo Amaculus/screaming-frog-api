@@ -111,3 +111,99 @@ def test_redirect_chain_report_collects_rows_from_tab(tmp_path: Path) -> None:
     assert report == [
         {"Address": "https://example.com/b", "Number of Redirects": "4", "Loop": "true"}
     ]
+
+
+def test_link_and_orphan_reports_from_csv(tmp_path: Path) -> None:
+    _write_csv(
+        tmp_path / "internal_all.csv",
+        ["Address", "Status Code", "Title 1", "Indexability", "Indexability Status"],
+        [
+            {
+                "Address": "https://example.com/home",
+                "Status Code": "200",
+                "Title 1": "Home",
+                "Indexability": "Indexable",
+                "Indexability Status": "Indexable",
+            },
+            {
+                "Address": "https://example.com/orphan",
+                "Status Code": "200",
+                "Title 1": "Orphan",
+                "Indexability": "Indexable",
+                "Indexability Status": "Indexable",
+            },
+            {
+                "Address": "https://example.com/noindex-orphan",
+                "Status Code": "200",
+                "Title 1": "Hidden",
+                "Indexability": "Non-Indexable",
+                "Indexability Status": "Noindex",
+            },
+        ],
+    )
+    _write_csv(
+        tmp_path / "all_inlinks.csv",
+        ["Address", "Source", "Status Code", "Follow", "Rel"],
+        [
+            {
+                "Address": "https://example.com/home",
+                "Source": "https://example.com/nav",
+                "Status Code": "200",
+                "Follow": "follow",
+                "Rel": "",
+            },
+            {
+                "Address": "https://example.com/broken",
+                "Source": "https://example.com/nav",
+                "Status Code": "404",
+                "Follow": "follow",
+                "Rel": "",
+            },
+            {
+                "Address": "https://example.com/sponsored",
+                "Source": "https://example.com/nav",
+                "Status Code": "200",
+                "Follow": "nofollow",
+                "Rel": "nofollow sponsored",
+            },
+            {
+                "Address": "https://example.com/self",
+                "Source": "https://example.com/self",
+                "Status Code": "200",
+                "Follow": "follow",
+                "Rel": "",
+            },
+        ],
+    )
+    _write_csv(tmp_path / "all_outlinks.csv", ["Source", "Destination"], [])
+
+    crawl = Crawl.load(str(tmp_path))
+
+    broken = crawl.broken_inlinks_report()
+    nofollow = crawl.nofollow_inlinks_report()
+    orphans = crawl.orphan_pages_report()
+    indexable_orphans = crawl.orphan_pages_report(only_indexable=True)
+
+    assert broken == [
+        {
+            "Address": "https://example.com/broken",
+            "Source": "https://example.com/nav",
+            "Status Code": "404",
+            "Follow": "follow",
+            "Rel": "",
+        }
+    ]
+    assert nofollow == [
+        {
+            "Address": "https://example.com/sponsored",
+            "Source": "https://example.com/nav",
+            "Status Code": "200",
+            "Follow": "nofollow",
+            "Rel": "nofollow sponsored",
+        }
+    ]
+    assert [row["Address"] for row in orphans] == [
+        "https://example.com/orphan",
+        "https://example.com/noindex-orphan",
+    ]
+    assert [row["Address"] for row in indexable_orphans] == ["https://example.com/orphan"]

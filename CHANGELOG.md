@@ -9,6 +9,7 @@
   - `tabs="all"` support to materialize every currently available mapped tab into the DuckDB cache.
   - direct loader/export flows for `.seospider` and DB crawl IDs via `backend="duckdb"` / `db_id_backend="duckdb"`.
 - Added thin audit/report helpers on `Crawl`: `broken_links_report()`, `title_meta_audit()`, `indexability_audit()`, and `redirect_chain_report()`.
+- Added graph-first audit helpers on `Crawl`: `broken_inlinks_report()`, `nofollow_inlinks_report()`, and `orphan_pages_report()`.
 - Added ergonomic sitewide views: `crawl.pages()`, `crawl.links(direction=...)`, and `crawl.section(prefix)` for page/link workflows without remembering tab names.
 - Added `crawl.search(...)`, per-view `search(...)`, and `CrawlSection.tab(...)` for page/link/tab text search and scoped generic-tab workflows.
 - Added `collect()`, `first()`, `to_pandas()`, and `to_polars()` helpers on `InternalView` / `TabView`, plus dataframe exports on `QueryView` and `CrawlDiff`.
