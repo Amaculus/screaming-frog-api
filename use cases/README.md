@@ -12,12 +12,14 @@ Current assets:
 - `ecommerce-and-marketplaces.md` - ecommerce, faceted navigation, and marketplace workflows
 - `experimentation-and-forecasting.md` - change measurement and planning workflows
 - `enterprise-and-platform-use-cases.md` - platform, team, and enterprise operating models
+- `integration-recipe-snippets.md` - integration-oriented code snippets
 - `b2b-and-enterprise-sites.md` - enterprise IA and lead-gen governance workflows
 - `knowledge-management-and-training.md` - enablement, playbooks, and reuse workflows
 - `local-seo-and-multi-location.md` - multi-location and regional QA workflows
 - `mcp-and-product-concepts.md` - MCP packaging, skills, and product surface ideas
 - `migration-war-room.md` - focused migration QA and cutover workflows
 - `notebooks-and-data-science.md` - exploratory analysis and modeling workflows
+- `python-recipe-snippets.md` - concrete Python usage patterns
 - `publishing-and-programmatic-seo.md` - editorial and large-scale content workflows
 - `quality-assurance-and-governance.md` - release QA and governance workflows
 - `saas-and-product-led-growth.md` - docs, growth pages, and release workflows

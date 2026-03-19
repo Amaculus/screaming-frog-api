@@ -17,6 +17,7 @@ This is the broad inventory. It is intentionally expansive. Some are ready today
 - `b2b-and-enterprise-sites.md`
 - `enterprise-and-platform-use-cases.md`
 - `experimentation-and-forecasting.md`
+- `integration-recipe-snippets.md`
 - `integrations-and-pipelines.md`
 - `knowledge-management-and-training.md`
 - `local-seo-and-multi-location.md`
@@ -24,6 +25,7 @@ This is the broad inventory. It is intentionally expansive. Some are ready today
 - `migration-war-room.md`
 - `monitoring-and-alerting.md`
 - `notebooks-and-data-science.md`
+- `python-recipe-snippets.md`
 - `productized-services-and-agents.md`
 - `publishing-and-programmatic-seo.md`
 - `quality-assurance-and-governance.md`
