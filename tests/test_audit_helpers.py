@@ -271,3 +271,93 @@ def test_issue_reports_collect_rows_from_available_tabs(tmp_path: Path) -> None:
             "Issue": "Redirect Chain",
         }
     ]
+
+
+def test_summary_rolls_up_key_issue_counts(tmp_path: Path) -> None:
+    _write_csv(
+        tmp_path / "internal_all.csv",
+        [
+            "Address",
+            "Status Code",
+            "Title 1",
+            "Meta Description 1",
+            "Indexability",
+            "Indexability Status",
+        ],
+        [
+            {
+                "Address": "https://example.com/home",
+                "Status Code": "200",
+                "Title 1": "Home",
+                "Meta Description 1": "Desc",
+                "Indexability": "Indexable",
+                "Indexability Status": "Indexable",
+            },
+            {
+                "Address": "https://example.com/orphan",
+                "Status Code": "404",
+                "Title 1": "",
+                "Meta Description 1": "",
+                "Indexability": "Non-Indexable",
+                "Indexability Status": "Noindex",
+            },
+        ],
+    )
+    _write_csv(
+        tmp_path / "all_inlinks.csv",
+        ["Address", "Source", "Status Code", "Follow", "Rel"],
+        [
+            {
+                "Address": "https://example.com/broken-target",
+                "Source": "https://example.com/home",
+                "Status Code": "404",
+                "Follow": "nofollow",
+                "Rel": "nofollow",
+            }
+        ],
+    )
+    _write_csv(tmp_path / "all_outlinks.csv", ["Source", "Destination"], [])
+    _write_csv(
+        tmp_path / "redirect_chains.csv",
+        ["Address", "Number of Redirects", "Loop"],
+        [{"Address": "https://example.com/redirect", "Number of Redirects": "2", "Loop": "false"}],
+    )
+    _write_csv(
+        tmp_path / "security_missing_hsts_header.csv",
+        ["Address", "Status Code"],
+        [{"Address": "https://example.com/home", "Status Code": "200"}],
+    )
+    _write_csv(
+        tmp_path / "canonicals_missing.csv",
+        ["Address", "Status Code"],
+        [{"Address": "https://example.com/orphan", "Status Code": "404"}],
+    )
+    _write_csv(
+        tmp_path / "hreflang_missing_return_links.csv",
+        ["Address", "Status Code"],
+        [{"Address": "https://example.com/home", "Status Code": "200"}],
+    )
+    _write_csv(
+        tmp_path / "response_codes_internal_redirect_chain.csv",
+        ["Address", "Status Code"],
+        [{"Address": "https://example.com/redirect", "Status Code": "301"}],
+    )
+
+    crawl = Crawl.load(str(tmp_path))
+
+    summary = crawl.summary()
+
+    assert summary == {
+        "pages": 2,
+        "tabs": 8,
+        "broken_pages": 1,
+        "broken_inlinks": 1,
+        "nofollow_inlinks": 1,
+        "orphan_pages": 2,
+        "non_indexable_pages": 1,
+        "redirect_chains": 1,
+        "security_issues": 1,
+        "canonical_issues": 1,
+        "hreflang_issues": 1,
+        "redirect_issues": 2,
+    }

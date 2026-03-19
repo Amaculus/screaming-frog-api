@@ -143,6 +143,7 @@ security_issues = crawl.security_issues_report()
 canonical_issues = crawl.canonical_issues_report()
 hreflang_issues = crawl.hreflang_issues_report()
 redirect_issues = crawl.redirect_issues_report()
+summary = crawl.summary()
 ```
 
 ### Discover DB crawls (`list_crawls`)

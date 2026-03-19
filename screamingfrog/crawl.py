@@ -976,6 +976,23 @@ class Crawl:
         """Scope page/link views to a URL prefix or path prefix."""
         return CrawlSection(self, prefix)
 
+    def summary(self) -> dict[str, Any]:
+        """Return a compact crawl-level summary for monitoring and automation."""
+        return {
+            "pages": self.pages().count(),
+            "tabs": len(self.tabs),
+            "broken_pages": sum(1 for _ in _iter_broken_pages(self)),
+            "broken_inlinks": len(self.broken_inlinks_report()),
+            "nofollow_inlinks": len(self.nofollow_inlinks_report()),
+            "orphan_pages": len(self.orphan_pages_report()),
+            "non_indexable_pages": len(self.indexability_audit()),
+            "redirect_chains": sum(1 for _ in self.redirect_chains(min_hops=1)),
+            "security_issues": len(self.security_issues_report()),
+            "canonical_issues": len(self.canonical_issues_report()),
+            "hreflang_issues": len(self.hreflang_issues_report()),
+            "redirect_issues": len(self.redirect_issues_report()),
+        }
+
     def export_duckdb(
         self,
         path: str,

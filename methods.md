@@ -21,6 +21,7 @@ This file lists the current callable API in `sf-alpha`.
 - `crawl.links(direction="out") -> LinkView`
 - `crawl.section(prefix) -> CrawlSection`
 - `crawl.tabs -> list[str]`
+- `crawl.summary() -> dict[str, Any]`
 - `crawl.inlinks(url) -> Iterator[Link]`
 - `crawl.outlinks(url) -> Iterator[Link]`
 - `crawl.redirect_chains(min_hops=None, max_hops=None, loop=None) -> Iterator[dict[str, Any]]`
