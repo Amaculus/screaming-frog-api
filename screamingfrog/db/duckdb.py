@@ -24,7 +24,7 @@ def export_duckdb_from_derby(
     duckdb_path: str | Path,
     *,
     tables: Sequence[str] | None = None,
-    tabs: Sequence[str] | None = None,
+    tabs: Sequence[str] | str | None = None,
     if_exists: str = "replace",
     source_label: str | None = None,
     mapping_path: str | None = None,
@@ -49,7 +49,7 @@ def export_duckdb_from_db_id(
     duckdb_path: str | Path,
     *,
     tables: Sequence[str] | None = None,
-    tabs: Sequence[str] | None = None,
+    tabs: Sequence[str] | str | None = None,
     if_exists: str = "replace",
     project_root: str | Path | None = None,
     mapping_path: str | None = None,
@@ -73,7 +73,7 @@ def export_duckdb_from_backend(
     duckdb_path: str | Path,
     *,
     tables: Sequence[str] | None = None,
-    tabs: Sequence[str] | None = None,
+    tabs: Sequence[str] | str | None = None,
     if_exists: str = "replace",
     source_label: str | None = None,
 ) -> Path:
@@ -82,7 +82,7 @@ def export_duckdb_from_backend(
         raise ValueError("if_exists must be 'replace' or 'skip'")
 
     relation_tables = tuple(tables or DEFAULT_DUCKDB_TABLES)
-    materialized_tabs = tuple(tabs or DEFAULT_DUCKDB_TABS)
+    materialized_tabs = _resolve_export_tabs(backend, tabs)
     target = Path(duckdb_path)
     target.parent.mkdir(parents=True, exist_ok=True)
 
@@ -360,6 +360,16 @@ def _tab_relation_name(tab_name: str) -> str:
 
 def _quote_identifier(value: str) -> str:
     return '"' + str(value).replace('"', '""') + '"'
+
+
+def _resolve_export_tabs(backend: Any, tabs: Sequence[str] | str | None) -> tuple[str, ...]:
+    if tabs is None:
+        return DEFAULT_DUCKDB_TABS
+    if isinstance(tabs, str):
+        if tabs.strip().lower() != "all":
+            return (_normalize_tab_name(tabs),)
+        return tuple(_normalize_tab_name(name) for name in backend.list_tabs())
+    return tuple(_normalize_tab_name(name) for name in tabs)
 
 
 def _import_duckdb():

@@ -716,7 +716,7 @@ class Crawl:
         path: str,
         *,
         tables: Sequence[str] | None = None,
-        tabs: Sequence[str] | None = None,
+        tabs: Sequence[str] | str | None = None,
         if_exists: str = "replace",
         source_label: str | None = None,
     ) -> Path:

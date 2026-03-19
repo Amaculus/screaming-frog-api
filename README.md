@@ -113,6 +113,7 @@ Notes:
 - DuckDB is the fast analytics cache for repeated analysis.
 - Current DuckDB export materializes key tabs (`internal_all`, `all_inlinks`, `all_outlinks`, redirect/canonical chain tabs) plus raw `APP.URLS`, `APP.LINKS`, and `APP.UNIQUE_URLS`.
 - You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
+- Use `tabs="all"` if you want to materialize every currently available mapped tab into the DuckDB cache.
 
 ### Discover DB crawls (`list_crawls`)
 

@@ -36,7 +36,7 @@ This file lists the current callable API in `sf-alpha`.
 - `crawl.query(schema, table) -> QueryView`
 - `crawl.raw(table) -> Iterator[dict[str, Any]]`
 - `crawl.sql(query, params=None) -> Iterator[dict[str, Any]]`
-- `crawl.export_duckdb(path, tables=None, tabs=None, if_exists="replace", source_label=None) -> Path`
+- `crawl.export_duckdb(path, tables=None, tabs=None | "all", if_exists="replace", source_label=None) -> Path`
 - `crawl.compare(other, ..., title_fields=None, redirect_fields=None, redirect_type_fields=None, field_groups=None) -> CrawlDiff`
 
 - `export_duckdb_from_derby(db_path, duckdb_path, ..., tables=None, tabs=None, if_exists="replace") -> Path`

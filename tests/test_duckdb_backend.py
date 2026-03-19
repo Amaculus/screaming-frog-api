@@ -16,6 +16,9 @@ class FakeDuckExportBackend(CrawlBackend):
         ]
         self._tabs = {
             "internal_all.csv": list(self._internal_rows),
+            "response_codes_internal_client_error_(4xx).csv": [
+                {"Address": "https://example.com/broken", "Status Code": 404}
+            ],
             "all_inlinks.csv": [
                 {
                     "Address": "https://example.com/broken",
@@ -129,3 +132,16 @@ def test_duckdb_backend_supports_links_and_chain_reports(tmp_path: Path) -> None
     assert chains == [
         {"Address": "https://example.com/redirect", "Number of Redirects": 4, "Loop": False}
     ]
+
+
+def test_export_duckdb_can_materialize_all_available_tabs(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-all.duckdb"
+
+    crawl.export_duckdb(str(target), source_label="fake-crawl", tabs="all")
+    duck = Crawl.from_duckdb(str(target))
+
+    rows = duck.tab("response_codes_internal_client_error_(4xx)").collect()
+
+    assert "response_codes_internal_client_error_(4xx).csv" in duck.tabs
+    assert rows == [{"Address": "https://example.com/broken", "Status Code": 404}]
