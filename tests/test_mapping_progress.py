@@ -931,6 +931,57 @@ def test_custom_extractor_first_match_rollout_maps_primary_match_columns() -> No
     }
 
 
+def test_custom_extractor_multi_match_rollout_maps_remaining_match_columns() -> None:
+    assert _entry("custom_extraction_all.csv", "Extractor 1 2") == {
+        "csv_column": "Extractor 1 2",
+        "db_column": "ENCODED_URL",
+        "db_table": "APP.URLS",
+        "multi_row_extract": {
+            "type": "custom_extraction_match",
+            "source": "encoded_url",
+            "extractor_idx": 0,
+            "match_index": 2,
+            "columns": ["ENCODED_URL"],
+        },
+    }
+    assert _entry("internal_all.csv", "Extractor 100 10") == {
+        "csv_column": "Extractor 100 10",
+        "db_column": "ENCODED_URL",
+        "db_table": "APP.URLS",
+        "multi_row_extract": {
+            "type": "custom_extraction_match",
+            "source": "encoded_url",
+            "extractor_idx": 99,
+            "match_index": 10,
+            "columns": ["ENCODED_URL"],
+        },
+    }
+    assert _entry("internal_html.csv", "Extractor 1 7") == {
+        "csv_column": "Extractor 1 7",
+        "db_column": "ENCODED_URL",
+        "db_table": "APP.URLS",
+        "multi_row_extract": {
+            "type": "custom_extraction_match",
+            "source": "encoded_url",
+            "extractor_idx": 0,
+            "match_index": 7,
+            "columns": ["ENCODED_URL"],
+        },
+    }
+    assert _entry("all_inlinks.csv", "Extractor 1 10") == {
+        "csv_column": "Extractor 1 10",
+        "db_column": "DST_ID",
+        "db_table": "APP.LINKS",
+        "multi_row_extract": {
+            "type": "custom_extraction_match",
+            "source": "dst_id",
+            "extractor_idx": 0,
+            "match_index": 10,
+            "columns": ["DST_ID"],
+        },
+    }
+
+
 def test_internal_tabs_roll_out_pagespeed_semantic_and_text_ratio_mappings() -> None:
     internal_tabs = [
         "internal_all.csv",

@@ -432,7 +432,7 @@ you store the mapping elsewhere.
 To help map more GUI tabs to Derby (see [Antonio's LinkedIn](https://www.linkedin.com/in/antoniomaculus/) for progress):
 
 - **Source of truth:** `schemas/mapping.json` (keys = normalized export filenames, e.g. `internal_all.csv`).
-- **Workflow:** Compare CSV schema in `schemas/csv/` with Derby schema in `schemas/db/tables/`; prefer `db_column` → `db_expression` → `NULL`; then add/update tests.
+- **Workflow:** Compare CSV schema in `schemas/csv/` with Derby schema in `schemas/db/tables/`; prefer `db_column` → `db_expression` → `header_extract` / `blob_extract` / `derived_extract` / `multi_row_extract` → `NULL`; then add/update tests.
 - **Automation:** Run from repo root:
   ```bash
   python scripts/suggest_mappings.py --tab hreflang_all.csv   # suggestions for one tab

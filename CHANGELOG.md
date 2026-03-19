@@ -17,6 +17,7 @@
 - Added Derby mappings for semantic similarity and low-relevance content fields via `APP.COSINE_SIMILARITY` and `APP.LOW_RELEVANCE`.
 - Added direct Derby mappings for JS outlink counts, hreflang link labels in non-200/unlinked reports, and webfont-load PageSpeed savings.
 - Added bulk Derby mappings for custom filter counts (`Filter 1`-`Filter 100`) and first-match custom extractor columns across internal/custom-extraction tabs plus `all_inlinks`.
+- Added `multi_row_extract` mapping support in the Derby backend and used it to map the remaining custom-extractor match columns (`2..10`) across `custom_extraction_all`, `internal_all`, `internal_html`, and `all_inlinks`.
 - Added bulk Derby mappings for internal performance, CrUX, semantic-similarity, text-ratio, link-score, and transfer/CO2 fields across internal, links, and validation tabs.
 - Added internal redirect/blocked-resource carryover mappings for `Redirect URL` / `Redirect Type`, aligned redirect labels to `HTTP Redirect`, and filled internal PageSpeed issue summary text plus pending-link `Unlinked` flags.
 - Added backend-derived redirect URL materialization from meta-refresh targets and HTTP `Location` headers, plus generic blob-derived cookie counts and folder-depth derivation for internal tabs.

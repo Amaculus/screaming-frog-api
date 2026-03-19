@@ -25,9 +25,10 @@ Helps contributors map Screaming Frog GUI tab columns to the Derby backend by co
 
 1. Pick a tab family (e.g. **hreflang**, **structured_data** — see Antonio’s backlog).
 2. Run `--tab-family <family>` to see current status and suggestions.
-3. For each suggested `db_column`: confirm against `schemas/db/tables/*.json`; add to `schemas/mapping.json`.
-4. For columns with no Derby equivalent: add `db_expression: "NULL"` (and optionally document in `schemas/mapping_nulls.md`).
-5. Run tests (e.g. `pytest tests/test_mapping_*.py`).
+3. For direct Derby fields: confirm against `schemas/db/tables/*.json`; add `db_column` / `db_table` to `schemas/mapping.json`.
+4. For computed or parsed fields: use `db_expression`, `header_extract`, `blob_extract`, `derived_extract`, or `multi_row_extract` when the value is exact but not a plain column.
+5. For columns with no Derby equivalent: add `db_expression: "NULL"` (and optionally document in `schemas/mapping_nulls.md`).
+6. Run tests (e.g. `pytest tests/test_mapping_*.py`).
 
 ### Options
 

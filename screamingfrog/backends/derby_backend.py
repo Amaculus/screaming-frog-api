@@ -296,6 +296,7 @@ class DerbyBackend(CrawlBackend):
         header_indexes: dict[str, int] = {}
         blob_extract_indexes: dict[str, int] = {}
         derived_extract_indexes: dict[str, int] = {}
+        multi_row_extract_indexes: dict[str, int] = {}
         encoded_url_index: int | None = None
         blob_checks = _resolve_blob_checks(gui_defs)
         blob_indexes: dict[str, int] = {}
@@ -326,6 +327,14 @@ class DerbyBackend(CrawlBackend):
                     if source_col not in derived_extract_indexes:
                         select_items.append(source_col)
                         derived_extract_indexes[source_col] = len(select_items) - 1
+                entry_indexes.append(None)
+                csv_columns.append(entry["csv_column"])
+                continue
+            if entry.get("multi_row_extract"):
+                for source_col in _multi_row_extract_columns(entry):
+                    if source_col not in multi_row_extract_indexes:
+                        select_items.append(source_col)
+                        multi_row_extract_indexes[source_col] = len(select_items) - 1
                 entry_indexes.append(None)
                 csv_columns.append(entry["csv_column"])
                 continue
@@ -382,6 +391,8 @@ class DerbyBackend(CrawlBackend):
 
         supplementary_map = _build_supplementary_map(supplementary)
         supplementary_cache: dict[tuple[str, str], dict[str, Any]] = {}
+        multi_row_cache: dict[tuple[str, str], dict[int, list[Any]]] = {}
+        unique_url_cache: dict[Any, str | None] = {}
 
         def fetch_supplementary(table_name: str, encoded_url: str) -> dict[str, Any]:
             cache_key = (table_name, encoded_url)
@@ -450,6 +461,19 @@ class DerbyBackend(CrawlBackend):
                     output[column] = _extract_derived_value(
                         entry["derived_extract"],
                         source_values,
+                    )
+                elif entry.get("multi_row_extract"):
+                    source_values = {
+                        source_col: row[idx]
+                        for source_col, idx in multi_row_extract_indexes.items()
+                        if idx < len(row)
+                    }
+                    output[column] = _extract_multi_row_value(
+                        self._conn,
+                        entry["multi_row_extract"],
+                        source_values,
+                        multi_row_cache,
+                        unique_url_cache,
                     )
                 else:
                     output[column] = row[idx] if idx is not None else None
@@ -1314,7 +1338,14 @@ def _resolve_tab_entries(
         entry
         for entry in entries
         if entry.get("db_table") == table
-        and (entry.get("db_column") or entry.get("db_expression"))
+        and (
+            entry.get("db_column")
+            or entry.get("db_expression")
+            or entry.get("header_extract")
+            or entry.get("blob_extract")
+            or entry.get("derived_extract")
+            or entry.get("multi_row_extract")
+        )
     ]
     selected_csv = {
         _normalize_key(str(entry.get("csv_column") or ""))
@@ -1332,6 +1363,7 @@ def _resolve_tab_entries(
             or entry.get("header_extract")
             or entry.get("blob_extract")
             or entry.get("derived_extract")
+            or entry.get("multi_row_extract")
         ):
             continue
         csv_column = str(entry.get("csv_column") or "").strip()
@@ -1461,7 +1493,12 @@ def _build_where_from_entries(
         csv_key = _normalize_key(entry.get("csv_column", ""))
         if not csv_key or csv_key in field_map:
             continue
-        if entry.get("header_extract") or entry.get("blob_extract") or entry.get("derived_extract"):
+        if (
+            entry.get("header_extract")
+            or entry.get("blob_extract")
+            or entry.get("derived_extract")
+            or entry.get("multi_row_extract")
+        ):
             field_map[csv_key] = ("post", None)
             continue
         expr = entry.get("db_expression")
@@ -1992,6 +2029,22 @@ def _derived_extract_columns(entry: dict[str, Any]) -> list[str]:
     return deduped
 
 
+def _multi_row_extract_columns(entry: dict[str, Any]) -> list[str]:
+    extract = entry.get("multi_row_extract") or {}
+    columns = list(extract.get("columns") or [])
+    primary = entry.get("db_column")
+    if primary:
+        columns.insert(0, str(primary))
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for column in columns:
+        text = str(column or "").strip()
+        if text and text not in seen:
+            deduped.append(text)
+            seen.add(text)
+    return deduped
+
+
 def _extract_derived_value(extract: dict[str, Any], values: dict[str, Any]) -> Any:
     kind = str(extract.get("type") or "").strip().lower()
     if kind == "folder_depth":
@@ -2017,6 +2070,75 @@ def _extract_derived_value(extract: dict[str, Any], values: dict[str, Any]) -> A
             if locations:
                 return urljoin(address or "", locations[0])
         return None
+    return None
+
+
+def _extract_multi_row_value(
+    conn: Any,
+    extract: dict[str, Any],
+    values: dict[str, Any],
+    cache: dict[tuple[str, str], dict[int, list[Any]]],
+    unique_url_cache: dict[Any, str | None],
+) -> Any:
+    kind = str(extract.get("type") or "").strip().lower()
+    if kind not in {"custom_extraction_match", "custom_javascript_match"}:
+        return None
+
+    encoded_url = _resolve_multi_row_encoded_url(conn, extract, values, unique_url_cache)
+    if not encoded_url:
+        return None
+
+    table = "APP.CUSTOM_EXTRACTION" if kind == "custom_extraction_match" else "APP.CUSTOM_JAVASCRIPT"
+    cache_key = (table, encoded_url)
+    grouped = cache.get(cache_key)
+    if grouped is None:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"SELECT EXTRACTOR_IDX, CAST(MATCHED AS LONG VARCHAR) AS MATCHED "
+            f"FROM {table} WHERE ENCODED_URL = ?",
+            [encoded_url],
+        )
+        grouped = {}
+        for extractor_idx, matched in _iter_cursor_rows(cursor):
+            idx = _safe_int(extractor_idx)
+            if idx is None:
+                continue
+            grouped.setdefault(idx, []).append(matched)
+        cache[cache_key] = grouped
+
+    extractor_idx = _safe_int(extract.get("extractor_idx"))
+    match_index = _safe_int(extract.get("match_index"))
+    if extractor_idx is None or match_index is None or match_index < 1:
+        return None
+    matches = grouped.get(extractor_idx) or []
+    zero_index = match_index - 1
+    if zero_index >= len(matches):
+        return None
+    return matches[zero_index]
+
+
+def _resolve_multi_row_encoded_url(
+    conn: Any,
+    extract: dict[str, Any],
+    values: dict[str, Any],
+    unique_url_cache: dict[Any, str | None],
+) -> str | None:
+    source = str(extract.get("source") or "").strip().lower()
+    if source in {"", "encoded_url"}:
+        return _safe_text(values.get("ENCODED_URL")) or None
+    if source == "dst_id":
+        dst_id = values.get("DST_ID")
+        if dst_id in unique_url_cache:
+            return unique_url_cache[dst_id]
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT ENCODED_URL FROM APP.UNIQUE_URLS WHERE ID = ? FETCH FIRST 1 ROWS ONLY",
+            [dst_id],
+        )
+        row = cursor.fetchone()
+        encoded_url = _safe_text(row[0]) if row else None
+        unique_url_cache[dst_id] = encoded_url
+        return encoded_url
     return None
 
 

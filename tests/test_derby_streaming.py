@@ -53,6 +53,19 @@ class _FakeConnection:
         return self._cursor
 
 
+class _MultiCursorConnection:
+    def __init__(self, cursors: list[_FakeCursor]) -> None:
+        self._cursors = list(cursors)
+        self._index = 0
+
+    def cursor(self) -> _FakeCursor:
+        if self._index >= len(self._cursors):
+            raise AssertionError("No fake cursor left for connection.cursor()")
+        cursor = self._cursors[self._index]
+        self._index += 1
+        return cursor
+
+
 class _FakeBlob:
     def __init__(self, data: bytes) -> None:
         self._data = data
@@ -311,3 +324,128 @@ def test_get_tab_materializes_folder_depth_from_encoded_url() -> None:
         {"Folder Depth": 2},
     ]
     assert cursor.executed_sql == "SELECT ENCODED_URL FROM APP.URLS"
+
+
+def test_get_tab_materializes_multi_row_custom_extraction_matches() -> None:
+    main_cursor = _FakeCursor(
+        ["ENCODED_URL"],
+        [("https://example.com/page",)],
+    )
+    extraction_cursor = _FakeCursor(
+        ["EXTRACTOR_IDX", "MATCHED"],
+        [
+            (0, "Alpha"),
+            (0, "Beta"),
+            (0, "Gamma"),
+            (1, "One"),
+            (1, "Two"),
+        ],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _MultiCursorConnection([main_cursor, extraction_cursor])
+    backend._mapping = {
+        "custom_extraction_all.csv": [
+            {
+                "csv_column": "Extractor 1 2",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+                "multi_row_extract": {
+                    "type": "custom_extraction_match",
+                    "source": "encoded_url",
+                    "extractor_idx": 0,
+                    "match_index": 2,
+                    "columns": ["ENCODED_URL"],
+                },
+            },
+            {
+                "csv_column": "Extractor 1 3",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+                "multi_row_extract": {
+                    "type": "custom_extraction_match",
+                    "source": "encoded_url",
+                    "extractor_idx": 0,
+                    "match_index": 3,
+                    "columns": ["ENCODED_URL"],
+                },
+            },
+            {
+                "csv_column": "Extractor 2 2",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+                "multi_row_extract": {
+                    "type": "custom_extraction_match",
+                    "source": "encoded_url",
+                    "extractor_idx": 1,
+                    "match_index": 2,
+                    "columns": ["ENCODED_URL"],
+                },
+            },
+        ]
+    }
+
+    rows = list(backend.get_tab("custom_extraction_all"))
+
+    assert rows == [
+        {
+            "Extractor 1 2": "Beta",
+            "Extractor 1 3": "Gamma",
+            "Extractor 2 2": "Two",
+        }
+    ]
+    assert main_cursor.executed_sql == "SELECT ENCODED_URL FROM APP.URLS"
+    assert extraction_cursor.executed_sql == (
+        "SELECT EXTRACTOR_IDX, CAST(MATCHED AS LONG VARCHAR) AS MATCHED "
+        "FROM APP.CUSTOM_EXTRACTION WHERE ENCODED_URL = ?"
+    )
+    assert extraction_cursor.executed_params == ["https://example.com/page"]
+
+
+def test_get_tab_materializes_multi_row_inlink_custom_extraction_matches() -> None:
+    main_cursor = _FakeCursor(
+        ["DST_ID"],
+        [(42,)],
+    )
+    id_cursor = _FakeCursor(
+        ["ENCODED_URL"],
+        [("https://example.com/destination",)],
+    )
+    extraction_cursor = _FakeCursor(
+        ["EXTRACTOR_IDX", "MATCHED"],
+        [
+            (0, "Alpha"),
+            (0, "Beta"),
+        ],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _MultiCursorConnection([main_cursor, id_cursor, extraction_cursor])
+    backend._mapping = {
+        "all_inlinks.csv": [
+            {
+                "csv_column": "Extractor 1 2",
+                "db_column": "DST_ID",
+                "db_table": "APP.LINKS",
+                "multi_row_extract": {
+                    "type": "custom_extraction_match",
+                    "source": "dst_id",
+                    "extractor_idx": 0,
+                    "match_index": 2,
+                    "columns": ["DST_ID"],
+                },
+            }
+        ]
+    }
+
+    rows = list(backend.get_tab("all_inlinks"))
+
+    assert rows == [{"Extractor 1 2": "Beta"}]
+    assert main_cursor.executed_sql == "SELECT DST_ID FROM APP.LINKS"
+    assert id_cursor.executed_sql == (
+        "SELECT ENCODED_URL FROM APP.UNIQUE_URLS WHERE ID = ? FETCH FIRST 1 ROWS ONLY"
+    )
+    assert id_cursor.executed_params == [42]
+    assert extraction_cursor.executed_sql == (
+        "SELECT EXTRACTOR_IDX, CAST(MATCHED AS LONG VARCHAR) AS MATCHED "
+        "FROM APP.CUSTOM_EXTRACTION WHERE ENCODED_URL = ?"
+    )
+    assert extraction_cursor.executed_params == ["https://example.com/destination"]
