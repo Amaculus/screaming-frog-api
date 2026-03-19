@@ -139,6 +139,26 @@ Notes:
 - Derby filters now work against mapped expression fields and header-derived fields in both `crawl.internal` and `crawl.tab(...)`.
 - Some link metrics (Link Score, % of Total, JS outlink counts) are not mapped in Derby yet.
 
+## Ergonomic sitewide views
+
+Use first-class page/link views when you do not want to remember tab names:
+
+```python
+from screamingfrog import Crawl
+
+crawl = Crawl.load("./crawl.dbseospider")
+
+pages_404 = crawl.pages().filter(status_code=404).collect()
+nofollow_inlinks = crawl.links("in").filter(rel="nofollow").collect()
+blog_pages = crawl.section("/blog").pages().collect()
+blog_outlinks = crawl.section("/blog").links("out").collect()
+```
+
+Notes:
+- `crawl.pages()` is a mapped sitewide page view backed by `internal_all`.
+- `crawl.links("in")` / `crawl.links("out")` are sitewide mapped link views backed by `all_inlinks` / `all_outlinks`.
+- `crawl.section("/blog")` matches by URL path prefix; pass a full URL prefix if you want host-specific scoping.
+
 ## Inlinks / Outlinks (Derby)
 
 When using a `.dbseospider` crawl, you can read inlinks/outlinks directly from Derby:
@@ -224,6 +244,7 @@ Notes:
 - `crawl.query(...)` uses the backend SQL engine (Derby/Hybrid/SQLite).
 - CSV/CLI export backends do not support SQL/query execution.
 - Use `.to_sql()` if you want to inspect the generated SQL + params.
+- `InternalView`, `TabView`, `LinkView`, `QueryView`, and `CrawlDiff` also support `to_pandas()` / `to_polars()` with optional dependencies installed.
 
 ## Crawl diff (crawl-over-crawl)
 
@@ -235,10 +256,7 @@ new = Crawl.load("./crawl-2024-02.dbseospider")
 
 diff = new.compare(old)
 
-print("Added:", len(diff.added_pages))
-print("Removed:", len(diff.removed_pages))
-print("Status changes:", len(diff.status_changes))
-print("Title changes:", len(diff.title_changes))
+print(diff.summary())
 
 for change in diff.status_changes[:5]:
     print(change.url, change.old_status, "->", change.new_status)
@@ -248,6 +266,7 @@ Notes:
 - Title comparison uses `Title 1` by default (override via `compare(..., title_fields=...)`).
 - Redirect changes are best-effort and depend on available columns/headers.
 - Additional field changes are captured for canonical + canonical status, meta description/keywords/refresh, H1/H2/H3, word count, indexability, and robots + directives summary by default (override via `compare(..., field_groups=...)`).
+- `diff.to_rows()` flattens all change buckets into one row list for export/dataframes.
 
 ## Examples
 

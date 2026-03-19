@@ -15,6 +15,9 @@ This file lists the current callable API in `sf-alpha`.
 
 - `crawl.internal` (property-like view object: `InternalView`)
 - `crawl.tab(name) -> TabView`
+- `crawl.pages() -> TabView`
+- `crawl.links(direction="out") -> LinkView`
+- `crawl.section(prefix) -> CrawlSection`
 - `crawl.tabs -> list[str]`
 - `crawl.inlinks(url) -> Iterator[Link]`
 - `crawl.outlinks(url) -> Iterator[Link]`
@@ -56,6 +59,10 @@ This file lists the current callable API in `sf-alpha`.
 ## `InternalView` (returned by `crawl.internal`)
 - `filter(**kwargs) -> InternalView`
 - `count() -> int`
+- `collect() -> list[InternalPage]`
+- `first() -> InternalPage | None`
+- `to_pandas()`
+- `to_polars()`
 - iterable (`for page in crawl.internal.filter(...): ...`)
 - Derby-backed `crawl.internal` also materializes mapped expression fields such as `Indexability` and `Indexability Status`
 
@@ -64,7 +71,25 @@ This file lists the current callable API in `sf-alpha`.
   - supports normal column filters
   - supports GUI filter shortcut via `gui="Missing"` or `gui_filters=[...]`
 - `count() -> int`
+- `collect() -> list[dict[str, Any]]`
+- `first() -> dict[str, Any] | None`
+- `to_pandas()`
+- `to_polars()`
 - iterable (`for row in crawl.tab("...").filter(...): ...`)
+
+## `LinkView` (returned by `crawl.links(...)`)
+- `filter(**kwargs) -> LinkView`
+- `count() -> int`
+- `collect() -> list[dict[str, Any]]`
+- `first() -> dict[str, Any] | None`
+- `to_pandas()`
+- `to_polars()`
+- iterable (`for row in crawl.links("in").filter(...): ...`)
+
+## `CrawlSection` (returned by `crawl.section("...")`)
+- `pages() -> ScopedRowView`
+- `links(direction="out") -> ScopedRowView`
+- prefix can be a full URL prefix or a path prefix like `/blog`
 
 ## `QueryView` (returned by `crawl.query("APP", "URLS")`)
 - `select(*columns) -> QueryView`
@@ -75,6 +100,8 @@ This file lists the current callable API in `sf-alpha`.
 - `limit(n) -> QueryView`
 - `collect() -> list[dict[str, Any]]`
 - `first() -> dict[str, Any] | None`
+- `to_pandas()`
+- `to_polars()`
 - `to_sql() -> tuple[str, list[Any]]`
 
 ---
@@ -143,6 +170,10 @@ This file lists the current callable API in `sf-alpha`.
 
 ## Diff models (returned by `crawl.compare`)
 - `CrawlDiff`
+  - `summary() -> dict[str, int]`
+  - `to_rows() -> list[dict[str, Any]]`
+  - `to_pandas()`
+  - `to_polars()`
 - `StatusChange`
 - `TitleChange`
 - `RedirectChange`

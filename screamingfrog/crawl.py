@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
@@ -75,6 +76,18 @@ class InternalView:
     def count(self) -> int:
         return self.backend.count("internal", filters=self.filters)
 
+    def collect(self) -> list[InternalPage]:
+        return list(self.__iter__())
+
+    def first(self) -> Optional[InternalPage]:
+        return next(iter(self), None)
+
+    def to_pandas(self) -> Any:
+        return _dataframe_from_rows((page.data for page in self), "pandas")
+
+    def to_polars(self) -> Any:
+        return _dataframe_from_rows((page.data for page in self), "polars")
+
 
 @dataclass(frozen=True)
 class TabView:
@@ -98,6 +111,45 @@ class TabView:
 
     def count(self) -> int:
         return sum(1 for _ in self.__iter__())
+
+    def collect(self) -> list[dict[str, Any]]:
+        return list(self.__iter__())
+
+    def first(self) -> Optional[dict[str, Any]]:
+        return next(iter(self), None)
+
+    def to_pandas(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "pandas")
+
+    def to_polars(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "polars")
+
+
+@dataclass(frozen=True)
+class LinkView:
+    base: TabView
+    direction: str
+
+    def filter(self, **kwargs: Any) -> "LinkView":
+        return LinkView(self.base.filter(**kwargs), self.direction)
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        return iter(self.base)
+
+    def count(self) -> int:
+        return self.base.count()
+
+    def collect(self) -> list[dict[str, Any]]:
+        return self.base.collect()
+
+    def first(self) -> Optional[dict[str, Any]]:
+        return self.base.first()
+
+    def to_pandas(self) -> Any:
+        return self.base.to_pandas()
+
+    def to_polars(self) -> Any:
+        return self.base.to_polars()
 
 
 @dataclass(frozen=True)
@@ -196,6 +248,64 @@ class QueryView:
         query = self if self.limit_rows == 1 else self.limit(1)
         rows = query.collect()
         return rows[0] if rows else None
+
+    def to_pandas(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "pandas")
+
+    def to_polars(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "polars")
+
+
+@dataclass(frozen=True)
+class ScopedRowView:
+    base: TabView | LinkView
+    prefix: str
+    fields: tuple[str, ...]
+
+    def filter(self, **kwargs: Any) -> "ScopedRowView":
+        return ScopedRowView(self.base.filter(**kwargs), self.prefix, self.fields)
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        for row in self.base:
+            if _row_matches_scope(row, self.prefix, self.fields):
+                yield row
+
+    def count(self) -> int:
+        return sum(1 for _ in self.__iter__())
+
+    def collect(self) -> list[dict[str, Any]]:
+        return list(self.__iter__())
+
+    def first(self) -> Optional[dict[str, Any]]:
+        return next(iter(self), None)
+
+    def to_pandas(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "pandas")
+
+    def to_polars(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "polars")
+
+
+@dataclass(frozen=True)
+class CrawlSection:
+    crawl: "Crawl"
+    prefix: str
+
+    def pages(self) -> ScopedRowView:
+        return ScopedRowView(
+            self.crawl.pages(),
+            self.prefix,
+            ("Address", "URL Encoded Address", "Encoded URL"),
+        )
+
+    def links(self, direction: str = "out") -> ScopedRowView:
+        normalized = _normalize_link_direction(direction)
+        fields = ("Address", "Destination", "To") if normalized == "in" else (
+            "Source",
+            "From",
+            "Address",
+        )
+        return ScopedRowView(self.crawl.links(direction=normalized), self.prefix, fields)
 
 
 class Crawl:
@@ -578,6 +688,20 @@ class Crawl:
     def tab(self, name: str) -> TabView:
         """Access a generic export tab by CSV name (e.g. 'internal_all.csv')."""
         return TabView(self._backend, name)
+
+    def pages(self) -> TabView:
+        """Access the mapped sitewide page view backed by internal_all."""
+        return TabView(self._backend, "internal_all")
+
+    def links(self, direction: str = "out") -> LinkView:
+        """Access a sitewide inlinks/outlinks view backed by mapped link tabs."""
+        normalized = _normalize_link_direction(direction)
+        tab_name = "all_inlinks" if normalized == "in" else "all_outlinks"
+        return LinkView(TabView(self._backend, tab_name), normalized)
+
+    def section(self, prefix: str) -> CrawlSection:
+        """Scope page/link views to a URL prefix or path prefix."""
+        return CrawlSection(self, prefix)
 
     def inlinks(self, url: str) -> Iterator["Link"]:
         """Return inlinks for a given URL (backend-dependent support)."""
@@ -1188,3 +1312,54 @@ def _default_csv_cache_dir(source: str) -> Path:
         return project_dir / "exports_cache"
     except Exception:
         return Path.cwd() / f"{source}_exports_cache"
+
+
+def _dataframe_from_rows(rows: Iterator[dict[str, Any]], module_name: str) -> Any:
+    module = _import_optional_module(module_name)
+    return module.DataFrame(list(rows))
+
+
+def _import_optional_module(module_name: str) -> Any:
+    try:
+        return importlib.import_module(module_name)
+    except ModuleNotFoundError as exc:
+        raise ImportError(
+            f"{module_name} is required for this export. Install it to use to_{module_name}()."
+        ) from exc
+
+
+def _normalize_scope_key(value: str) -> str:
+    return str(value).strip().lower().replace(" ", "_")
+
+
+def _normalize_link_direction(direction: str) -> str:
+    value = str(direction or "").strip().lower()
+    if value in {"in", "inlinks", "incoming"}:
+        return "in"
+    if value in {"out", "outlinks", "outgoing"}:
+        return "out"
+    raise ValueError("direction must be 'in' or 'out'")
+
+
+def _row_matches_scope(row: dict[str, Any], prefix: str, fields: Sequence[str]) -> bool:
+    lookup = {_normalize_scope_key(key): value for key, value in row.items()}
+    for field in fields:
+        actual = lookup.get(_normalize_scope_key(field))
+        if _value_matches_scope(actual, prefix):
+            return True
+    return False
+
+
+def _value_matches_scope(value: Any, prefix: str) -> bool:
+    text = str(value or "").strip()
+    target = str(prefix or "").strip()
+    if not text or not target:
+        return False
+    if "://" in target:
+        return text.startswith(target)
+    normalized_target = target if target.startswith("/") else f"/{target}"
+    try:
+        path = urlsplit(text).path or "/"
+    except Exception:
+        return text.startswith(target)
+    return path.startswith(normalized_target)

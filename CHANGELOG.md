@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- Added ergonomic sitewide views: `crawl.pages()`, `crawl.links(direction=...)`, and `crawl.section(prefix)` for page/link workflows without remembering tab names.
+- Added `collect()`, `first()`, `to_pandas()`, and `to_polars()` helpers on `InternalView` / `TabView`, plus dataframe exports on `QueryView` and `CrawlDiff`.
+- Added `CrawlDiff.summary()` and `CrawlDiff.to_rows()` for flatter diff reporting and export workflows.
 - Derby tab projection now skips literal `NULL` mapping columns at query time, which fixes oversized mapped tabs like `all_inlinks` / `all_outlinks` while still returning those fields as `None`.
 - Derby `crawl.internal` now materializes expression-backed internal fields, including `Indexability` and `Indexability Status`.
 - Derby filter compilation now supports mapped `db_expression` fields and post-filters mapped header/supplementary fields for `crawl.internal` and `crawl.tab(...)`.
