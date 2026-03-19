@@ -93,16 +93,14 @@ class DerbyBackend(CrawlBackend):
             self._mapping, self._table
         )
 
+    # Derby rejects SELECT lists that exceed this many items.
+    _DERBY_SELECT_LIMIT = 1000
+
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
-        if self._internal_expr_selects:
-            table_alias = "sf_internal"
-            select_parts = [f"{table_alias}.*"]
-            select_parts.extend(
-                f"{expr} AS {alias}" for alias, _csv_col, expr in self._internal_expr_selects
-            )
-            sql = f"SELECT {', '.join(select_parts)} FROM {self._table} {table_alias}"
-        else:
-            sql = f"SELECT * FROM {self._table}"
+        _tbl_url_re = re.compile(r"(?i)APP\.URLS\.ENCODED_URL")
+        table_alias = "sf_internal"
+
+        # === Build WHERE clause first — reused by both main and overflow queries ===
         where_parts: list[str] = []
         params: list[Any] = []
         internal_clause = self._internal_only_clause()
@@ -122,16 +120,73 @@ class DerbyBackend(CrawlBackend):
             if where:
                 where_parts.append(where)
             params.extend(filter_params)
-        if where_parts:
-            sql = f"{sql} WHERE {' AND '.join(where_parts)}"
+        where_sql = f" WHERE {' AND '.join(where_parts)}" if where_parts else ""
+
+        # === Build main SELECT — first batch of expressions fits within Derby limit ===
+        # Correlated subqueries reference APP.URLS.ENCODED_URL; rewrite to alias form.
+        if self._internal_expr_selects:
+            max_exprs = max(0, self._DERBY_SELECT_LIMIT - len(self._internal_columns))
+            first_batch = self._internal_expr_selects[:max_exprs]
+            overflow_exprs = self._internal_expr_selects[max_exprs:]
+            select_parts = [f"{table_alias}.*"]
+            select_parts.extend(
+                f"{_tbl_url_re.sub(f'{table_alias}.ENCODED_URL', expr)} AS {alias}"
+                for alias, _csv_col, expr in first_batch
+            )
+            sql = (
+                f"SELECT {', '.join(select_parts)} "
+                f"FROM {self._table} {table_alias}{where_sql}"
+            )
+        else:
+            overflow_exprs = []
+            sql = f"SELECT * FROM {self._table}{where_sql}"
+
+        # === Pre-fetch overflow expressions in batches, keyed by row ID ===
+        # Derby rejects SELECT lists longer than _DERBY_SELECT_LIMIT columns.
+        # Expressions that don't fit in the main query are fetched in separate
+        # passes (each within the limit) and merged by primary key when streaming.
+        overflow_data: dict[Any, dict[str, Any]] = {}
+        if overflow_exprs:
+            # APP.URLS uses ENCODED_URL as its natural key (no integer ID column).
+            # Prefer ID if present (future-proofing), fall back to ENCODED_URL.
+            id_col = (
+                _resolve_column_name(self._internal_columns, "ID")
+                or _resolve_column_name(self._internal_columns, "ENCODED_URL")
+                or "ENCODED_URL"
+            )
+            batch_max = self._DERBY_SELECT_LIMIT - 1  # reserve one slot for join key
+            for i in range(0, len(overflow_exprs), batch_max):
+                batch = overflow_exprs[i : i + batch_max]
+                ov_parts = [f"{table_alias}.{id_col}"]
+                ov_parts.extend(
+                    f"{_tbl_url_re.sub(f'{table_alias}.ENCODED_URL', expr)} AS {alias}"
+                    for alias, _csv_col, expr in batch
+                )
+                ov_sql = (
+                    f"SELECT {', '.join(ov_parts)} "
+                    f"FROM {self._table} {table_alias}{where_sql}"
+                )
+                ov_cursor = self._conn.cursor()
+                ov_cursor.execute(ov_sql, params)
+                ov_cols = [d[0] for d in ov_cursor.description]
+                for ov_row in ov_cursor.fetchall():
+                    ov_dict = dict(zip(ov_cols, ov_row))
+                    row_id = ov_dict.pop(id_col, None)
+                    if row_id is not None:
+                        overflow_data.setdefault(row_id, {}).update(ov_dict)
+
+        # === Stream main query, merging overflow expression data per row ===
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
         columns = [desc[0] for desc in cursor.description or self._internal_columns]
         column_set = {str(col) for col in columns}
+        id_col_name = (
+            _resolve_column_name(columns, "ID")
+            or _resolve_column_name(columns, "ENCODED_URL")
+        ) if overflow_data else None
+        # Process all expression aliases — overflow aliases land in data after merge
         active_expr_aliases = [
-            (alias, csv_col)
-            for alias, csv_col, _ in self._internal_expr_selects
-            if alias in column_set
+            (alias, csv_col) for alias, csv_col, _ in self._internal_expr_selects
         ]
         active_aliases = [
             (csv_col, db_col)
@@ -147,6 +202,13 @@ class DerbyBackend(CrawlBackend):
 
         for row in _iter_cursor_rows(cursor):
             data = {col: val for col, val in zip(columns, row)}
+            # Merge overflow expression columns by row ID before alias expansion
+            if overflow_data and id_col_name:
+                row_id = data.get(id_col_name)
+                if row_id is not None:
+                    extra = overflow_data.get(row_id)
+                    if extra:
+                        data.update(extra)
             for alias, csv_col in active_expr_aliases:
                 value = data.pop(alias, None)
                 data.setdefault(csv_col, value)
