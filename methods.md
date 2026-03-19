@@ -17,6 +17,7 @@ This file lists the current callable API in `sf-alpha`.
 - `crawl.internal` (property-like view object: `InternalView`)
 - `crawl.tab(name) -> TabView`
 - `crawl.pages() -> TabView`
+- `crawl.search(term, fields=None, case_sensitive=False) -> SearchRowView`
 - `crawl.links(direction="out") -> LinkView`
 - `crawl.section(prefix) -> CrawlSection`
 - `crawl.tabs -> list[str]`
@@ -67,6 +68,7 @@ This file lists the current callable API in `sf-alpha`.
 
 ## `InternalView` (returned by `crawl.internal`)
 - `filter(**kwargs) -> InternalView`
+- `search(term, fields=None, case_sensitive=False) -> SearchInternalView`
 - `count() -> int`
 - `collect() -> list[InternalPage]`
 - `first() -> InternalPage | None`
@@ -79,6 +81,7 @@ This file lists the current callable API in `sf-alpha`.
 - `filter(**kwargs) -> TabView`
   - supports normal column filters
   - supports GUI filter shortcut via `gui="Missing"` or `gui_filters=[...]`
+- `search(term, fields=None, case_sensitive=False) -> SearchRowView`
 - `count() -> int`
 - `collect() -> list[dict[str, Any]]`
 - `first() -> dict[str, Any] | None`
@@ -88,6 +91,7 @@ This file lists the current callable API in `sf-alpha`.
 
 ## `LinkView` (returned by `crawl.links(...)`)
 - `filter(**kwargs) -> LinkView`
+- `search(term, fields=None, case_sensitive=False) -> SearchRowView`
 - `count() -> int`
 - `collect() -> list[dict[str, Any]]`
 - `first() -> dict[str, Any] | None`
@@ -98,6 +102,7 @@ This file lists the current callable API in `sf-alpha`.
 ## `CrawlSection` (returned by `crawl.section("...")`)
 - `pages() -> ScopedRowView`
 - `links(direction="out") -> ScopedRowView`
+- `tab(name, fields=None) -> ScopedRowView`
 - prefix can be a full URL prefix or a path prefix like `/blog`
 
 ## `QueryView` (returned by `crawl.query("APP", "URLS")`)

@@ -76,6 +76,20 @@ class InternalView:
         merged.update(kwargs)
         return InternalView(self.backend, merged)
 
+    def search(
+        self,
+        term: str,
+        *,
+        fields: Sequence[str] | None = None,
+        case_sensitive: bool = False,
+    ) -> "SearchInternalView":
+        return SearchInternalView(
+            self,
+            str(term),
+            tuple(fields) if fields is not None else None,
+            case_sensitive,
+        )
+
     def __iter__(self) -> Iterator[InternalPage]:
         return self.backend.get_internal(filters=self.filters)
 
@@ -112,6 +126,20 @@ class TabView:
         merged.update(kwargs)
         return TabView(self.backend, self.name, merged)
 
+    def search(
+        self,
+        term: str,
+        *,
+        fields: Sequence[str] | None = None,
+        case_sensitive: bool = False,
+    ) -> "SearchRowView":
+        return SearchRowView(
+            self,
+            str(term),
+            tuple(fields) if fields is not None else None,
+            case_sensitive,
+        )
+
     def __iter__(self) -> Iterator[dict[str, Any]]:
         return self.backend.get_tab(self.name, filters=self.filters)
 
@@ -138,6 +166,20 @@ class LinkView:
 
     def filter(self, **kwargs: Any) -> "LinkView":
         return LinkView(self.base.filter(**kwargs), self.direction)
+
+    def search(
+        self,
+        term: str,
+        *,
+        fields: Sequence[str] | None = None,
+        case_sensitive: bool = False,
+    ) -> "SearchRowView":
+        return SearchRowView(
+            self,
+            str(term),
+            tuple(fields) if fields is not None else None,
+            case_sensitive,
+        )
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         return iter(self.base)
@@ -263,6 +305,78 @@ class QueryView:
 
 
 @dataclass(frozen=True)
+class SearchInternalView:
+    base: InternalView
+    term: str
+    fields: tuple[str, ...] | None = None
+    case_sensitive: bool = False
+
+    def filter(self, **kwargs: Any) -> "SearchInternalView":
+        return SearchInternalView(
+            self.base.filter(**kwargs),
+            self.term,
+            self.fields,
+            self.case_sensitive,
+        )
+
+    def __iter__(self) -> Iterator[InternalPage]:
+        for page in self.base:
+            if _row_matches_search(page.data, self.term, self.fields, self.case_sensitive):
+                yield page
+
+    def count(self) -> int:
+        return sum(1 for _ in self.__iter__())
+
+    def collect(self) -> list[InternalPage]:
+        return list(self.__iter__())
+
+    def first(self) -> Optional[InternalPage]:
+        return next(iter(self), None)
+
+    def to_pandas(self) -> Any:
+        return _dataframe_from_rows((page.data for page in self), "pandas")
+
+    def to_polars(self) -> Any:
+        return _dataframe_from_rows((page.data for page in self), "polars")
+
+
+@dataclass(frozen=True)
+class SearchRowView:
+    base: TabView | LinkView | ScopedRowView
+    term: str
+    fields: tuple[str, ...] | None = None
+    case_sensitive: bool = False
+
+    def filter(self, **kwargs: Any) -> "SearchRowView":
+        return SearchRowView(
+            self.base.filter(**kwargs),
+            self.term,
+            self.fields,
+            self.case_sensitive,
+        )
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        for row in self.base:
+            if _row_matches_search(row, self.term, self.fields, self.case_sensitive):
+                yield row
+
+    def count(self) -> int:
+        return sum(1 for _ in self.__iter__())
+
+    def collect(self) -> list[dict[str, Any]]:
+        return list(self.__iter__())
+
+    def first(self) -> Optional[dict[str, Any]]:
+        return next(iter(self), None)
+
+    def to_pandas(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "pandas")
+
+    def to_polars(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "polars")
+
+
+@dataclass(frozen=True)
 class ScopedRowView:
     base: TabView | LinkView
     prefix: str
@@ -270,6 +384,20 @@ class ScopedRowView:
 
     def filter(self, **kwargs: Any) -> "ScopedRowView":
         return ScopedRowView(self.base.filter(**kwargs), self.prefix, self.fields)
+
+    def search(
+        self,
+        term: str,
+        *,
+        fields: Sequence[str] | None = None,
+        case_sensitive: bool = False,
+    ) -> "SearchRowView":
+        return SearchRowView(
+            self,
+            str(term),
+            tuple(fields) if fields is not None else None,
+            case_sensitive,
+        )
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         for row in self.base:
@@ -312,6 +440,19 @@ class CrawlSection:
             "Address",
         )
         return ScopedRowView(self.crawl.links(direction=normalized), self.prefix, fields)
+
+    def tab(self, name: str, fields: Sequence[str] | None = None) -> ScopedRowView:
+        scope_fields = tuple(fields) if fields is not None else (
+            "Address",
+            "Source",
+            "Destination",
+            "URL",
+            "Source Page",
+            "Destination Page",
+            "From",
+            "To",
+        )
+        return ScopedRowView(self.crawl.tab(name), self.prefix, scope_fields)
 
 
 class Crawl:
@@ -758,6 +899,16 @@ class Crawl:
     def pages(self) -> TabView:
         """Access the mapped sitewide page view backed by internal_all."""
         return TabView(self._backend, "internal_all")
+
+    def search(
+        self,
+        term: str,
+        *,
+        fields: Sequence[str] | None = None,
+        case_sensitive: bool = False,
+    ) -> SearchRowView:
+        """Search across the sitewide page view."""
+        return self.pages().search(term, fields=fields, case_sensitive=case_sensitive)
 
     def links(self, direction: str = "out") -> LinkView:
         """Access a sitewide inlinks/outlinks view backed by mapped link tabs."""
@@ -1604,6 +1755,37 @@ def _row_matches_scope(row: dict[str, Any], prefix: str, fields: Sequence[str]) 
         if _value_matches_scope(actual, prefix):
             return True
     return False
+
+
+def _row_matches_search(
+    row: dict[str, Any], term: str, fields: Sequence[str] | None, case_sensitive: bool
+) -> bool:
+    needle = str(term or "")
+    if not needle:
+        return True
+    values = _iter_search_values(row, fields)
+    if not case_sensitive:
+        needle = needle.lower()
+    for value in values:
+        haystack = str(value)
+        if not case_sensitive:
+            haystack = haystack.lower()
+        if needle in haystack:
+            return True
+    return False
+
+
+def _iter_search_values(row: dict[str, Any], fields: Sequence[str] | None) -> Iterator[Any]:
+    if fields is None:
+        for value in row.values():
+            if value is not None:
+                yield value
+        return
+    lookup = {_normalize_scope_key(key): value for key, value in row.items()}
+    for field in fields:
+        value = lookup.get(_normalize_scope_key(field))
+        if value is not None:
+            yield value
 
 
 def _value_matches_scope(value: Any, prefix: str) -> bool:

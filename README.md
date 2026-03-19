@@ -109,6 +109,7 @@ derby_crawl.export_duckdb("./crawl.duckdb")
 fast = Crawl.load("./crawl.duckdb")
 
 pages_404 = fast.pages().filter(status_code=404).collect()
+matching_pages = fast.search("canonical", fields=["Address", "Title 1"]).collect()
 links = fast.links("in").filter(status_code=404).collect()
 rows = (
     fast.query("APP", "URLS")
@@ -125,6 +126,18 @@ Notes:
 - You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
 - `.seospider` and DB crawl ID loaders can export and load DuckDB directly via `backend="duckdb"` / `db_id_backend="duckdb"`.
 - Use `tabs="all"` if you want to materialize every currently available mapped tab into the DuckDB cache.
+
+## Search and scoped workflows
+
+```python
+from screamingfrog import Crawl
+
+crawl = Crawl.load("./crawl.dbseospider")
+
+matching_pages = crawl.search("blog", fields=["Address", "Title 1"]).collect()
+nofollow_links = crawl.links("in").search("nofollow", fields=["Follow"]).collect()
+blog_inlinks = crawl.section("/blog").tab("all_inlinks").collect()
+```
 
 ### Discover DB crawls (`list_crawls`)
 

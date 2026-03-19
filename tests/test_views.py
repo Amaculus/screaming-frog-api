@@ -103,6 +103,63 @@ def test_section_scopes_pages_and_links_by_path_prefix(tmp_path: Path) -> None:
     assert [row["Source"] for row in blog.links("out").collect()] == ["https://example.com/blog/a"]
 
 
+def test_search_views_and_section_tab_scope(tmp_path: Path) -> None:
+    _write_csv(
+        tmp_path / "internal_all.csv",
+        [
+            {
+                "Address": "https://example.com/blog/python-guide",
+                "Title 1": "Python Migration Guide",
+                "Status Code": "200",
+            },
+            {
+                "Address": "https://example.com/shop/widget",
+                "Title 1": "Widget",
+                "Status Code": "200",
+            },
+        ],
+    )
+    _write_csv(
+        tmp_path / "all_inlinks.csv",
+        [
+            {
+                "Address": "https://example.com/blog/python-guide",
+                "Source": "https://example.com/docs/python",
+                "Anchor": "Python guide",
+            },
+            {
+                "Address": "https://example.com/shop/widget",
+                "Source": "https://example.com/docs/widget",
+                "Anchor": "Widget",
+            },
+        ],
+    )
+
+    crawl = Crawl.load(str(tmp_path))
+
+    assert crawl.search("python", fields=["Address"]).collect() == [
+        {
+            "Address": "https://example.com/blog/python-guide",
+            "Title 1": "Python Migration Guide",
+            "Status Code": "200",
+        }
+    ]
+    assert crawl.links("in").search("guide", fields=["Anchor"]).collect() == [
+        {
+            "Address": "https://example.com/blog/python-guide",
+            "Source": "https://example.com/docs/python",
+            "Anchor": "Python guide",
+        }
+    ]
+    assert crawl.section("/blog").tab("all_inlinks").collect() == [
+        {
+            "Address": "https://example.com/blog/python-guide",
+            "Source": "https://example.com/docs/python",
+            "Anchor": "Python guide",
+        }
+    ]
+
+
 def test_links_rejects_invalid_direction(tmp_path: Path) -> None:
     _write_csv(tmp_path / "internal_all.csv", [{"Address": "https://example.com/", "Status Code": "200"}])
     crawl = Crawl.load(str(tmp_path))
@@ -183,3 +240,11 @@ def test_diff_helpers_and_dataframe_export(monkeypatch) -> None:
     assert summary["total_changes"] == 2
     assert {"change_type": "added_page", "url": "https://example.com/new"} in rows
     assert frame["rows"] == rows
+
+
+def test_internal_search_uses_page_data() -> None:
+    crawl = Crawl(FakeBackend())
+
+    rows = crawl.internal.search("internal", fields=["Address"]).collect()
+
+    assert rows[0].address == "https://example.com/internal"

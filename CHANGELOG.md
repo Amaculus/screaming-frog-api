@@ -10,6 +10,7 @@
   - direct loader/export flows for `.seospider` and DB crawl IDs via `backend="duckdb"` / `db_id_backend="duckdb"`.
 - Added thin audit/report helpers on `Crawl`: `broken_links_report()`, `title_meta_audit()`, `indexability_audit()`, and `redirect_chain_report()`.
 - Added ergonomic sitewide views: `crawl.pages()`, `crawl.links(direction=...)`, and `crawl.section(prefix)` for page/link workflows without remembering tab names.
+- Added `crawl.search(...)`, per-view `search(...)`, and `CrawlSection.tab(...)` for page/link/tab text search and scoped generic-tab workflows.
 - Added `collect()`, `first()`, `to_pandas()`, and `to_polars()` helpers on `InternalView` / `TabView`, plus dataframe exports on `QueryView` and `CrawlDiff`.
 - Added `CrawlDiff.summary()` and `CrawlDiff.to_rows()` for flatter diff reporting and export workflows.
 - Derby tab projection now skips literal `NULL` mapping columns at query time, which fixes oversized mapped tabs like `all_inlinks` / `all_outlinks` while still returning those fields as `None`.
