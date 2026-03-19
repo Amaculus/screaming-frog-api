@@ -207,3 +207,41 @@ def test_link_and_orphan_reports_from_csv(tmp_path: Path) -> None:
         "https://example.com/noindex-orphan",
     ]
     assert [row["Address"] for row in indexable_orphans] == ["https://example.com/orphan"]
+
+
+def test_issue_reports_collect_rows_from_available_tabs(tmp_path: Path) -> None:
+    _write_csv(
+        tmp_path / "internal_all.csv",
+        ["Address", "Status Code"],
+        [{"Address": "https://example.com/", "Status Code": "200"}],
+    )
+    _write_csv(
+        tmp_path / "security_missing_hsts_header.csv",
+        ["Address", "Status Code"],
+        [{"Address": "https://example.com/no-hsts", "Status Code": "200"}],
+    )
+    _write_csv(
+        tmp_path / "canonicals_missing.csv",
+        ["Address", "Status Code"],
+        [{"Address": "https://example.com/no-canonical", "Status Code": "200"}],
+    )
+
+    crawl = Crawl.load(str(tmp_path))
+
+    security = crawl.security_issues_report()
+    canonical = crawl.canonical_issues_report()
+
+    assert security == [
+        {
+            "Address": "https://example.com/no-hsts",
+            "Status Code": "200",
+            "Issue": "Missing HSTS Header",
+        }
+    ]
+    assert canonical == [
+        {
+            "Address": "https://example.com/no-canonical",
+            "Status Code": "200",
+            "Issue": "Missing Canonical",
+        }
+    ]

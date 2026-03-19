@@ -65,6 +65,34 @@ _DEFAULT_FIELD_GROUPS: dict[str, Sequence[str]] = {
     "Directives Summary": (),
 }
 
+_SECURITY_ISSUE_TABS: dict[str, str] = {
+    "security_missing_hsts_header": "Missing HSTS Header",
+    "security_missing_contentsecuritypolicy_header": "Missing Content-Security-Policy Header",
+    "security_missing_secure_referrerpolicy_header": "Missing Referrer-Policy Header",
+    "security_missing_xcontenttypeoptions_header": "Missing X-Content-Type-Options Header",
+    "security_missing_xframeoptions_header": "Missing X-Frame-Options Header",
+    "security_mixed_content": "Mixed Content",
+    "security_http_urls": "HTTP URL",
+    "security_form_url_insecure": "Insecure Form Action",
+    "security_form_on_http_url": "Form On HTTP URL",
+}
+
+_CANONICAL_ISSUE_TABS: dict[str, str] = {
+    "canonicals_missing": "Missing Canonical",
+    "canonicals_multiple": "Multiple Canonicals",
+    "canonicals_multiple_conflicting": "Conflicting Canonicals",
+    "canonicals_nonindexable_canonical": "Canonical To Non-Indexable",
+    "canonicals_nonindexable_canonicals": "Canonical To Non-Indexable",
+    "canonicals_canonicalised": "Canonicalised",
+    "canonicals_unlinked": "Unlinked Canonical",
+    "canonicals_contains_fragment_url": "Canonical Contains Fragment",
+    "canonicals_canonical_is_relative": "Relative Canonical",
+    "canonicals_outside_head": "Canonical Outside Head",
+    "javascript_canonical_mismatch": "JavaScript Canonical Mismatch",
+    "javascript_canonical_only_in_rendered_html": "Canonical Only In Rendered HTML",
+    "hreflang_not_using_canonical": "Hreflang Not Using Canonical",
+}
+
 
 @dataclass(frozen=True)
 class InternalView:
@@ -1085,6 +1113,14 @@ class Crawl:
             )
         return rows
 
+    def security_issues_report(self) -> list[dict[str, Any]]:
+        """Return flat rows from available security issue tabs."""
+        return _issue_rows_from_tabs(self, _SECURITY_ISSUE_TABS)
+
+    def canonical_issues_report(self) -> list[dict[str, Any]]:
+        """Return flat rows from available canonical issue tabs."""
+        return _issue_rows_from_tabs(self, _CANONICAL_ISSUE_TABS)
+
     def redirect_chain_report(
         self,
         *,
@@ -1484,6 +1520,23 @@ def _index_internal(crawl: Crawl) -> dict[str, InternalPage]:
         if page.address:
             pages[page.address] = page
     return pages
+
+
+def _issue_rows_from_tabs(crawl: Crawl, tab_issues: dict[str, str]) -> list[dict[str, Any]]:
+    available = {normalize_name(name) for name in crawl.tabs}
+    rows: list[dict[str, Any]] = []
+    for tab_name, issue in tab_issues.items():
+        candidates = {normalize_name(tab_name), normalize_name(f"{tab_name}.csv")}
+        if available and not (available & candidates):
+            continue
+        try:
+            for row in crawl.tab(tab_name):
+                issue_row = dict(row)
+                issue_row.setdefault("Issue", issue)
+                rows.append(issue_row)
+        except Exception:
+            continue
+    return rows
 
 
 def _index_internal_normalized(crawl: Crawl) -> dict[str, InternalPage]:

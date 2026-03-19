@@ -32,6 +32,8 @@ This file lists the current callable API in `sf-alpha`.
 - `crawl.title_meta_audit() -> list[dict[str, Any]]`
 - `crawl.indexability_audit() -> list[dict[str, Any]]`
 - `crawl.orphan_pages_report(ignore_self_links=True, only_indexable=False) -> list[dict[str, Any]]`
+- `crawl.security_issues_report() -> list[dict[str, Any]]`
+- `crawl.canonical_issues_report() -> list[dict[str, Any]]`
 - `crawl.redirect_chain_report(min_hops=None, max_hops=None, loop=None) -> list[dict[str, Any]]`
 - `crawl.tab_filters(name) -> list[str]`
 - `crawl.tab_filter_defs(name) -> list[Any]`

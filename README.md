@@ -139,6 +139,8 @@ nofollow_links = crawl.links("in").search("nofollow", fields=["Follow"]).collect
 blog_inlinks = crawl.section("/blog").tab("all_inlinks").collect()
 orphans = crawl.orphan_pages_report(only_indexable=True)
 broken_inlinks = crawl.broken_inlinks_report()
+security_issues = crawl.security_issues_report()
+canonical_issues = crawl.canonical_issues_report()
 ```
 
 ### Discover DB crawls (`list_crawls`)
