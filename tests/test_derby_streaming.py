@@ -189,6 +189,148 @@ def test_get_internal_streams_rows_without_fetchall() -> None:
     assert len(cursor.fetchmany_calls) >= 1
 
 
+def test_get_internal_batches_overflow_expressions_without_fetchall() -> None:
+    main_cursor = _FakeCursor(
+        ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL", "SF_EXPR_0"],
+        [
+            ("https://example.com/", 200, True, "Indexable"),
+            ("https://example.com/missing", 404, True, "Non-Indexable"),
+        ],
+    )
+    overflow_cursor = _FakeCursor(
+        ["ENCODED_URL", "SF_EXPR_1", "SF_EXPR_2"],
+        [
+            ("https://example.com/", "https://example.com/canonical", "https://example.com/next"),
+            ("https://example.com/missing", None, None),
+        ],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._table = "APP.URLS"
+    backend._conn = _MultiCursorConnection([main_cursor, overflow_cursor])
+    backend._column_map = {}
+    backend._internal_columns = ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL"]
+    backend._internal_is_internal_col = "IS_INTERNAL"
+    backend._internal_expr_selects = [
+        (
+            "SF_EXPR_0",
+            "Indexability",
+            "CASE WHEN APP.URLS.ENCODED_URL IS NOT NULL THEN 'Indexable' END",
+        ),
+        (
+            "SF_EXPR_1",
+            "Canonical Link Element 1",
+            "CASE WHEN APP.URLS.ENCODED_URL IS NOT NULL THEN '/canonical' END",
+        ),
+        (
+            "SF_EXPR_2",
+            "Rel Next 1",
+            "CASE WHEN APP.URLS.ENCODED_URL IS NOT NULL THEN '/next' END",
+        ),
+    ]
+    backend._internal_alias_map = {
+        "Address": "ENCODED_URL",
+        "Status Code": "RESPONSE_CODE",
+    }
+    backend._internal_header_extract_map = {}
+    backend._DERBY_SELECT_LIMIT = 4
+    backend._INTERNAL_OVERFLOW_BATCH_SIZE = 10
+
+    pages = list(backend.get_internal())
+
+    assert [page.address for page in pages] == [
+        "https://example.com/",
+        "https://example.com/missing",
+    ]
+    assert pages[0].data["Indexability"] == "Indexable"
+    assert pages[0].data["Canonical Link Element 1"] == "https://example.com/canonical"
+    assert pages[0].data["Rel Next 1"] == "https://example.com/next"
+    assert pages[1].data["Canonical Link Element 1"] is None
+    assert pages[1].data["Rel Next 1"] is None
+    assert main_cursor.fetchall_called == 0
+    assert overflow_cursor.fetchall_called == 0
+    assert main_cursor.executed_sql == (
+        "SELECT sf_internal.*, CASE WHEN sf_internal.ENCODED_URL IS NOT NULL THEN 'Indexable' END AS SF_EXPR_0 "
+        "FROM APP.URLS sf_internal WHERE IS_INTERNAL = TRUE"
+    )
+    assert overflow_cursor.executed_sql == (
+        "SELECT sf_internal.ENCODED_URL, "
+        "CASE WHEN sf_internal.ENCODED_URL IS NOT NULL THEN '/canonical' END AS SF_EXPR_1, "
+        "CASE WHEN sf_internal.ENCODED_URL IS NOT NULL THEN '/next' END AS SF_EXPR_2 "
+        "FROM APP.URLS sf_internal WHERE IS_INTERNAL = TRUE "
+        "AND sf_internal.ENCODED_URL IN (?, ?)"
+    )
+    assert overflow_cursor.executed_params == [
+        "https://example.com/",
+        "https://example.com/missing",
+    ]
+    assert len(overflow_cursor.fetchmany_calls) >= 1
+
+
+def test_get_internal_overflow_batches_stay_bounded_during_partial_iteration() -> None:
+    main_cursor = _FakeCursor(
+        ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL", "ORIGINAL_CONTENT", "SF_EXPR_0"],
+        [
+            ("https://example.com/one", 200, True, _FakeClob("<html>1</html>"), "Indexable"),
+            ("https://example.com/two", 200, True, _FakeClob("<html>2</html>"), "Indexable"),
+            ("https://example.com/three", 200, True, _FakeClob("<html>3</html>"), "Indexable"),
+        ],
+        types=["VARCHAR", "INTEGER", "BOOLEAN", "CLOB", "VARCHAR"],
+    )
+    overflow_cursor_one = _FakeCursor(
+        ["ENCODED_URL", "SF_EXPR_1"],
+        [
+            ("https://example.com/one", "alpha"),
+            ("https://example.com/two", "beta"),
+        ],
+    )
+    overflow_cursor_two = _FakeCursor(
+        ["ENCODED_URL", "SF_EXPR_1"],
+        [("https://example.com/three", "gamma")],
+    )
+    connection = _MultiCursorConnection([main_cursor, overflow_cursor_one, overflow_cursor_two])
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._table = "APP.URLS"
+    backend._conn = connection
+    backend._column_map = {}
+    backend._internal_columns = [
+        "ENCODED_URL",
+        "RESPONSE_CODE",
+        "IS_INTERNAL",
+        "ORIGINAL_CONTENT",
+    ]
+    backend._internal_is_internal_col = "IS_INTERNAL"
+    backend._internal_expr_selects = [
+        (
+            "SF_EXPR_0",
+            "Indexability",
+            "CASE WHEN APP.URLS.ENCODED_URL IS NOT NULL THEN 'Indexable' END",
+        ),
+        (
+            "SF_EXPR_1",
+            "Canonical Link Element 1",
+            "CASE WHEN APP.URLS.ENCODED_URL IS NOT NULL THEN '/canonical' END",
+        ),
+    ]
+    backend._internal_alias_map = {"Address": "ENCODED_URL"}
+    backend._internal_header_extract_map = {}
+    backend._DERBY_SELECT_LIMIT = 5
+    backend._INTERNAL_OVERFLOW_BATCH_SIZE = 2
+
+    iterator = backend.get_internal()
+    first_page = next(iterator)
+
+    assert first_page.address == "https://example.com/one"
+    assert first_page.data["Canonical Link Element 1"] == "alpha"
+    assert connection._index == 2
+    assert overflow_cursor_one.executed_params == [
+        "https://example.com/one",
+        "https://example.com/two",
+    ]
+    assert overflow_cursor_two.executed_sql is None
+    assert overflow_cursor_one.fetchall_called == 0
+    assert overflow_cursor_two.fetchall_called == 0
+    assert main_cursor.fetchmany_calls[:2] == [1, 1]
+
 def test_get_internal_combines_internal_clause_with_filters() -> None:
     cursor = _FakeCursor(
         ["ENCODED_URL", "RESPONSE_CODE", "IS_INTERNAL"],

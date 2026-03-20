@@ -11,6 +11,8 @@ from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.connection import connect
 from screamingfrog.models import InternalPage, Link
 
+_FETCH_BATCH_SIZE = 1000
+
 
 class DatabaseBackend(CrawlBackend):
     """Backend that queries the SQLite database directly."""
@@ -36,9 +38,14 @@ class DatabaseBackend(CrawlBackend):
     def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
         if table != "internal":
             raise NotImplementedError("DB backend only supports 'internal' in Phase 1")
+        sql = "SELECT COUNT(*) FROM internal"
+        params: list[Any] = []
         if filters:
-            return sum(1 for _ in self.get_internal(filters=filters))
-        return int(self.conn.execute("SELECT COUNT(*) FROM internal").fetchone()[0])
+            where, where_params = _build_sqlite_where(filters, self._internal_column_map)
+            if where:
+                sql = f"{sql} WHERE {where}"
+                params.extend(where_params)
+        return int(self.conn.execute(sql, params).fetchone()[0])
 
     def aggregate(self, table: str, column: str, func: str) -> Any:
         if table != "internal":
@@ -122,24 +129,26 @@ class DatabaseBackend(CrawlBackend):
             sql = f"{sql} WHERE {' AND '.join(where_parts)}"
         cursor = self.conn.execute(sql, params)
         columns = [desc[0] for desc in cursor.description or []]
-        for row in cursor.fetchall():
+        for row in _iter_cursor_rows(cursor):
             yield {col: val for col, val in zip(columns, row)}
 
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         cursor = self.conn.execute(f"SELECT * FROM {table}")
         columns = [desc[0] for desc in cursor.description or []]
-        for row in cursor.fetchall():
+        for row in _iter_cursor_rows(cursor):
             yield {col: val for col, val in zip(columns, row)}
 
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
         cursor = self.conn.execute(query, list(params or []))
         columns = [desc[0] for desc in cursor.description or []]
-        for row in cursor.fetchall():
+        for row in _iter_cursor_rows(cursor):
             yield {col: val for col, val in zip(columns, row)}
 
     def _get_table_columns(self, table_name: str) -> list[str]:
         cursor = self.conn.execute(f"PRAGMA table_info({table_name});")
         return [row[1] for row in cursor.fetchall()]
+
+
 @dataclass(frozen=True)
 class ColumnSpec:
     csv_column: str
@@ -328,12 +337,30 @@ def _build_sqlite_where(
         if not column:
             continue
         if isinstance(expected, (list, tuple, set)):
-            placeholders = ", ".join(["?"] * len(expected))
+            values = list(expected)
+            if not values:
+                clauses.append("1=0")
+                continue
+            placeholders = ", ".join(["?"] * len(values))
             clauses.append(f"{column} IN ({placeholders})")
-            params.extend(list(expected))
+            params.extend(values)
         elif expected is None:
             clauses.append(f"{column} IS NULL")
         else:
             clauses.append(f"{column} = ?")
             params.append(expected)
     return " AND ".join(clauses), params
+
+
+def _iter_cursor_rows(cursor: Any, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:
+    fetchmany = getattr(cursor, "fetchmany", None)
+    if not callable(fetchmany):
+        for row in cursor.fetchall():
+            yield row
+        return
+    while True:
+        rows = fetchmany(batch_size)
+        if not rows:
+            break
+        for row in rows:
+            yield row

@@ -4,7 +4,12 @@ from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
 
 from screamingfrog.backends.base import CrawlBackend
-from screamingfrog.db.duckdb import iter_relation_rows, list_exported_tabs, resolve_relation_name
+from screamingfrog.db.duckdb import (
+    iter_cursor_rows,
+    iter_relation_rows,
+    list_exported_tabs,
+    resolve_relation_name,
+)
 from screamingfrog.models import InternalPage, Link
 
 
@@ -49,7 +54,15 @@ class DuckDBBackend(CrawlBackend):
     def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
         if table != "internal":
             raise NotImplementedError("DuckDB backend currently supports count() for internal only")
-        return sum(1 for _ in self.get_internal(filters=filters))
+        sql, params, post_filters = _build_relation_query(
+            self._internal_relation,
+            self._internal_columns,
+            filters,
+        )
+        if post_filters:
+            return sum(1 for _ in self.get_internal(filters=filters))
+        row = self.conn.execute(f"SELECT COUNT(*) FROM ({sql}) AS sf_count", params).fetchone()
+        return int(row[0]) if row else 0
 
     def aggregate(self, table: str, column: str, func: str) -> Any:
         if table != "internal":
@@ -83,7 +96,7 @@ class DuckDBBackend(CrawlBackend):
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
         cursor = self.conn.execute(query, list(params or []))
         columns = [desc[0] for desc in cursor.description or []]
-        for row in cursor.fetchall():
+        for row in iter_cursor_rows(cursor):
             yield {col: val for col, val in zip(columns, row)}
 
     def tab_columns(self, tab_name: str) -> list[str]:
@@ -101,7 +114,7 @@ class DuckDBBackend(CrawlBackend):
         sql, params, post_filters = _build_relation_query(relation_name, relation_columns, filters)
         cursor = self.conn.execute(sql, params)
         columns = [desc[0] for desc in cursor.description or relation_columns]
-        for row in cursor.fetchall():
+        for row in iter_cursor_rows(cursor):
             record = {col: val for col, val in zip(columns, row)}
             if post_filters and not _row_matches(record, post_filters):
                 continue

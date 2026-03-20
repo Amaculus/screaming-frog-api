@@ -17,6 +17,7 @@ DEFAULT_DUCKDB_TABS: tuple[str, ...] = (
     "canonical_chains",
     "redirect_and_canonical_chains",
 )
+_FETCH_BATCH_SIZE = 1000
 
 
 def export_duckdb_from_derby(
@@ -128,7 +129,7 @@ def export_duckdb_from_backend(
 def iter_relation_rows(conn: Any, relation_name: str) -> Iterator[dict[str, Any]]:
     cursor = conn.execute(f"SELECT * FROM {relation_name}")
     columns = [desc[0] for desc in cursor.description or []]
-    for row in cursor.fetchall():
+    for row in iter_cursor_rows(cursor):
         yield {col: val for col, val in zip(columns, row)}
 
 
@@ -356,6 +357,20 @@ def _tab_relation_name(tab_name: str) -> str:
     stem = Path(tab_name).stem
     safe = "".join(ch if ch.isalnum() else "_" for ch in stem)
     return f"main.sf_tab_{safe}"
+
+
+def iter_cursor_rows(cursor: Any, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:
+    fetchmany = getattr(cursor, "fetchmany", None)
+    if not callable(fetchmany):
+        for row in cursor.fetchall():
+            yield row
+        return
+    while True:
+        rows = fetchmany(batch_size)
+        if not rows:
+            break
+        for row in rows:
+            yield row
 
 
 def _quote_identifier(value: str) -> str:

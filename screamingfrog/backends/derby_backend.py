@@ -137,10 +137,14 @@ _TK_FONT_CACHE: dict[tuple[str, int, str], Any] = {}
 _CHAIN_MAX_HOPS = 10
 _FETCH_BATCH_SIZE = 1000
 _BLOB_FETCH_BATCH_SIZE = 1
+_APP_URLS_ENCODED_URL_RE = re.compile(r"(?i)\bAPP\.URLS\.ENCODED_URL\b")
 
 
 class DerbyBackend(CrawlBackend):
     """Backend that queries the Apache Derby database inside .dbseospider crawls."""
+
+    _DERBY_SELECT_LIMIT = 1000
+    _INTERNAL_OVERFLOW_BATCH_SIZE = 100
 
     def __init__(
         self,
@@ -174,15 +178,7 @@ class DerbyBackend(CrawlBackend):
         )
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
-        if self._internal_expr_selects:
-            table_alias = "sf_internal"
-            select_parts = [f"{table_alias}.*"]
-            select_parts.extend(
-                f"{expr} AS {alias}" for alias, _csv_col, expr in self._internal_expr_selects
-            )
-            sql = f"SELECT {', '.join(select_parts)} FROM {self._table} {table_alias}"
-        else:
-            sql = f"SELECT * FROM {self._table}"
+        table_alias = "sf_internal"
         where_parts: list[str] = []
         params: list[Any] = []
         internal_clause = self._internal_only_clause()
@@ -202,8 +198,27 @@ class DerbyBackend(CrawlBackend):
             if where:
                 where_parts.append(where)
             params.extend(filter_params)
-        if where_parts:
-            sql = f"{sql} WHERE {' AND '.join(where_parts)}"
+        where_sql = f" WHERE {' AND '.join(where_parts)}" if where_parts else ""
+
+        overflow_exprs: list[tuple[str, str, str]] = []
+        key_col = self._internal_row_key_column()
+        if self._internal_expr_selects:
+            max_exprs = max(0, self._DERBY_SELECT_LIMIT - len(self._internal_columns))
+            first_batch = self._internal_expr_selects[:max_exprs]
+            overflow_exprs = self._internal_expr_selects[max_exprs:]
+            select_parts = [f"{table_alias}.*"]
+            select_parts.extend(
+                f"{self._rewrite_internal_expression(expr, table_alias)} AS {alias}"
+                for alias, _csv_col, expr in first_batch
+            )
+            sql = (
+                f"SELECT {', '.join(select_parts)} "
+                f"FROM {self._table} {table_alias}{where_sql}"
+            )
+        else:
+            sql = f"SELECT * FROM {self._table}{where_sql}"
+        if overflow_exprs and not key_col:
+            raise ValueError("Unable to resolve internal row key column for Derby batching")
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
         columns = [desc[0] for desc in cursor.description or self._internal_columns]
@@ -213,6 +228,11 @@ class DerbyBackend(CrawlBackend):
             for alias, csv_col, _ in self._internal_expr_selects
             if alias in column_set
         ]
+        if overflow_exprs:
+            active_expr_aliases.extend(
+                (alias, csv_col)
+                for alias, csv_col, _ in overflow_exprs
+            )
         active_aliases = [
             (csv_col, db_col)
             for csv_col, db_col in self._internal_alias_map.items()
@@ -225,8 +245,17 @@ class DerbyBackend(CrawlBackend):
             if actual_col:
                 header_blob_columns[blob_col] = actual_col
 
-        for row in _iter_cursor_rows(cursor):
+        key_col_name = _resolve_column_name(columns, key_col or "") if overflow_exprs else None
+        key_index = columns.index(key_col_name) if key_col_name else None
+
+        def build_page(
+            row: tuple[Any, ...], overflow_values: dict[Any, dict[str, Any]] | None = None
+        ) -> InternalPage | None:
             data = {col: val for col, val in zip(columns, row)}
+            if overflow_values and key_col_name:
+                row_key = data.get(key_col_name)
+                if row_key is not None:
+                    data.update(overflow_values.get(row_key, {}))
             for alias, csv_col in active_expr_aliases:
                 value = data.pop(alias, None)
                 data.setdefault(csv_col, value)
@@ -253,8 +282,49 @@ class DerbyBackend(CrawlBackend):
                         links = parsed_links.get(blob_col, [])
                     data[csv_col] = _extract_header_value(extract, headers, links)
             if post_filters and not _row_matches_filters(data, post_filters):
+                return None
+            return InternalPage.from_data(data, copy_data=False)
+
+        if not overflow_exprs:
+            for row in _iter_cursor_rows(cursor):
+                page = build_page(row)
+                if page is not None:
+                    yield page
+            return
+
+        if key_col_name is None or key_index is None:
+            raise ValueError("Unable to resolve internal row key column in Derby result set")
+        row_buffer: list[tuple[Any, ...]] = []
+        for row in _iter_cursor_rows(cursor):
+            row_buffer.append(row)
+            if len(row_buffer) < self._INTERNAL_OVERFLOW_BATCH_SIZE:
                 continue
-            yield InternalPage.from_data(data, copy_data=False)
+            overflow_values = self._fetch_internal_overflow_values(
+                overflow_exprs,
+                table_alias,
+                where_sql,
+                params,
+                key_col_name,
+                [buffered_row[key_index] for buffered_row in row_buffer],
+            )
+            for buffered_row in row_buffer:
+                page = build_page(buffered_row, overflow_values)
+                if page is not None:
+                    yield page
+            row_buffer = []
+        if row_buffer:
+            overflow_values = self._fetch_internal_overflow_values(
+                overflow_exprs,
+                table_alias,
+                where_sql,
+                params,
+                key_col_name,
+                [buffered_row[key_index] for buffered_row in row_buffer],
+            )
+            for buffered_row in row_buffer:
+                page = build_page(buffered_row, overflow_values)
+                if page is not None:
+                    yield page
 
     def get_inlinks(self, url: str) -> Iterator[Link]:
         url_id = self._resolve_unique_url_id(url)
@@ -269,6 +339,58 @@ class DerbyBackend(CrawlBackend):
             return iter(())
         sql = _LINKS_BASE_SELECT + " WHERE l.SRC_ID = ?"
         return self._iter_links(sql, [url_id])
+
+    def _internal_row_key_column(self) -> str | None:
+        return _resolve_column_name(self._internal_columns, "ID") or _resolve_column_name(
+            self._internal_columns, "ENCODED_URL"
+        )
+
+    def _rewrite_internal_expression(self, expr: str, table_alias: str) -> str:
+        return _APP_URLS_ENCODED_URL_RE.sub(f"{table_alias}.ENCODED_URL", expr)
+
+    def _fetch_internal_overflow_values(
+        self,
+        overflow_exprs: Sequence[tuple[str, str, str]],
+        table_alias: str,
+        where_sql: str,
+        params: Sequence[Any],
+        key_col: str,
+        row_keys: Sequence[Any],
+    ) -> dict[Any, dict[str, Any]]:
+        unique_keys = [key for key in dict.fromkeys(row_keys) if key is not None]
+        if not unique_keys:
+            return {}
+        key_expr = f"{table_alias}.{key_col}"
+        key_placeholders = ", ".join("?" for _ in unique_keys)
+        scoped_where_sql = (
+            f"{where_sql} AND {key_expr} IN ({key_placeholders})"
+            if where_sql
+            else f" WHERE {key_expr} IN ({key_placeholders})"
+        )
+        overflow_values: dict[Any, dict[str, Any]] = {}
+        batch_size = max(1, self._DERBY_SELECT_LIMIT - 1)
+        for batch_start in range(0, len(overflow_exprs), batch_size):
+            batch = overflow_exprs[batch_start : batch_start + batch_size]
+            select_parts = [key_expr]
+            select_parts.extend(
+                f"{self._rewrite_internal_expression(expr, table_alias)} AS {alias}"
+                for alias, _csv_col, expr in batch
+            )
+            sql = (
+                f"SELECT {', '.join(select_parts)} "
+                f"FROM {self._table} {table_alias}{scoped_where_sql}"
+            )
+            cursor = self._conn.cursor()
+            cursor.execute(sql, [*params, *unique_keys])
+            columns = [desc[0] for desc in cursor.description or [key_col]]
+            resolved_key_col = _resolve_column_name(columns, key_col) or key_col
+            for row in _iter_cursor_rows(cursor):
+                data = {col: val for col, val in zip(columns, row)}
+                row_key = data.pop(resolved_key_col, None)
+                if row_key is None:
+                    continue
+                overflow_values.setdefault(row_key, {}).update(data)
+        return overflow_values
 
     def _resolve_unique_url_id(self, url: str) -> Optional[int]:
         cursor = self._conn.cursor()

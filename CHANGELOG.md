@@ -48,6 +48,8 @@
 - Added a generic supplementary-derived lookup path so tab fields can be derived from related encoded-URL tables without forcing CSV fallback.
 - Mapped `orphan_pages.csv -> URL` to the inlink destination URL.
 - Added CLOB-aware Derby row streaming and HTML-link extraction helpers to support exact derived fields from `APP.URLS.ORIGINAL_CONTENT`.
+- Fixed Derby `crawl.internal` select-list overflow correctly by batching expression overflow queries per streamed chunk instead of preloading full-crawl overflow data into memory.
+- Fixed SQLite and DuckDB row iteration paths to stream via `fetchmany()` instead of materializing full result sets with `fetchall()`, and fixed SQLite empty-sequence filters to compile to `1=0` instead of invalid `IN ()`.
 - Tightened `schemas/mapping_nulls.md` / `schemas/inlinks_mapping_nulls.md` so they only report true unresolved `NULL` placeholders, not runtime/derived/blob-backed fields.
 - Expanded the `use cases/` corpus with packaged workflow docs for agencies, ecommerce, publishing, migrations, multi-location, QA/governance, product ideas, data science, analytics joins, and operations integrations.
 - Added persona/workflow indexes plus new packaged workflow notes for affiliate, directory/marketplace, newsroom, docs/API, franchise, regulated, education, and exec-scorecard use cases.
