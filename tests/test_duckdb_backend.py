@@ -382,6 +382,7 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
 
     broken = duck.broken_inlinks_report()
     broken_pages = duck.broken_links_report()
+    non_indexable = duck.indexability_audit()
     nofollow = duck.nofollow_inlinks_report()
     orphans = duck.orphan_pages_report()
     indexable_orphans = duck.orphan_pages_report(only_indexable=True)
@@ -473,6 +474,17 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
             "Inlinks": 1,
             "Inlink Sources": ["https://example.com/nav"],
             "Inlink Anchors": ["Broken internal"],
+        }
+    ]
+    assert non_indexable == [
+        {
+            "Address": "https://example.com/noindex-orphan",
+            "Status Code": 200,
+            "Indexability": "Non-Indexable",
+            "Indexability Status": "Noindex",
+            "Canonical": None,
+            "Meta Robots": None,
+            "X-Robots-Tag": None,
         }
     ]
     assert [row["Address"] for row in orphans] == [

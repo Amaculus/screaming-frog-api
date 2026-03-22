@@ -1183,6 +1183,9 @@ class Crawl:
 
     def indexability_audit(self) -> list[dict[str, Any]]:
         """Return non-indexable pages with their key indexability fields."""
+        duckdb_rows = _duckdb_indexability_audit(self)
+        if duckdb_rows is not None:
+            return duckdb_rows
         rows: list[dict[str, Any]] = []
         for page in self.internal:
             if not _is_non_indexable(page):
@@ -1959,10 +1962,10 @@ def _duckdb_summary(crawl: Crawl) -> dict[str, Any] | None:
         "orphan_pages": orphan_pages,
         "non_indexable_pages": non_indexable_pages,
         "redirect_chains": redirect_chains,
-        "security_issues": len(crawl.security_issues_report()),
-        "canonical_issues": len(crawl.canonical_issues_report()),
-        "hreflang_issues": len(crawl.hreflang_issues_report()),
-        "redirect_issues": len(crawl.redirect_issues_report()),
+        "security_issues": _duckdb_issue_tab_count(backend, _SECURITY_ISSUE_TABS),
+        "canonical_issues": _duckdb_issue_tab_count(backend, _CANONICAL_ISSUE_TABS),
+        "hreflang_issues": _duckdb_issue_tab_count(backend, _HREFLANG_ISSUE_TABS),
+        "redirect_issues": _duckdb_issue_tab_count(backend, _REDIRECT_ISSUE_TABS),
     }
 
 
@@ -1984,8 +1987,88 @@ def _duckdb_count_exported_tab_rows(backend: DuckDBBackend, tab_name: str) -> in
     return _duckdb_scalar_count(backend, f"SELECT COUNT(*) AS count FROM {relation}")
 
 
+def _duckdb_issue_tab_count(backend: DuckDBBackend, issue_tabs: dict[str, str]) -> int:
+    return sum(_duckdb_count_exported_tab_rows(backend, tab_name) for tab_name in issue_tabs)
+
+
 def _duckdb_non_indexable_count(backend: DuckDBBackend, internal_relation: str) -> int:
+    where_sql = _duckdb_non_indexable_where(set(getattr(backend, "_internal_columns", [])))
+    if not where_sql:
+        return 0
+    return _duckdb_scalar_count(
+        backend,
+        f"SELECT COUNT(*) AS count FROM {internal_relation} WHERE {where_sql}",
+    )
+
+
+def _duckdb_indexability_audit(crawl: Crawl) -> list[dict[str, Any]] | None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return None
+
+    internal_relation = getattr(backend, "_internal_relation", None)
     internal_columns = set(getattr(backend, "_internal_columns", []))
+    if not internal_relation:
+        return None
+    where_sql = _duckdb_non_indexable_where(internal_columns)
+    if not where_sql:
+        return []
+
+    select_parts = [
+        'i."Address" AS address',
+        'i."Status Code" AS status_code',
+        _duckdb_optional_internal_select(
+            internal_columns,
+            ("Indexability", "INDEXABILITY"),
+            "indexability",
+        ),
+        _duckdb_optional_internal_select(
+            internal_columns,
+            ("Indexability Status", "INDEXABILITY_STATUS"),
+            "indexability_status",
+        ),
+        _duckdb_optional_internal_select(
+            internal_columns,
+            ("Canonical Link Element 1", "Canonical Link Element", "Canonical"),
+            "canonical",
+        ),
+        _duckdb_optional_internal_select(
+            internal_columns,
+            ("Meta Robots 1", "Meta Robots", "META_ROBOTS_1"),
+            "meta_robots",
+        ),
+        _duckdb_optional_internal_select(
+            internal_columns,
+            ("X-Robots-Tag 1", "X-Robots-Tag", "X_ROBOTS_TAG_1"),
+            "x_robots_tag",
+        ),
+    ]
+    sql = f"""
+        SELECT
+            {", ".join(select_parts)}
+        FROM {internal_relation} i
+        WHERE {where_sql}
+        ORDER BY i."Address"
+    """
+    try:
+        rows = list(backend.sql(sql))
+    except Exception:
+        return None
+    return [
+        {
+            "Address": row.get("address"),
+            "Status Code": _safe_int(row.get("status_code")),
+            "Indexability": row.get("indexability"),
+            "Indexability Status": row.get("indexability_status"),
+            "Canonical": row.get("canonical"),
+            "Meta Robots": row.get("meta_robots"),
+            "X-Robots-Tag": row.get("x_robots_tag"),
+        }
+        for row in rows
+    ]
+
+
+def _duckdb_non_indexable_where(internal_columns: set[str]) -> str | None:
     predicates: list[str] = []
     for column in ("Indexability", "Indexability Status", "INDEXABILITY", "INDEXABILITY_STATUS"):
         if column in internal_columns:
@@ -2003,13 +2086,21 @@ def _duckdb_non_indexable_count(backend: DuckDBBackend, internal_relation: str) 
     ):
         if column in internal_columns:
             predicates.append(f"""LOWER(COALESCE(CAST("{column}" AS VARCHAR), '')) LIKE '%noindex%'""")
-    if not predicates:
-        return 0
-    where_sql = " OR ".join(dict.fromkeys(predicates))
-    return _duckdb_scalar_count(
-        backend,
-        f"SELECT COUNT(*) AS count FROM {internal_relation} WHERE {where_sql}",
-    )
+    unique_predicates = list(dict.fromkeys(predicates))
+    if not unique_predicates:
+        return None
+    return " OR ".join(unique_predicates)
+
+
+def _duckdb_optional_internal_select(
+    internal_columns: set[str],
+    candidates: Sequence[str],
+    alias: str,
+) -> str:
+    for column in candidates:
+        if column in internal_columns:
+            return f'i."{column}" AS {alias}'
+    return f"NULL AS {alias}"
 
 
 def _shape_duckdb_inlink_row(row: dict[str, Any]) -> dict[str, Any]:
