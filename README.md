@@ -1,15 +1,26 @@
 # screamingfrog
 
-Python library for working with Screaming Frog SEO Spider crawl data via CSV exports,
-SQLite databases, Derby-based `.dbseospider` files, and `.seospider` crawl files.
+Python library for working with Screaming Frog SEO Spider crawl data programmatically.
+
+Public alpha is focused on DB-backed crawl workflows:
+- query `.dbseospider` crawls without manual exports
+- access all `628` mapped export/report surfaces
+- run sitewide page and link queries, raw SQL, crawl diff, and chain analysis
+- convert `.seospider` crawls into queryable DB-backed workflows
+- export DuckDB caches for faster repeated analysis
 
 See `methods.md` for a complete method-level API reference.
 
-## Phase 1 status
-- Backend interface + Internal-only CSV/DB backends
-- Unified `Crawl` loader
-- Schema discovery utilities (CSV + SQLite)
-- Derby-backed .dbseospider support (requires Java runtime; Derby jars are bundled)
+## Public alpha status
+- `601 / 628` tabs fully mapped
+- `15,490 / 15,589` fields mapped
+- current `main` passes `195` tests (`2` skipped live/optional tests)
+
+## Known limitations
+- Title and meta-description pixel-width filters are not implemented yet.
+- Some hreflang edge cases still do not have exact Derby parity (`unlinked` / incorrect language-code cases).
+- DuckDB is an optional analytics cache, not the default source-of-truth backend.
+- `.seospider` conversion requires a local Screaming Frog CLI install.
 
 ## Quick start
 
@@ -486,15 +497,27 @@ write_seospider_config(
 )
 ```
 
-## Installation (single install)
+## Installation
 
-Derby support (`.dbseospider`) and `.seospiderconfig` writing are included in the base install:
+Recommended public-alpha install from GitHub:
 
 ```bash
-python -m pip install -e .
+python -m pip install "git+https://github.com/Amaculus/sf-alpha.git@v0.2.0a1"
 ```
 
-Optional extras still exist (`[derby]`, `[config]`, `[alpha]`) but are no longer required.
+If you want the latest unreleased `main` branch instead:
+
+```bash
+python -m pip install "git+https://github.com/Amaculus/sf-alpha.git@main"
+```
+
+For local development from a clone:
+
+```bash
+python -m pip install -e .[dev]
+```
+
+Derby support (`.dbseospider`), DuckDB export, and `.seospiderconfig` writing are included in the base install. Optional extras still exist (`[derby]`, `[config]`, `[duckdb]`, `[alpha]`) but are not required for a standard install.
 
 Bundled Derby jars are included with this package (Apache Derby 10.17.1.0), so
 `DERBY_JAR` is optional. Set `DERBY_JAR` if you want to override the bundled jars

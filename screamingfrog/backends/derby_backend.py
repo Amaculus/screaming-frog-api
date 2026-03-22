@@ -2221,6 +2221,7 @@ def _load_mapping(mapping_path: Optional[str]) -> dict[str, Any]:
     if env_mapping:
         candidates.append(Path(env_mapping))
     candidates.append(Path.cwd() / "schemas" / "mapping.json")
+    candidates.append(Path(__file__).resolve().parents[1] / "resources" / "mapping.json")
     candidates.append(Path(__file__).resolve().parents[2] / "schemas" / "mapping.json")
 
     for candidate in candidates:

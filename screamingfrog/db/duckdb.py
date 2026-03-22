@@ -157,7 +157,7 @@ def resolve_relation_name(conn: Any, kind: str, export_name: str) -> str | None:
 
 
 def _write_relation(conn: Any, relation_name: str, rows: Iterable[Mapping[str, Any]]) -> bool:
-    iterator = iter(rows)
+    iterator = (_normalize_export_row(row) for row in rows)
     buffered: list[Mapping[str, Any]] = []
     for _ in range(200):
         try:
@@ -174,6 +174,22 @@ def _write_relation(conn: Any, relation_name: str, rows: Iterable[Mapping[str, A
     _insert_rows(conn, relation_name, columns, buffered)
     _insert_rows(conn, relation_name, columns, iterator)
     return True
+
+
+def _normalize_export_row(row: Mapping[str, Any]) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
+    canonical_keys: dict[str, str] = {}
+    for key, value in row.items():
+        text = str(key)
+        folded = text.casefold()
+        existing_key = canonical_keys.get(folded)
+        if existing_key is None:
+            canonical_keys[folded] = text
+            normalized[text] = value
+            continue
+        if normalized.get(existing_key) is None and value is not None:
+            normalized[existing_key] = value
+    return normalized
 
 
 def _ordered_columns(rows: Sequence[Mapping[str, Any]]) -> list[str]:
@@ -252,10 +268,22 @@ def _convert_duckdb_value(value: Any) -> Any:
         return bytes(value)
     if isinstance(value, bytearray):
         return bytes(value)
+    derby_blob = _derby_blob_bytes(value)
+    if derby_blob is not None:
+        return derby_blob
+    derby_clob = _derby_clob_text(value)
+    if derby_clob is not None:
+        return derby_clob
+    java_scalar = _java_scalar_value(value)
+    if java_scalar is not None:
+        return java_scalar
     if isinstance(value, (dict, list, tuple, set)):
         return json.dumps(value, ensure_ascii=False)
     if isinstance(value, Path):
         return str(value)
+    java_fallback = _java_object_fallback(value)
+    if java_fallback is not None:
+        return java_fallback
     return value
 
 
@@ -373,6 +401,98 @@ def iter_cursor_rows(cursor: Any, batch_size: int = _FETCH_BATCH_SIZE) -> Iterat
             yield row
 
 
+def _derby_blob_bytes(value: Any) -> bytes | None:
+    get_bytes = getattr(value, "getBytes", None)
+    length_fn = getattr(value, "length", None)
+    if not callable(get_bytes) or not callable(length_fn):
+        return None
+    try:
+        length = int(length_fn())
+    except Exception:
+        return None
+    try:
+        return bytes(get_bytes(1, length))
+    except Exception:
+        return None
+
+
+def _derby_clob_text(value: Any) -> str | None:
+    get_substring = getattr(value, "getSubString", None)
+    length_fn = getattr(value, "length", None)
+    if not callable(get_substring) or not callable(length_fn):
+        return None
+    try:
+        length = int(length_fn())
+    except Exception:
+        return None
+    try:
+        return str(get_substring(1, length))
+    except Exception:
+        return None
+
+
+def _java_scalar_value(value: Any) -> Any:
+    class_name = _java_class_name(value)
+    if class_name is None:
+        return None
+    if class_name == "java.lang.Boolean":
+        boolean_value = getattr(value, "booleanValue", None)
+        if callable(boolean_value):
+            try:
+                return bool(boolean_value())
+            except Exception:
+                return None
+        return None
+    if class_name in {
+        "java.lang.Integer",
+        "java.lang.Long",
+        "java.lang.Short",
+        "java.lang.Byte",
+        "java.math.BigInteger",
+    }:
+        try:
+            return int(value)
+        except Exception:
+            return None
+    if class_name in {
+        "java.lang.Double",
+        "java.lang.Float",
+        "java.math.BigDecimal",
+    }:
+        try:
+            return float(value)
+        except Exception:
+            return None
+    if class_name in {"java.lang.String", "java.lang.Character"}:
+        try:
+            return str(value)
+        except Exception:
+            return None
+    return None
+
+
+def _java_object_fallback(value: Any) -> str | None:
+    class_name = _java_class_name(value)
+    if class_name is None:
+        return None
+    try:
+        return str(value)
+    except Exception:
+        return None
+
+
+def _java_class_name(value: Any) -> str | None:
+    class_name = getattr(value, "__sf_java_class_name__", None)
+    if isinstance(class_name, str) and class_name:
+        return class_name
+    type_text = str(type(value))
+    prefix = "<java class '"
+    suffix = "'>"
+    if type_text.startswith(prefix) and type_text.endswith(suffix):
+        return type_text[len(prefix) : -len(suffix)]
+    return None
+
+
 def _quote_identifier(value: str) -> str:
     return '"' + str(value).replace('"', '""') + '"'
 
@@ -393,3 +513,4 @@ def _import_duckdb():
     except ModuleNotFoundError as exc:  # pragma: no cover - dependency error path
         raise ImportError("duckdb is required for DuckDB export support.") from exc
     return duckdb
+

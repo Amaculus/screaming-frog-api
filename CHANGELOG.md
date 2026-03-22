@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.0a1 (2026-03-21)
 - Added DuckDB analytics-cache support:
   - `Crawl.from_duckdb(...)`
   - `crawl.export_duckdb(...)`

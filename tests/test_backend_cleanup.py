@@ -4,7 +4,7 @@ from typing import Any
 
 from screamingfrog.backends.db_backend import DatabaseBackend, _build_sqlite_where
 from screamingfrog.backends.duckdb_backend import DuckDBBackend
-from screamingfrog.db.duckdb import iter_relation_rows
+from screamingfrog.db.duckdb import _convert_duckdb_value, _normalize_export_row, iter_relation_rows
 
 
 class _FakeCursor:
@@ -53,6 +53,85 @@ class _FakeConnection:
         cursor.executed_sql = sql
         cursor.executed_params = list(params or [])
         return cursor
+
+
+class _FakeBlob:
+    def __init__(self, data: bytes) -> None:
+        self._data = data
+
+    def length(self) -> int:
+        return len(self._data)
+
+    def getBytes(self, start: int, length: int) -> bytes:
+        offset = max(0, start - 1)
+        return self._data[offset : offset + length]
+
+
+class _FakeClob:
+    def __init__(self, data: str) -> None:
+        self._data = data
+
+    def length(self) -> int:
+        return len(self._data)
+
+    def getSubString(self, start: int, length: int) -> str:
+        offset = max(0, start - 1)
+        return self._data[offset : offset + length]
+
+
+class _FakeJavaClassMeta(type):
+    java_class_name = "java.lang.Object"
+
+    def __str__(cls) -> str:
+        return f"<java class '{cls.java_class_name}'>"
+
+    __repr__ = __str__
+
+
+class _FakeJavaInteger(metaclass=_FakeJavaClassMeta):
+    java_class_name = "java.lang.Integer"
+
+    def __init__(self, value: int) -> None:
+        self._value = value
+
+    def __int__(self) -> int:
+        return self._value
+
+    def __str__(self) -> str:
+        return str(self._value)
+
+
+class _FakeJavaDouble(metaclass=_FakeJavaClassMeta):
+    java_class_name = "java.lang.Double"
+
+    def __init__(self, value: float) -> None:
+        self._value = value
+
+    def __float__(self) -> float:
+        return self._value
+
+    def __str__(self) -> str:
+        return str(self._value)
+
+
+class _FakeJavaBoolean(metaclass=_FakeJavaClassMeta):
+    java_class_name = "java.lang.Boolean"
+
+    def __init__(self, value: bool) -> None:
+        self._value = value
+
+    def booleanValue(self) -> bool:
+        return self._value
+
+    def __str__(self) -> str:
+        return "true" if self._value else "false"
+
+
+class _FakeJavaOpaque(metaclass=_FakeJavaClassMeta):
+    java_class_name = "com.example.Opaque"
+
+    def __str__(self) -> str:
+        return "opaque-value"
 
 
 def test_sqlite_build_where_handles_empty_sequences() -> None:
@@ -135,3 +214,33 @@ def test_duckdb_iter_relation_rows_streams_without_fetchall() -> None:
     assert cursor.executed_sql == "SELECT * FROM app.urls"
     assert cursor.fetchall_called == 0
     assert len(cursor.fetchmany_calls) >= 1
+
+
+def test_convert_duckdb_value_handles_derby_blob_and_clob_objects() -> None:
+    assert _convert_duckdb_value(_FakeBlob(b"abc")) == b"abc"
+    assert _convert_duckdb_value(_FakeClob("hello")) == "hello"
+
+
+def test_convert_duckdb_value_handles_java_scalar_wrappers() -> None:
+    assert _convert_duckdb_value(_FakeJavaInteger(7)) == 7
+    assert _convert_duckdb_value(_FakeJavaDouble(1.5)) == 1.5
+    assert _convert_duckdb_value(_FakeJavaBoolean(False)) is False
+
+
+def test_convert_duckdb_value_stringifies_unknown_java_objects() -> None:
+    assert _convert_duckdb_value(_FakeJavaOpaque()) == "opaque-value"
+
+
+def test_normalize_export_row_coalesces_case_insensitive_duplicates() -> None:
+    normalized = _normalize_export_row(
+        {
+            "Response Header: content-length": None,
+            "Response Header: Content-Length": "123",
+            "Address": "https://example.com/",
+        }
+    )
+
+    assert normalized == {
+        "Response Header: content-length": "123",
+        "Address": "https://example.com/",
+    }

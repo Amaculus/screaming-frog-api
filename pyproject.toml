@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "screamingfrog"
-version = "0.1.1"
+version = "0.2.0a1"
 description = "Python library for working with Screaming Frog SEO Spider crawl data"
 readme = "README.md"
 license = {text = "MIT"}
@@ -62,6 +62,7 @@ screamingfrog = [
   "vendor/derby/LICENSE",
   "vendor/derby/NOTICE",
   "config/*.txt",
+  "resources/*.json",
 ]
 
 [tool.pytest.ini_options]
