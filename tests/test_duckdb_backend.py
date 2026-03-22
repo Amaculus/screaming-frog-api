@@ -145,3 +145,22 @@ def test_export_duckdb_can_materialize_all_available_tabs(tmp_path: Path) -> Non
 
     assert "response_codes_internal_client_error_(4xx).csv" in duck.tabs
     assert rows == [{"Address": "https://example.com/broken", "Status Code": 404}]
+
+
+def test_duckdb_backend_resolves_gui_filters_and_base_all_tabs(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-all.duckdb"
+
+    crawl.export_duckdb(str(target), source_label="fake-crawl", tabs="all")
+    duck = Crawl.from_duckdb(str(target))
+
+    filtered = duck.tab("Response Codes").filter(gui="Internal Client Error (4xx)").collect()
+    internal_rows = duck.tab("Internal").collect()
+    internal_columns = duck.tab_columns("Internal")
+
+    assert filtered == [{"Address": "https://example.com/broken", "Status Code": 404}]
+    assert internal_rows == [
+        {"Address": "https://example.com/ok", "Status Code": 200, "Title 1": "OK"},
+        {"Address": "https://example.com/broken", "Status Code": 404, "Title 1": ""},
+    ]
+    assert internal_columns == ["Address", "Status Code", "Title 1"]

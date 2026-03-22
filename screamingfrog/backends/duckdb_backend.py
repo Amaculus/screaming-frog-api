@@ -10,6 +10,7 @@ from screamingfrog.db.duckdb import (
     list_exported_tabs,
     resolve_relation_name,
 )
+from screamingfrog.filters.names import make_tab_filename, normalize_name
 from screamingfrog.models import InternalPage, Link
 
 
@@ -21,8 +22,8 @@ class DuckDBBackend(CrawlBackend):
         if not self.db_path.exists():
             raise FileNotFoundError(f"DuckDB database not found: {self.db_path}")
         self._duckdb = _import_duckdb()
-        self.conn = self._duckdb.connect(str(self.db_path), read_only=False)
-        internal_relation = resolve_relation_name(self.conn, "tab", "internal_all")
+        self.conn = self._duckdb.connect(str(self.db_path), read_only=True)
+        internal_relation = _resolve_tab_relation(self.conn, "internal_all", None)
         if not internal_relation:
             raise ValueError(
                 "DuckDB cache is missing the materialized internal_all tab. Re-export the crawl."
@@ -82,8 +83,14 @@ class DuckDBBackend(CrawlBackend):
     def get_tab(
         self, tab_name: str, filters: Optional[dict[str, Any]] = None
     ) -> Iterator[dict[str, Any]]:
-        relation = resolve_relation_name(self.conn, "tab", tab_name)
+        filters = dict(filters or {})
+        gui_filter = filters.pop("__gui__", None)
+        relation = _resolve_tab_relation(self.conn, tab_name, gui_filter)
         if not relation:
+            if gui_filter:
+                raise NotImplementedError(
+                    f"Tab not available in DuckDB cache: {make_tab_filename(str(tab_name), str(gui_filter))}"
+                )
             raise NotImplementedError(f"Tab not available in DuckDB cache: {tab_name}")
         return self._iter_relation(relation, filters=filters)
 
@@ -100,7 +107,7 @@ class DuckDBBackend(CrawlBackend):
             yield {col: val for col, val in zip(columns, row)}
 
     def tab_columns(self, tab_name: str) -> list[str]:
-        relation = resolve_relation_name(self.conn, "tab", tab_name)
+        relation = _resolve_tab_relation(self.conn, tab_name, None)
         if not relation:
             return []
         return self._get_relation_columns(relation)
@@ -199,6 +206,58 @@ def _row_matches(row: dict[str, Any], filters: dict[str, Any]) -> bool:
 
 def _normalize_key(value: str) -> str:
     return str(value).strip().lower().replace(" ", "_")
+
+
+def _resolve_tab_relation(conn: Any, tab_name: str, gui_filter: Any) -> str | None:
+    candidates = _tab_export_candidates(tab_name, gui_filter)
+    for candidate in candidates:
+        relation = resolve_relation_name(conn, "tab", candidate)
+        if relation:
+            return relation
+    return None
+
+
+def _tab_export_candidates(tab_name: str, gui_filter: Any) -> list[str]:
+    if isinstance(gui_filter, (list, tuple, set)):
+        if len(gui_filter) != 1:
+            raise ValueError("DuckDB backend supports only a single gui filter")
+        gui_filter = list(gui_filter)[0]
+
+    name = str(tab_name).strip()
+    if not name:
+        raise ValueError("tab_name cannot be empty")
+
+    if gui_filter:
+        return [make_tab_filename(name, str(gui_filter))]
+
+    candidates: list[str] = []
+    if not name.lower().endswith(".csv"):
+        candidates.append(f"{name}.csv")
+    candidates.append(name)
+
+    normalized = normalize_name(name)
+    if normalized and not normalized.lower().endswith(".csv"):
+        normalized = f"{normalized}.csv"
+    if normalized:
+        candidates.append(normalized)
+
+    extra: list[str] = []
+    for candidate in candidates:
+        lower = candidate.lower()
+        if lower.endswith("_all.csv") or not lower.endswith(".csv"):
+            continue
+        extra.append(candidate[:-4] + "_all.csv")
+    candidates.extend(extra)
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for candidate in candidates:
+        lowered = candidate.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+        ordered.append(candidate)
+    return ordered
 
 
 def _quote_identifier(value: str) -> str:
