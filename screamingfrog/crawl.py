@@ -1131,6 +1131,13 @@ class Crawl:
         max_status: int = 599,
     ) -> list[dict[str, Any]]:
         """Return sitewide inlinks pointing to broken destinations."""
+        duckdb_rows = _duckdb_inlink_rows_for_report(
+            self,
+            where_clause="u.RESPONSE_CODE BETWEEN ? AND ?",
+            params=[min_status, max_status],
+        )
+        if duckdb_rows is not None:
+            return duckdb_rows
         rows: list[dict[str, Any]] = []
         for row in self.links("in"):
             status = _coerce_status_code(row.get("Status Code"))
@@ -1141,6 +1148,12 @@ class Crawl:
 
     def nofollow_inlinks_report(self) -> list[dict[str, Any]]:
         """Return sitewide inlinks marked as nofollow."""
+        duckdb_rows = _duckdb_inlink_rows_for_report(
+            self,
+            where_clause="COALESCE(l.NOFOLLOW, FALSE) = TRUE",
+        )
+        if duckdb_rows is not None:
+            return duckdb_rows
         rows: list[dict[str, Any]] = []
         for row in self.links("in"):
             if _row_is_nofollow(row):
@@ -1196,6 +1209,13 @@ class Crawl:
         only_indexable: bool = False,
     ) -> list[dict[str, Any]]:
         """Return pages that have no incoming links in the crawl graph."""
+        duckdb_rows = _duckdb_orphan_rows_for_report(
+            self,
+            ignore_self_links=ignore_self_links,
+            only_indexable=only_indexable,
+        )
+        if duckdb_rows is not None:
+            return duckdb_rows
         incoming: dict[str, int] = {}
         for row in self.links("in"):
             address = str(
@@ -1674,6 +1694,180 @@ def _issue_rows_from_tabs(crawl: Crawl, tab_issues: dict[str, str]) -> list[dict
         except Exception:
             continue
     return rows
+
+
+def _duckdb_inlink_rows_for_report(
+    crawl: Crawl,
+    *,
+    where_clause: str | None = None,
+    params: Sequence[Any] | None = None,
+) -> list[dict[str, Any]] | None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return None
+
+    sql = """
+        SELECT
+            s.ENCODED_URL AS source_url,
+            d.ENCODED_URL AS destination_url,
+            l.ALT_TEXT AS alt_text,
+            l.LINK_TEXT AS anchor_text,
+            u.RESPONSE_CODE AS destination_status_code,
+            u.RESPONSE_MSG AS destination_status,
+            l.NOFOLLOW AS nofollow,
+            l.UGC AS ugc,
+            l.SPONSORED AS sponsored,
+            l.NOOPENER AS noopener,
+            l.NOREFERRER AS noreferrer,
+            l.TARGET AS target_value,
+            l.PATH_TYPE AS path_type,
+            l.ELEMENT_PATH AS element_path,
+            l.ELEMENT_POSITION AS element_position,
+            l.HREF_LANG AS href_lang,
+            l.LINK_TYPE AS link_type,
+            l.SCOPE AS scope_value,
+            l.ORIGIN AS origin_value
+        FROM APP.LINKS l
+        JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID
+        JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID
+        LEFT JOIN APP.URLS u ON u.ENCODED_URL = d.ENCODED_URL
+    """
+    query_params = list(params or [])
+    if where_clause:
+        sql = f"{sql} WHERE {where_clause}"
+    try:
+        return [_shape_duckdb_inlink_row(row) for row in backend.sql(sql, query_params)]
+    except Exception:
+        return None
+
+
+def _duckdb_orphan_rows_for_report(
+    crawl: Crawl,
+    *,
+    ignore_self_links: bool,
+    only_indexable: bool,
+) -> list[dict[str, Any]] | None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return None
+
+    internal_relation = getattr(backend, "_internal_relation", None)
+    if not internal_relation:
+        return None
+
+    incoming_where = "WHERE s.ENCODED_URL <> d.ENCODED_URL" if ignore_self_links else ""
+    sql = f"""
+        SELECT
+            i."Address" AS address,
+            i."Status Code" AS status_code,
+            i."Title 1" AS title_1,
+            i."Indexability" AS indexability,
+            i."Indexability Status" AS indexability_status,
+            COALESCE(incoming.inlinks, 0) AS inlinks
+        FROM {internal_relation} i
+        LEFT JOIN (
+            SELECT
+                d.ENCODED_URL AS address,
+                COUNT(*) AS inlinks
+            FROM APP.LINKS l
+            JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID
+            JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID
+            {incoming_where}
+            GROUP BY d.ENCODED_URL
+        ) incoming ON incoming.address = i."Address"
+        WHERE COALESCE(incoming.inlinks, 0) = 0
+    """
+    try:
+        rows = list(backend.sql(sql))
+    except Exception:
+        return None
+
+    shaped: list[dict[str, Any]] = []
+    for row in rows:
+        report_row = {
+            "Address": row.get("address"),
+            "Status Code": row.get("status_code"),
+            "Title 1": row.get("title_1"),
+            "Indexability": row.get("indexability"),
+            "Indexability Status": row.get("indexability_status"),
+            "Inlinks": 0,
+        }
+        if only_indexable and _row_is_non_indexable(report_row):
+            continue
+        shaped.append(report_row)
+    return shaped
+
+
+def _shape_duckdb_inlink_row(row: dict[str, Any]) -> dict[str, Any]:
+    nofollow = _to_bool(row.get("nofollow"))
+    ugc = _to_bool(row.get("ugc"))
+    sponsored = _to_bool(row.get("sponsored"))
+    noopener = _to_bool(row.get("noopener"))
+    noreferrer = _to_bool(row.get("noreferrer"))
+    follow = None if nofollow is None else not nofollow
+
+    return {
+        "Type": _duckdb_link_type_name(row.get("link_type")),
+        "Source": row.get("source_url"),
+        "Address": row.get("destination_url"),
+        "Destination": row.get("destination_url"),
+        "Alt Text": row.get("alt_text"),
+        "Anchor": row.get("anchor_text"),
+        "Status Code": row.get("destination_status_code"),
+        "Status": row.get("destination_status"),
+        "Follow": follow,
+        "Target": row.get("target_value"),
+        "Rel": _duckdb_rel_value(nofollow, ugc, sponsored, noopener, noreferrer),
+        "Path Type": row.get("path_type"),
+        "Link Path": row.get("element_path"),
+        "Link Position": row.get("element_position"),
+        "hreflang": row.get("href_lang"),
+        "Link Type": row.get("link_type"),
+        "Scope": row.get("scope_value"),
+        "Origin": row.get("origin_value"),
+        "NoFollow": nofollow,
+        "UGC": ugc,
+        "Sponsored": sponsored,
+        "Noopener": noopener,
+        "Noreferrer": noreferrer,
+    }
+
+
+def _duckdb_rel_value(
+    nofollow: bool | None,
+    ugc: bool | None,
+    sponsored: bool | None,
+    noopener: bool | None,
+    noreferrer: bool | None,
+) -> str | None:
+    rel_tokens: list[str] = []
+    if nofollow:
+        rel_tokens.append("nofollow")
+    if ugc:
+        rel_tokens.append("ugc")
+    if sponsored:
+        rel_tokens.append("sponsored")
+    if noopener:
+        rel_tokens.append("noopener")
+    if noreferrer:
+        rel_tokens.append("noreferrer")
+    if not rel_tokens:
+        return None
+    return " ".join(rel_tokens)
+
+
+def _duckdb_link_type_name(value: Any) -> str | None:
+    code = _safe_int(value)
+    if code is None:
+        return None if value in (None, "") else str(value)
+    return {
+        1: "Hyperlink",
+        6: "Canonical",
+        8: "Rel Prev",
+        10: "Rel Next",
+        12: "Hreflang (HTTP)",
+        13: "Hreflang",
+    }.get(code, str(code))
 
 
 def _index_internal_normalized(crawl: Crawl) -> dict[str, InternalPage]:

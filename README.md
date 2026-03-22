@@ -135,6 +135,7 @@ Notes:
 - Derby remains the source-of-truth crawl store.
 - DuckDB is the default analysis engine for DB-backed workflows.
 - Current DuckDB export materializes key tabs (`internal_all`, `all_inlinks`, `all_outlinks`, redirect/canonical chain tabs) plus raw `APP.URLS`, `APP.LINKS`, and `APP.UNIQUE_URLS`.
+- Key link-graph reports (`broken_inlinks_report`, `nofollow_inlinks_report`, `orphan_pages_report`) now compute directly from raw DuckDB relations, so they still work even when `all_inlinks` is not materialized.
 - You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
 - `.dbseospider`, `.seospider`, and DB crawl ID loaders can all auto-promote to DuckDB.
 - Use `tabs="all"` if you want to materialize every currently available mapped tab into the DuckDB cache.
