@@ -22,6 +22,7 @@ from screamingfrog.db.duckdb import (
     export_duckdb_from_backend,
     export_duckdb_from_db_id,
     export_duckdb_from_derby,
+    resolve_relation_name,
 )
 from screamingfrog.db.packaging import find_project_dir, load_seospider_db_project, pack_dbseospider
 from screamingfrog.filters.registry import list_filters as list_gui_filters
@@ -1056,6 +1057,9 @@ class Crawl:
 
     def summary(self) -> dict[str, Any]:
         """Return a compact crawl-level summary for monitoring and automation."""
+        duckdb_summary = _duckdb_summary(self)
+        if duckdb_summary is not None:
+            return duckdb_summary
         return {
             "pages": self.pages().count(),
             "tabs": len(self.tabs),
@@ -1106,6 +1110,14 @@ class Crawl:
         max_inlinks: int | None = 25,
     ) -> list[dict[str, Any]]:
         """Return broken internal URLs with optional sampled inlink sources."""
+        duckdb_rows = _duckdb_broken_links_report(
+            self,
+            min_status=min_status,
+            max_status=max_status,
+            max_inlinks=max_inlinks,
+        )
+        if duckdb_rows is not None:
+            return duckdb_rows
         rows: list[dict[str, Any]] = []
         for issue in _iter_broken_pages(self, min_status=min_status, max_status=max_status):
             url = str(issue.get("Address") or "").strip()
@@ -1796,6 +1808,208 @@ def _duckdb_orphan_rows_for_report(
             continue
         shaped.append(report_row)
     return shaped
+
+
+def _duckdb_broken_links_report(
+    crawl: Crawl,
+    *,
+    min_status: int,
+    max_status: int,
+    max_inlinks: int | None,
+) -> list[dict[str, Any]] | None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return None
+
+    internal_relation = getattr(backend, "_internal_relation", None)
+    urls_relation = resolve_relation_name(backend.conn, "raw", "APP.URLS")
+    links_relation = resolve_relation_name(backend.conn, "raw", "APP.LINKS")
+    unique_urls_relation = resolve_relation_name(backend.conn, "raw", "APP.UNIQUE_URLS")
+    if not internal_relation or not urls_relation or not links_relation or not unique_urls_relation:
+        return None
+
+    broken_pages_sql = f'''
+        SELECT i."Address" AS address, i."Status Code" AS status_code
+        FROM {internal_relation} i
+        WHERE i."Status Code" BETWEEN ? AND ?
+        ORDER BY i."Address"
+    '''
+    try:
+        broken_pages = list(backend.sql(broken_pages_sql, [min_status, max_status]))
+    except Exception:
+        return None
+    if not broken_pages:
+        return []
+
+    pages_by_address: dict[str, dict[str, Any]] = {}
+    ordered_addresses: list[str] = []
+    for row in broken_pages:
+        address = str(row.get("address") or "").strip()
+        if not address or address in pages_by_address:
+            continue
+        ordered_addresses.append(address)
+        pages_by_address[address] = {
+            "Address": address,
+            "Status Code": _safe_int(row.get("status_code")),
+            "Inlinks": 0,
+            "Inlink Sources": [],
+            "Inlink Anchors": [],
+        }
+
+    if not ordered_addresses:
+        return []
+
+    placeholders = ", ".join("?" for _ in ordered_addresses)
+    inlinks_sql = f'''
+        SELECT
+            d.ENCODED_URL AS address,
+            s.ENCODED_URL AS source_url,
+            l.LINK_TEXT AS anchor_text
+        FROM {links_relation} l
+        JOIN {unique_urls_relation} s ON l.SRC_ID = s.ID
+        JOIN {unique_urls_relation} d ON l.DST_ID = d.ID
+        WHERE d.ENCODED_URL IN ({placeholders})
+        ORDER BY d.ENCODED_URL, s.ENCODED_URL, l.LINK_TEXT
+    '''
+    try:
+        for row in backend.sql(inlinks_sql, ordered_addresses):
+            address = str(row.get("address") or "").strip()
+            report_row = pages_by_address.get(address)
+            if report_row is None:
+                continue
+            report_row["Inlinks"] = _safe_int(report_row.get("Inlinks")) or 0
+            report_row["Inlinks"] += 1
+            limit = max_inlinks if max_inlinks is not None and max_inlinks >= 0 else None
+            if limit is None or len(report_row["Inlink Sources"]) < limit:
+                report_row["Inlink Sources"].append(row.get("source_url"))
+                report_row["Inlink Anchors"].append(row.get("anchor_text"))
+    except Exception:
+        return None
+
+    return [pages_by_address[address] for address in ordered_addresses]
+
+
+def _duckdb_summary(crawl: Crawl) -> dict[str, Any] | None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return None
+
+    internal_relation = getattr(backend, "_internal_relation", None)
+    links_relation = resolve_relation_name(backend.conn, "raw", "APP.LINKS")
+    urls_relation = resolve_relation_name(backend.conn, "raw", "APP.URLS")
+    unique_urls_relation = resolve_relation_name(backend.conn, "raw", "APP.UNIQUE_URLS")
+    if not internal_relation:
+        return None
+
+    pages = _duckdb_scalar_count(backend, f"SELECT COUNT(*) AS count FROM {internal_relation}")
+    broken_pages = _duckdb_scalar_count(
+        backend,
+        f'SELECT COUNT(*) AS count FROM {internal_relation} WHERE "Status Code" BETWEEN ? AND ?',
+        [400, 599],
+    )
+    non_indexable_pages = _duckdb_non_indexable_count(backend, internal_relation)
+    redirect_chains = _duckdb_count_exported_tab_rows(backend, "redirect_chains")
+
+    broken_inlinks = 0
+    nofollow_inlinks = 0
+    orphan_pages = 0
+    if links_relation and urls_relation and unique_urls_relation:
+        broken_inlinks = _duckdb_scalar_count(
+            backend,
+            f"""
+            SELECT COUNT(*) AS count
+            FROM {links_relation} l
+            JOIN {unique_urls_relation} d ON l.DST_ID = d.ID
+            JOIN {urls_relation} u ON u.ENCODED_URL = d.ENCODED_URL
+            WHERE u.RESPONSE_CODE BETWEEN ? AND ?
+            """,
+            [400, 599],
+        )
+        nofollow_inlinks = _duckdb_scalar_count(
+            backend,
+            f"""
+            SELECT COUNT(*) AS count
+            FROM {links_relation} l
+            WHERE COALESCE(l.NOFOLLOW, FALSE) = TRUE
+            """,
+        )
+        orphan_pages = _duckdb_scalar_count(
+            backend,
+            f"""
+            SELECT COUNT(*) AS count
+            FROM {internal_relation} i
+            LEFT JOIN (
+                SELECT d.ENCODED_URL AS address, COUNT(*) AS inlinks
+                FROM {links_relation} l
+                JOIN {unique_urls_relation} s ON l.SRC_ID = s.ID
+                JOIN {unique_urls_relation} d ON l.DST_ID = d.ID
+                WHERE s.ENCODED_URL <> d.ENCODED_URL
+                GROUP BY d.ENCODED_URL
+            ) incoming ON incoming.address = i."Address"
+            WHERE COALESCE(incoming.inlinks, 0) = 0
+            """,
+        )
+
+    return {
+        "pages": pages,
+        "tabs": len(crawl.tabs),
+        "broken_pages": broken_pages,
+        "broken_inlinks": broken_inlinks,
+        "nofollow_inlinks": nofollow_inlinks,
+        "orphan_pages": orphan_pages,
+        "non_indexable_pages": non_indexable_pages,
+        "redirect_chains": redirect_chains,
+        "security_issues": len(crawl.security_issues_report()),
+        "canonical_issues": len(crawl.canonical_issues_report()),
+        "hreflang_issues": len(crawl.hreflang_issues_report()),
+        "redirect_issues": len(crawl.redirect_issues_report()),
+    }
+
+
+def _duckdb_scalar_count(
+    backend: DuckDBBackend,
+    sql: str,
+    params: Sequence[Any] | None = None,
+) -> int:
+    row = next(backend.sql(sql, params or []), None)
+    if not row:
+        return 0
+    return _safe_int(row.get("count")) or 0
+
+
+def _duckdb_count_exported_tab_rows(backend: DuckDBBackend, tab_name: str) -> int:
+    relation = resolve_relation_name(backend.conn, "tab", tab_name)
+    if not relation:
+        return 0
+    return _duckdb_scalar_count(backend, f"SELECT COUNT(*) AS count FROM {relation}")
+
+
+def _duckdb_non_indexable_count(backend: DuckDBBackend, internal_relation: str) -> int:
+    internal_columns = set(getattr(backend, "_internal_columns", []))
+    predicates: list[str] = []
+    for column in ("Indexability", "Indexability Status", "INDEXABILITY", "INDEXABILITY_STATUS"):
+        if column in internal_columns:
+            predicates.append(
+                f"""LOWER(COALESCE(CAST("{column}" AS VARCHAR), '')) LIKE '%non-indexable%'"""
+            )
+            predicates.append(f"""LOWER(COALESCE(CAST("{column}" AS VARCHAR), '')) LIKE '%noindex%'""")
+    for column in (
+        "Meta Robots 1",
+        "Meta Robots",
+        "META_ROBOTS_1",
+        "X-Robots-Tag 1",
+        "X-Robots-Tag",
+        "X_ROBOTS_TAG_1",
+    ):
+        if column in internal_columns:
+            predicates.append(f"""LOWER(COALESCE(CAST("{column}" AS VARCHAR), '')) LIKE '%noindex%'""")
+    if not predicates:
+        return 0
+    where_sql = " OR ".join(dict.fromkeys(predicates))
+    return _duckdb_scalar_count(
+        backend,
+        f"SELECT COUNT(*) AS count FROM {internal_relation} WHERE {where_sql}",
+    )
 
 
 def _shape_duckdb_inlink_row(row: dict[str, Any]) -> dict[str, Any]:

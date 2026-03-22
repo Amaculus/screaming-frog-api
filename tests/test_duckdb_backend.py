@@ -119,6 +119,13 @@ class MinimalDuckReportBackend(CrawlBackend):
                     "Indexability": "Non-Indexable",
                     "Indexability Status": "Noindex",
                 },
+                {
+                    "Address": "https://example.com/broken-page",
+                    "Status Code": 404,
+                    "Title 1": "Broken Page",
+                    "Indexability": "Indexable",
+                    "Indexability Status": "Indexable",
+                },
             ]
         }
         self._raw = {
@@ -126,6 +133,7 @@ class MinimalDuckReportBackend(CrawlBackend):
                 {"ENCODED_URL": "https://example.com/home", "RESPONSE_CODE": 200, "RESPONSE_MSG": "OK"},
                 {"ENCODED_URL": "https://example.com/orphan", "RESPONSE_CODE": 200, "RESPONSE_MSG": "OK"},
                 {"ENCODED_URL": "https://example.com/noindex-orphan", "RESPONSE_CODE": 200, "RESPONSE_MSG": "OK"},
+                {"ENCODED_URL": "https://example.com/broken-page", "RESPONSE_CODE": 404, "RESPONSE_MSG": "Not Found"},
                 {"ENCODED_URL": "https://example.com/broken-target", "RESPONSE_CODE": 404, "RESPONSE_MSG": "Not Found"},
                 {"ENCODED_URL": "https://example.com/sponsored", "RESPONSE_CODE": 200, "RESPONSE_MSG": "OK"},
             ],
@@ -136,6 +144,7 @@ class MinimalDuckReportBackend(CrawlBackend):
                 {"ID": 4, "ENCODED_URL": "https://example.com/sponsored"},
                 {"ID": 5, "ENCODED_URL": "https://example.com/orphan"},
                 {"ID": 6, "ENCODED_URL": "https://example.com/noindex-orphan"},
+                {"ID": 7, "ENCODED_URL": "https://example.com/broken-page"},
             ],
             "APP.LINKS": [
                 {
@@ -172,6 +181,25 @@ class MinimalDuckReportBackend(CrawlBackend):
                     "PATH_TYPE": "html",
                     "ELEMENT_PATH": "a.broken",
                     "ELEMENT_POSITION": 2,
+                    "LINK_TYPE": 1,
+                    "SCOPE": 0,
+                    "ORIGIN": 1,
+                },
+                {
+                    "SRC_ID": 1,
+                    "DST_ID": 7,
+                    "ALT_TEXT": None,
+                    "LINK_TEXT": "Broken internal",
+                    "HREF_LANG": None,
+                    "NOFOLLOW": False,
+                    "UGC": False,
+                    "SPONSORED": False,
+                    "TARGET": None,
+                    "NOOPENER": False,
+                    "NOREFERRER": False,
+                    "PATH_TYPE": "html",
+                    "ELEMENT_PATH": "a.broken-internal",
+                    "ELEMENT_POSITION": 4,
                     "LINK_TYPE": 1,
                     "SCOPE": 0,
                     "ORIGIN": 1,
@@ -353,11 +381,38 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
     duck = Crawl.from_duckdb(str(target))
 
     broken = duck.broken_inlinks_report()
+    broken_pages = duck.broken_links_report()
     nofollow = duck.nofollow_inlinks_report()
     orphans = duck.orphan_pages_report()
     indexable_orphans = duck.orphan_pages_report(only_indexable=True)
+    summary = duck.summary()
 
     assert broken == [
+        {
+            "Type": "Hyperlink",
+            "Source": "https://example.com/nav",
+            "Address": "https://example.com/broken-page",
+            "Destination": "https://example.com/broken-page",
+            "Alt Text": None,
+            "Anchor": "Broken internal",
+            "Status Code": 404,
+            "Status": "Not Found",
+            "Follow": True,
+            "Target": None,
+            "Rel": None,
+            "Path Type": "html",
+            "Link Path": "a.broken-internal",
+            "Link Position": 4,
+            "hreflang": None,
+            "Link Type": 1,
+            "Scope": 0,
+            "Origin": 1,
+            "NoFollow": False,
+            "UGC": False,
+            "Sponsored": False,
+            "Noopener": False,
+            "Noreferrer": False,
+        },
         {
             "Type": "Hyperlink",
             "Source": "https://example.com/nav",
@@ -382,7 +437,7 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
             "Sponsored": False,
             "Noopener": False,
             "Noreferrer": False,
-        }
+        },
     ]
     assert nofollow == [
         {
@@ -411,8 +466,31 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
             "Noreferrer": False,
         }
     ]
+    assert broken_pages == [
+        {
+            "Address": "https://example.com/broken-page",
+            "Status Code": 404,
+            "Inlinks": 1,
+            "Inlink Sources": ["https://example.com/nav"],
+            "Inlink Anchors": ["Broken internal"],
+        }
+    ]
     assert [row["Address"] for row in orphans] == [
         "https://example.com/orphan",
         "https://example.com/noindex-orphan",
     ]
     assert [row["Address"] for row in indexable_orphans] == ["https://example.com/orphan"]
+    assert summary == {
+        "pages": 4,
+        "tabs": 1,
+        "broken_pages": 1,
+        "broken_inlinks": 2,
+        "nofollow_inlinks": 1,
+        "orphan_pages": 2,
+        "non_indexable_pages": 1,
+        "redirect_chains": 0,
+        "security_issues": 0,
+        "canonical_issues": 0,
+        "hreflang_issues": 0,
+        "redirect_issues": 0,
+    }
