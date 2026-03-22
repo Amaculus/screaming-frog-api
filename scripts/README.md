@@ -1,10 +1,10 @@
-# sf-alpha scripts
+# screaming-frog-api scripts
 
 ## suggest_mappings.py
 
 Helps contributors map Screaming Frog GUI tab columns to the Derby backend by comparing CSV export schemas with the Derby schema and existing `schemas/mapping.json`.
 
-**Run from the sf-alpha repo root** (where `schemas/` and `screamingfrog/` live).
+**Run from the screaming-frog-api repo root** (where `schemas/` and `screamingfrog/` live).
 
 ### Usage
 

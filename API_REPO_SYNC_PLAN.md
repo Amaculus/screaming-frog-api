@@ -1,11 +1,12 @@
-# API Repo -> Alpha Sync Plan
+# Legacy Repo -> Current Repo Sync Plan
 
-This file records what is worth carrying over from `C:\Users\Antonio\screamingfrog`
-into `C:\Users\Antonio\sf-alpha`.
+This file records what is worth carrying over from the legacy local repo
+`C:\Users\Antonio\screamingfrog` into the current source-of-truth repo
+`C:\Users\Antonio\screaming-frog-api`.
 
 ## Summary
 
-- `sf-alpha` is already ahead on runtime/library code.
+- `screaming-frog-api` is already ahead on runtime/library code.
 - `schemas/mapping.json` is effectively the same in both repos, so there is no mapping
   advantage to pull from the API repo.
 - The only things worth syncing are docs, research artifacts, and optional packaging
@@ -29,7 +30,7 @@ data, and future direction. They do not risk regressing the library.
 
 - `PYPI_README.md`
 
-Reason: useful if `sf-alpha` becomes the package/publish source of truth.
+Reason: useful for the current package/publish source of truth.
 
 ### Reverse-engineering / discovery assets
 
@@ -52,7 +53,7 @@ project narrative.
 
 ## Do Not Copy Into Alpha
 
-These would likely regress `sf-alpha` or add noise.
+These would likely regress `screaming-frog-api` or add noise.
 
 ### Runtime code that alpha already surpasses
 
@@ -69,7 +70,7 @@ These would likely regress `sf-alpha` or add noise.
 - `screamingfrog/models/internal.py`
 - `screamingfrog/models/diff.py`
 
-Reason: `sf-alpha` already has newer functionality and tests around:
+Reason: `screaming-frog-api` already has newer functionality and tests around:
 
 - query builder
 - crawl diff
@@ -89,7 +90,7 @@ Reason: `sf-alpha` already has newer functionality and tests around:
 - `tests/test_internal_page.py`
 - `tests/test_loaders.py`
 
-Reason: these local API repo versions are not the source of truth. `sf-alpha` already
+Reason: these legacy local repo versions are not the source of truth. `screaming-frog-api` already
 contains broader or newer coverage.
 
 ### Junk / local-only material

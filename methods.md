@@ -1,6 +1,6 @@
 # Methods Reference (Alpha)
 
-This file lists the current callable API in `sf-alpha`.
+This file lists the current callable API in `screaming-frog-api`.
 
 ## 1) Top-level API (`from screamingfrog import ...`)
 

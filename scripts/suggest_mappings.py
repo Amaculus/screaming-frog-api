@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Suggest Derby mappings for sf-alpha GUI tab columns.
+Suggest Derby mappings for screaming-frog-api GUI tab columns.
 
 Follows Antonio's workflow:
 - Compare CSV schema (schemas/csv/) with Derby schema (schemas/db/tables/)
 - Prefer db_column, then db_expression, then NULL
 - Output suggestions for mapping.json or backlog docs
 
-Usage (run from sf-alpha repo root):
+Usage (run from screaming-frog-api repo root):
   python scripts/suggest_mappings.py --tab hreflang_all.csv
   python scripts/suggest_mappings.py --tab-family hreflang
   python scripts/suggest_mappings.py --list-unmapped
@@ -465,7 +465,9 @@ def generate_mapping_nulls_content(mapping: dict[str, list[dict]], csv_schemas: 
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Suggest Derby mappings for sf-alpha tab columns")
+    ap = argparse.ArgumentParser(
+        description="Suggest Derby mappings for screaming-frog-api tab columns"
+    )
     ap.add_argument("--schemas", type=Path, default=None, help="Path to schemas dir (default: repo/schemas)")
     ap.add_argument("--tab", "-t", type=str, default=None, help="Single tab key, e.g. hreflang_all or hreflang_all.csv")
     ap.add_argument("--tab-family", type=str, default=None, help="Tab family prefix, e.g. hreflang → all hreflang_*.csv")
