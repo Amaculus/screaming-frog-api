@@ -33,6 +33,7 @@ wheels/
 *.egg
 .pytest_cache/
 .pytest-tmp/
+.pytest-tmp-*/
 
 # Derby database
 derby.log

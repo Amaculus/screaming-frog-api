@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
 
@@ -164,3 +165,43 @@ def test_duckdb_backend_resolves_gui_filters_and_base_all_tabs(tmp_path: Path) -
         {"Address": "https://example.com/broken", "Status Code": 404, "Title 1": ""},
     ]
     assert internal_columns == ["Address", "Status Code", "Title 1"]
+
+
+def test_export_duckdb_auto_reuses_matching_source_and_refreshes_on_change(tmp_path: Path) -> None:
+    source = tmp_path / "crawl.dbseospider"
+    source.write_text("v1", encoding="utf-8")
+
+    backend = FakeDuckExportBackend()
+    backend.db_path = source
+    crawl = Crawl(backend)
+    target = tmp_path / "crawl.duckdb"
+
+    exported = crawl.export_duckdb(str(target), source_label="fake-crawl", if_exists="auto")
+
+    import duckdb
+
+    conn = duckdb.connect(str(exported), read_only=True)
+    first = conn.execute(
+        "SELECT source_fingerprint, imported_at FROM sf_alpha_imports LIMIT 1"
+    ).fetchone()
+    conn.close()
+
+    exported = crawl.export_duckdb(str(target), source_label="fake-crawl", if_exists="auto")
+    conn = duckdb.connect(str(exported), read_only=True)
+    second = conn.execute(
+        "SELECT source_fingerprint, imported_at FROM sf_alpha_imports LIMIT 1"
+    ).fetchone()
+    conn.close()
+
+    assert second == first
+
+    source.write_text("v2-with-change", encoding="utf-8")
+    os.utime(source, None)
+    exported = crawl.export_duckdb(str(target), source_label="fake-crawl", if_exists="auto")
+    conn = duckdb.connect(str(exported), read_only=True)
+    third = conn.execute(
+        "SELECT source_fingerprint, imported_at FROM sf_alpha_imports LIMIT 1"
+    ).fetchone()
+    conn.close()
+
+    assert third[0] != first[0]

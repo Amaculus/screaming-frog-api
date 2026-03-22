@@ -6,6 +6,35 @@ from screamingfrog import Crawl
 import screamingfrog.crawl as crawl_module
 
 
+def test_from_derby_defaults_to_export_and_load_duckdb(tmp_path: Path, monkeypatch) -> None:
+    calls: dict[str, object] = {}
+    sentinel = object()
+    source = tmp_path / "crawl.dbseospider"
+    source.write_text("stub", encoding="utf-8")
+    target = tmp_path / "crawl.duckdb"
+
+    def fake_export(path: str, duckdb_path: Path, **kwargs: object) -> Path:
+        calls["path"] = path
+        calls["duckdb_path"] = duckdb_path
+        calls["kwargs"] = kwargs
+        return duckdb_path
+
+    def fake_from_duckdb(cls, path: str):  # type: ignore[no-untyped-def]
+        calls["loaded"] = path
+        return sentinel
+
+    monkeypatch.setattr(crawl_module, "export_duckdb_from_derby", fake_export)
+    monkeypatch.setattr(Crawl, "from_duckdb", classmethod(fake_from_duckdb))
+
+    result = Crawl.from_derby(str(source))
+
+    assert result is sentinel
+    assert calls["path"] == str(source)
+    assert calls["duckdb_path"] == target
+    assert calls["loaded"] == str(target)
+    assert calls["kwargs"]["if_exists"] == "auto"
+
+
 def test_from_db_id_can_export_and_load_duckdb(tmp_path: Path, monkeypatch) -> None:
     calls: dict[str, object] = {}
     sentinel = object()
@@ -156,3 +185,26 @@ def test_load_routes_seospider_duckdb_kwargs(tmp_path: Path, monkeypatch) -> Non
     assert calls["kwargs"]["duckdb_path"] == str(tmp_path / "seospider.duckdb")
     assert calls["kwargs"]["duckdb_tables"] == ("APP.URLS", "APP.LINKS")
     assert calls["kwargs"]["duckdb_if_exists"] == "skip"
+
+
+def test_load_dbseospider_defaults_to_duckdb_backend(tmp_path: Path, monkeypatch) -> None:
+    calls: dict[str, object] = {}
+    sentinel = object()
+    crawl_path = tmp_path / "crawl.dbseospider"
+    crawl_path.write_text("stub", encoding="utf-8")
+
+    monkeypatch.setattr(crawl_module, "_looks_like_sqlite", lambda path: False)
+
+    def fake_from_derby(cls, path: str, **kwargs: object):  # type: ignore[no-untyped-def]
+        calls["path"] = path
+        calls["kwargs"] = kwargs
+        return sentinel
+
+    monkeypatch.setattr(Crawl, "from_derby", classmethod(fake_from_derby))
+
+    result = Crawl.load(str(crawl_path))
+
+    assert result is sentinel
+    assert calls["path"] == str(crawl_path)
+    assert calls["kwargs"]["backend"] == "duckdb"
+    assert calls["kwargs"]["duckdb_if_exists"] == "auto"

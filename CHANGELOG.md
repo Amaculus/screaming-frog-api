@@ -3,6 +3,7 @@
 ## Unreleased
 - Implemented Derby-backed `Hreflang > Unlinked hreflang URLs` GUI filter support using `APP.LINKS` + `APP.INLINK_COUNTS`.
 - Improved the DuckDB backend to resolve GUI-filtered tabs and `_all` base tabs like the Derby/CSV backends, and open `.duckdb` caches read-only.
+- Changed DB-backed loaders to default to DuckDB-backed analysis (`.dbseospider`, `.seospider`, and DB crawl IDs), with Derby kept as the source-of-truth and DuckDB caches re-used automatically when the source has not changed.
 
 ## 0.2.0a1 (2026-03-21)
 - Added DuckDB analytics-cache support:

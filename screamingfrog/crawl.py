@@ -537,6 +537,11 @@ class Crawl:
         mapping_path: str | None = None,
         derby_jar: str | None = None,
         *,
+        backend: str = "duckdb",
+        duckdb_path: str | None = None,
+        duckdb_tables: Sequence[str] | None = None,
+        duckdb_tabs: Sequence[str] | str | None = None,
+        duckdb_if_exists: str = "auto",
         csv_fallback: bool = True,
         csv_fallback_cache_dir: str | None = None,
         csv_fallback_profile: str = "kitchen_sink",
@@ -546,6 +551,23 @@ class Crawl:
         headless: bool = True,
         overwrite: bool = False,
     ) -> "Crawl":
+        mode = backend.strip().lower()
+        if mode not in {"duckdb", "derby"}:
+            raise ValueError("from_derby backend must be 'duckdb' or 'derby'")
+        if mode == "duckdb":
+            target = Path(duckdb_path) if duckdb_path else _default_duckdb_cache_path(db_path)
+            exported = export_duckdb_from_derby(
+                db_path,
+                target,
+                tables=duckdb_tables,
+                tabs=duckdb_tabs,
+                if_exists=duckdb_if_exists,
+                source_label=str(Path(db_path).resolve()),
+                mapping_path=mapping_path,
+                derby_jar=derby_jar,
+            )
+            return cls.from_duckdb(str(exported))
+
         derby = DerbyBackend(db_path, mapping_path=mapping_path, derby_jar=derby_jar)
         if not csv_fallback:
             return cls(derby)
@@ -572,7 +594,7 @@ class Crawl:
         crawl_path: str,
         export_dir: str | None = None,
         *,
-        backend: str = "derby",
+        backend: str = "duckdb",
         project_root: str | None = None,
         dbseospider_path: str | None = None,
         materialize_dbseospider: bool = True,
@@ -582,7 +604,7 @@ class Crawl:
         duckdb_path: str | None = None,
         duckdb_tables: Sequence[str] | None = None,
         duckdb_tabs: Sequence[str] | str | None = None,
-        duckdb_if_exists: str = "replace",
+        duckdb_if_exists: str = "auto",
         cli_path: str | None = None,
         export_tabs: Sequence[str] | None = None,
         bulk_exports: Sequence[str] | None = None,
@@ -630,7 +652,24 @@ class Crawl:
                     "Set materialize_dbseospider=False to avoid extra disk usage.",
                     RuntimeWarning,
                 )
-                return cls.from_derby(str(target), mapping_path=mapping_path, derby_jar=derby_jar)
+                return cls.from_derby(
+                    str(target),
+                    mapping_path=mapping_path,
+                    derby_jar=derby_jar,
+                    backend=mode,
+                    duckdb_path=duckdb_path,
+                    duckdb_tables=duckdb_tables,
+                    duckdb_tabs=duckdb_tabs,
+                    duckdb_if_exists=duckdb_if_exists,
+                    csv_fallback=csv_fallback,
+                    csv_fallback_cache_dir=csv_fallback_cache_dir,
+                    csv_fallback_profile=csv_fallback_profile,
+                    csv_fallback_warn=csv_fallback_warn,
+                    cli_path=cli_path,
+                    export_format=export_format,
+                    headless=headless,
+                    overwrite=overwrite,
+                )
 
         project_dir = load_seospider_db_project(
             crawl_path,
@@ -686,6 +725,11 @@ class Crawl:
                 str(dbseospider),
                 mapping_path=mapping_path,
                 derby_jar=derby_jar,
+                backend=mode,
+                duckdb_path=duckdb_path,
+                duckdb_tables=duckdb_tables,
+                duckdb_tabs=duckdb_tabs,
+                duckdb_if_exists=duckdb_if_exists,
                 csv_fallback=csv_fallback,
                 csv_fallback_cache_dir=csv_fallback_cache_dir,
                 csv_fallback_profile=csv_fallback_profile,
@@ -700,6 +744,11 @@ class Crawl:
             str(project_dir),
             mapping_path=mapping_path,
             derby_jar=derby_jar,
+            backend=mode,
+            duckdb_path=duckdb_path,
+            duckdb_tables=duckdb_tables,
+            duckdb_tabs=duckdb_tabs,
+            duckdb_if_exists=duckdb_if_exists,
             csv_fallback=csv_fallback,
             csv_fallback_cache_dir=csv_fallback_cache_dir,
             csv_fallback_profile=csv_fallback_profile,
@@ -716,12 +765,12 @@ class Crawl:
         crawl_id: str,
         export_dir: str | None = None,
         *,
-        backend: str = "derby",
+        backend: str = "duckdb",
         project_root: str | None = None,
         duckdb_path: str | None = None,
         duckdb_tables: Sequence[str] | None = None,
         duckdb_tabs: Sequence[str] | str | None = None,
-        duckdb_if_exists: str = "replace",
+        duckdb_if_exists: str = "auto",
         cli_path: str | None = None,
         export_tabs: Sequence[str] | None = None,
         bulk_exports: Sequence[str] | None = None,
@@ -777,6 +826,11 @@ class Crawl:
             str(project_dir),
             mapping_path=mapping_path,
             derby_jar=derby_jar,
+            backend=mode,
+            duckdb_path=duckdb_path,
+            duckdb_tables=duckdb_tables,
+            duckdb_tabs=duckdb_tabs,
+            duckdb_if_exists=duckdb_if_exists,
             csv_fallback=csv_fallback,
             csv_fallback_cache_dir=csv_fallback_cache_dir,
             csv_fallback_profile=csv_fallback_profile,
@@ -805,8 +859,9 @@ class Crawl:
         export_profile: str | None = None,
         mapping_path: str | None = None,
         derby_jar: str | None = None,
-        seospider_backend: str = "derby",
-        db_id_backend: str = "derby",
+        seospider_backend: str = "duckdb",
+        db_id_backend: str = "duckdb",
+        dbseospider_backend: str = "duckdb",
         project_root: str | None = None,
         dbseospider_path: str | None = None,
         materialize_dbseospider: bool = True,
@@ -816,7 +871,7 @@ class Crawl:
         duckdb_path: str | None = None,
         duckdb_tables: Sequence[str] | None = None,
         duckdb_tabs: Sequence[str] | str | None = None,
-        duckdb_if_exists: str = "replace",
+        duckdb_if_exists: str = "auto",
         csv_fallback: bool = True,
         csv_fallback_cache_dir: str | None = None,
         csv_fallback_profile: str = "kitchen_sink",
@@ -840,6 +895,7 @@ class Crawl:
                 derby_jar=derby_jar,
                 seospider_backend=seospider_backend,
                 db_id_backend=db_id_backend,
+                dbseospider_backend=dbseospider_backend,
                 project_root=project_root,
                 dbseospider_path=dbseospider_path,
                 materialize_dbseospider=materialize_dbseospider,
@@ -861,7 +917,24 @@ class Crawl:
             if _looks_like_export_dir(path_obj):
                 return cls.from_exports(str(path_obj))
             if _looks_like_derby_dir(path_obj):
-                return cls.from_derby(str(path_obj), mapping_path=mapping_path, derby_jar=derby_jar)
+                return cls.from_derby(
+                    str(path_obj),
+                    mapping_path=mapping_path,
+                    derby_jar=derby_jar,
+                    backend=dbseospider_backend,
+                    duckdb_path=duckdb_path,
+                    duckdb_tables=duckdb_tables,
+                    duckdb_tabs=duckdb_tabs,
+                    duckdb_if_exists=duckdb_if_exists,
+                    csv_fallback=csv_fallback,
+                    csv_fallback_cache_dir=csv_fallback_cache_dir,
+                    csv_fallback_profile=csv_fallback_profile,
+                    csv_fallback_warn=csv_fallback_warn,
+                    cli_path=cli_path,
+                    export_format=export_format,
+                    headless=headless,
+                    overwrite=overwrite,
+                )
         if path_obj.is_file():
             suffix = path_obj.suffix.lower()
             if suffix in {".sqlite", ".db"}:
@@ -875,6 +948,11 @@ class Crawl:
                     str(path_obj),
                     mapping_path=mapping_path,
                     derby_jar=derby_jar,
+                    backend=dbseospider_backend,
+                    duckdb_path=duckdb_path,
+                    duckdb_tables=duckdb_tables,
+                    duckdb_tabs=duckdb_tabs,
+                    duckdb_if_exists=duckdb_if_exists,
                     csv_fallback=csv_fallback,
                     csv_fallback_cache_dir=csv_fallback_cache_dir,
                     csv_fallback_profile=csv_fallback_profile,
@@ -1471,6 +1549,7 @@ class Crawl:
         derby_jar: str | None,
         seospider_backend: str,
         db_id_backend: str,
+        dbseospider_backend: str,
         project_root: str | None,
         dbseospider_path: str | None,
         materialize_dbseospider: bool,
@@ -1498,6 +1577,11 @@ class Crawl:
                 path,
                 mapping_path=mapping_path,
                 derby_jar=derby_jar,
+                backend=dbseospider_backend,
+                duckdb_path=duckdb_path,
+                duckdb_tables=duckdb_tables,
+                duckdb_tabs=duckdb_tabs,
+                duckdb_if_exists=duckdb_if_exists,
                 csv_fallback=csv_fallback,
                 csv_fallback_cache_dir=csv_fallback_cache_dir,
                 csv_fallback_profile=csv_fallback_profile,
@@ -1878,6 +1962,19 @@ def _default_csv_cache_dir(source: str) -> Path:
         return project_dir / "exports_cache"
     except Exception:
         return Path.cwd() / f"{source}_exports_cache"
+
+
+def _default_duckdb_cache_path(source: str) -> Path:
+    path_obj = Path(source)
+    if path_obj.exists():
+        if path_obj.is_dir():
+            return path_obj / "crawl.duckdb"
+        return path_obj.with_suffix(".duckdb")
+    try:
+        project_dir = find_project_dir(source)
+        return project_dir / "crawl.duckdb"
+    except Exception:
+        return Path.cwd() / f"{Path(source).stem or source}.duckdb"
 
 
 def _iter_broken_pages(

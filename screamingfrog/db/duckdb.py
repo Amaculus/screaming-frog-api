@@ -26,7 +26,7 @@ def export_duckdb_from_derby(
     *,
     tables: Sequence[str] | None = None,
     tabs: Sequence[str] | str | None = None,
-    if_exists: str = "replace",
+    if_exists: str = "auto",
     source_label: str | None = None,
     mapping_path: str | None = None,
     derby_jar: str | None = None,
@@ -42,6 +42,7 @@ def export_duckdb_from_derby(
         tabs=tabs,
         if_exists=if_exists,
         source_label=label,
+        source_fingerprint=_source_fingerprint(Path(db_path)),
     )
 
 
@@ -51,7 +52,7 @@ def export_duckdb_from_db_id(
     *,
     tables: Sequence[str] | None = None,
     tabs: Sequence[str] | str | None = None,
-    if_exists: str = "replace",
+    if_exists: str = "auto",
     project_root: str | Path | None = None,
     mapping_path: str | None = None,
     derby_jar: str | None = None,
@@ -77,10 +78,11 @@ def export_duckdb_from_backend(
     tabs: Sequence[str] | str | None = None,
     if_exists: str = "replace",
     source_label: str | None = None,
+    source_fingerprint: str | None = None,
 ) -> Path:
     mode = str(if_exists).strip().lower()
-    if mode not in {"replace", "skip"}:
-        raise ValueError("if_exists must be 'replace' or 'skip'")
+    if mode not in {"replace", "skip", "auto"}:
+        raise ValueError("if_exists must be 'replace', 'skip', or 'auto'")
 
     relation_tables = tuple(tables or DEFAULT_DUCKDB_TABLES)
     materialized_tabs = _resolve_export_tabs(backend, tabs)
@@ -93,11 +95,16 @@ def export_duckdb_from_backend(
         _ensure_metadata_tables(conn)
         existing = _get_import_metadata(conn)
         label = source_label or getattr(getattr(backend, "db_path", None), "name", None) or "crawl"
+        fingerprint = source_fingerprint or _infer_source_fingerprint_from_backend(backend)
 
         if existing and mode == "skip" and existing.get("source_label") == label:
             return target
+        if existing and mode == "auto":
+            if existing.get("source_label") == label:
+                if fingerprint is None or existing.get("source_fingerprint") == fingerprint:
+                    return target
 
-        if existing and mode == "replace":
+        if existing and mode in {"replace", "auto"}:
             _drop_exported_objects(conn)
 
         conn.execute("CREATE SCHEMA IF NOT EXISTS app")
@@ -119,6 +126,7 @@ def export_duckdb_from_backend(
         _store_export_metadata(
             conn,
             source_label=str(label),
+            source_fingerprint=fingerprint,
             objects=exported_objects,
         )
         return target
@@ -292,6 +300,7 @@ def _ensure_metadata_tables(conn: Any) -> None:
         """
         CREATE TABLE IF NOT EXISTS sf_alpha_imports (
             source_label VARCHAR,
+            source_fingerprint VARCHAR,
             imported_at TIMESTAMP
         )
         """
@@ -305,16 +314,26 @@ def _ensure_metadata_tables(conn: Any) -> None:
         )
         """
     )
+    columns = _table_columns(conn, "main", "sf_alpha_imports")
+    if "source_fingerprint" not in {column.lower() for column in columns}:
+        conn.execute("ALTER TABLE sf_alpha_imports ADD COLUMN source_fingerprint VARCHAR")
 
 
 def _get_import_metadata(conn: Any) -> dict[str, Any] | None:
-    cursor = conn.execute(
-        "SELECT source_label, imported_at FROM sf_alpha_imports LIMIT 1"
+    columns = _table_columns(conn, "main", "sf_alpha_imports")
+    has_fingerprint = "source_fingerprint" in {column.lower() for column in columns}
+    select_sql = (
+        "SELECT source_label, source_fingerprint, imported_at FROM sf_alpha_imports LIMIT 1"
+        if has_fingerprint
+        else "SELECT source_label, imported_at FROM sf_alpha_imports LIMIT 1"
     )
+    cursor = conn.execute(select_sql)
     row = cursor.fetchone()
     if not row:
         return None
-    return {"source_label": row[0], "imported_at": row[1]}
+    if has_fingerprint:
+        return {"source_label": row[0], "source_fingerprint": row[1], "imported_at": row[2]}
+    return {"source_label": row[0], "source_fingerprint": None, "imported_at": row[1]}
 
 
 def _drop_exported_objects(conn: Any) -> None:
@@ -330,13 +349,14 @@ def _store_export_metadata(
     conn: Any,
     *,
     source_label: str,
+    source_fingerprint: str | None,
     objects: Sequence[tuple[str, str, str]],
 ) -> None:
     conn.execute("DELETE FROM sf_alpha_exports")
     conn.execute("DELETE FROM sf_alpha_imports")
     conn.execute(
-        "INSERT INTO sf_alpha_imports (source_label, imported_at) VALUES (?, ?)",
-        [source_label, datetime.now(timezone.utc)],
+        "INSERT INTO sf_alpha_imports (source_label, source_fingerprint, imported_at) VALUES (?, ?, ?)",
+        [source_label, source_fingerprint, datetime.now(timezone.utc)],
     )
     conn.executemany(
         "INSERT INTO sf_alpha_exports (export_name, kind, relation_name) VALUES (?, ?, ?)",
@@ -363,6 +383,20 @@ def _relation_exists(conn: Any, relation_name: str) -> bool:
         [schema_name, table_name],
     )
     return cursor.fetchone() is not None
+
+
+def _table_columns(conn: Any, schema_name: str, table_name: str) -> list[str]:
+    cursor = conn.execute(
+        """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE lower(table_schema) = lower(?)
+          AND lower(table_name) = lower(?)
+        ORDER BY ordinal_position
+        """,
+        [schema_name, table_name],
+    )
+    return [str(row[0]) for row in cursor.fetchall()]
 
 
 def _raw_relation_name(raw_name: str) -> str:
@@ -513,4 +547,33 @@ def _import_duckdb():
     except ModuleNotFoundError as exc:  # pragma: no cover - dependency error path
         raise ImportError("duckdb is required for DuckDB export support.") from exc
     return duckdb
+
+
+def _infer_source_fingerprint_from_backend(backend: Any) -> str | None:
+    db_path = getattr(backend, "db_path", None)
+    if db_path is None:
+        return None
+    try:
+        return _source_fingerprint(Path(db_path))
+    except Exception:
+        return None
+
+
+def _source_fingerprint(path: Path) -> str:
+    target = path.resolve()
+    if target.is_file():
+        stat = target.stat()
+        return f"file:{stat.st_size}:{stat.st_mtime_ns}"
+
+    latest_mtime = int(target.stat().st_mtime_ns)
+    total_size = 0
+    file_count = 0
+    for child in target.rglob("*"):
+        if not child.is_file():
+            continue
+        stat = child.stat()
+        file_count += 1
+        total_size += int(stat.st_size)
+        latest_mtime = max(latest_mtime, int(stat.st_mtime_ns))
+    return f"dir:{file_count}:{total_size}:{latest_mtime}"
 

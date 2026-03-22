@@ -7,7 +7,7 @@ Public alpha is focused on DB-backed crawl workflows:
 - access all `628` mapped export/report surfaces
 - run sitewide page and link queries, raw SQL, crawl diff, and chain analysis
 - convert `.seospider` crawls into queryable DB-backed workflows
-- export DuckDB caches for faster repeated analysis
+- use DuckDB as the default analysis engine, with Derby as the crawl source-of-truth
 
 See `methods.md` for a complete method-level API reference.
 
@@ -18,8 +18,7 @@ See `methods.md` for a complete method-level API reference.
 
 ## Known limitations
 - Title and meta-description pixel-width filters are not implemented yet.
-- Some hreflang edge cases still do not have exact Derby parity (`unlinked` / incorrect language-code cases).
-- DuckDB is an optional analytics cache, not the default source-of-truth backend.
+- Some hreflang edge cases still do not have exact Derby parity (`incorrect language-code` cases).
 - `.seospider` conversion requires a local Screaming Frog CLI install.
 
 ## Quick start
@@ -46,10 +45,10 @@ crawl = Crawl.load("./crawl.db")
 # DuckDB analytics cache
 crawl = Crawl.load("./crawl.duckdb")
 
-# Derby .dbseospider file
+# Derby .dbseospider file -> auto-promotes into a sibling DuckDB cache by default
 crawl = Crawl.load("./crawl.dbseospider")
 
-# Screaming Frog .seospider crawl (default: convert to DB + Derby backend)
+# Screaming Frog .seospider crawl (default: convert to DB + DuckDB-backed analysis)
 crawl = Crawl.load("./crawl.seospider")
 
 # Disable .dbseospider materialization (still uses Derby from ProjectInstanceData)
@@ -74,7 +73,7 @@ crawl = Crawl.load(
     export_profile="kitchen_sink",
 )
 
-# DB crawl ID (DB mode) loads Derby by default
+# DB crawl ID (DB mode) loads DuckDB-backed analysis by default
 crawl = Crawl.load("138edb21-61d0-41cd-9e9b-725b592a471c", source_type="db_id")
 
 # DB crawl ID -> export and load a DuckDB analytics cache directly
@@ -92,30 +91,32 @@ crawl = Crawl.load(latest.db_id, source_type="db_id")
 ```
 
 ### Loader notes
-- `.seospider` defaults to DB conversion (CLI load + Derby backend). Use `seospider_backend="csv"` for exports.
+- `.dbseospider`, DB crawl IDs, and `.seospider` conversions default to DuckDB-backed analysis.
+- Use `dbseospider_backend="derby"` / `db_id_backend="derby"` / `seospider_backend="derby"` to stay on Derby.
+- `.seospider` defaults to DB conversion (CLI load + Derby source, DuckDB analysis). Use `seospider_backend="csv"` for exports.
 - `.seospider` auto-materializes a `.dbseospider` file next to the crawl (overwrite default).
 - Set `materialize_dbseospider=False` to avoid creating the `.dbseospider` cache file.
 - Set `dbseospider_overwrite=False` to reuse an existing `.dbseospider` cache.
 - DB conversion can temporarily set `storage.mode=DB` in `spider.config` (set `ensure_db_mode=False` to skip).
 - Internal DB crawl directories (e.g. `ProjectInstanceData/.../results_.../sql`) load via Derby.
-- DB crawl IDs load Derby by default; set `db_id_backend="csv"` to force CSV exports.
-- DB crawl IDs can export-and-load DuckDB directly with `db_id_backend="duckdb"` and `duckdb_path=...`.
+- DB crawl IDs can force CSV exports with `db_id_backend="csv"`.
+- DuckDB cache refresh defaults to `duckdb_if_exists="auto"` and rebuilds only when the Derby source changed.
 - Set `SCREAMINGFROG_CLI` if the CLI executable is not in a standard install path.
 - CLI exports default to the `Internal:All` tab unless `export_tabs` is provided.
 - `export_profile="kitchen_sink"` uses bundled export lists captured from the SF UI.
 - Derby loads can auto-fallback to CSV exports for missing columns or GUI filters (`csv_fallback=True`, `csv_fallback_profile="kitchen_sink"`).
 - CSV fallback cache defaults to `csv_fallback_cache_dir` (next to the crawl); set `csv_fallback=False` to disable.
-- `.duckdb` loads use the DuckDB analytics backend and are best for repeated scan-heavy analysis once a cache exists.
+- `.duckdb` loads use the DuckDB analytics backend directly.
 
 ## DuckDB analytics cache
 
-Use DuckDB as an optional fast analytics layer on top of Derby crawls:
+DuckDB is the default analysis layer for DB-backed crawl workflows. Derby remains the crawl source-of-truth:
 
 ```python
 from screamingfrog import Crawl
 
-derby_crawl = Crawl.load("./crawl.dbseospider", csv_fallback=False)
-derby_crawl.export_duckdb("./crawl.duckdb")
+derby_crawl = Crawl.load("./crawl.dbseospider", dbseospider_backend="derby", csv_fallback=False)
+derby_crawl.export_duckdb("./crawl.duckdb", if_exists="auto")
 
 fast = Crawl.load("./crawl.duckdb")
 
@@ -132,10 +133,10 @@ rows = (
 
 Notes:
 - Derby remains the source-of-truth crawl store.
-- DuckDB is the fast analytics cache for repeated analysis.
+- DuckDB is the default analysis engine for DB-backed workflows.
 - Current DuckDB export materializes key tabs (`internal_all`, `all_inlinks`, `all_outlinks`, redirect/canonical chain tabs) plus raw `APP.URLS`, `APP.LINKS`, and `APP.UNIQUE_URLS`.
 - You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
-- `.seospider` and DB crawl ID loaders can export and load DuckDB directly via `backend="duckdb"` / `db_id_backend="duckdb"`.
+- `.dbseospider`, `.seospider`, and DB crawl ID loaders can all auto-promote to DuckDB.
 - Use `tabs="all"` if you want to materialize every currently available mapped tab into the DuckDB cache.
 
 ## Search and scoped workflows
