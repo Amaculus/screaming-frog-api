@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Implemented Derby-backed `Hreflang > Unlinked hreflang URLs` GUI filter support using `APP.LINKS` + `APP.INLINK_COUNTS`.
 
 ## 0.2.0a1 (2026-03-21)
 - Added DuckDB analytics-cache support:

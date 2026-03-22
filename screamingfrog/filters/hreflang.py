@@ -28,7 +28,13 @@ def register_hreflang_filters() -> None:
         FilterDef(
             name="Unlinked hreflang URLs",
             tab="Hreflang",
-            description="Unlinked hreflang URLs (TODO: DB columns).",
+            description="Hreflang URLs with no regular hyperlink inlinks.",
+            sql_where=(
+                "APP.LINKS.LINK_TYPE IN (12, 13) "
+                "AND COALESCE((SELECT ic.NUM_HYPER_LINKS FROM APP.INLINK_COUNTS ic "
+                "WHERE ic.ENCODED_URL = (SELECT d.ENCODED_URL FROM APP.UNIQUE_URLS d "
+                "WHERE d.ID = APP.LINKS.DST_ID)), 0) = 0"
+            ),
         ),
         FilterDef(
             name="Missing Return Links",

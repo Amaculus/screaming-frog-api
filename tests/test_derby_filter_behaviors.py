@@ -124,6 +124,64 @@ def test_derby_hreflang_not_using_canonical_filter_returns_expected_sources() ->
     conn.close()
 
 
+def test_derby_hreflang_unlinked_filter_returns_only_hreflang_only_destinations() -> None:
+    conn = _derby_like_connection()
+    conn.execute("CREATE TABLE APP.UNIQUE_URLS (ID INTEGER PRIMARY KEY, ENCODED_URL TEXT)")
+    conn.execute(
+        "CREATE TABLE APP.LINKS ("
+        "SRC_ID INTEGER, DST_ID INTEGER, LINK_TYPE INTEGER, HREF_LANG TEXT, "
+        "PATH_TYPE TEXT, ORIGIN INTEGER)"
+    )
+    conn.execute(
+        "CREATE TABLE APP.INLINK_COUNTS (ENCODED_URL TEXT PRIMARY KEY, NUM_HYPER_LINKS INTEGER)"
+    )
+    conn.execute(
+        "CREATE TABLE APP.URLS (ENCODED_URL TEXT PRIMARY KEY, RESPONSE_CODE INTEGER, RESPONSE_MSG TEXT)"
+    )
+    conn.executemany(
+        "INSERT INTO APP.UNIQUE_URLS (ID, ENCODED_URL) VALUES (?, ?)",
+        [
+            (1, "https://example.com/source-en/"),
+            (2, "https://example.com/only-hreflang/"),
+            (3, "https://example.com/normal-target/"),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO APP.URLS (ENCODED_URL, RESPONSE_CODE, RESPONSE_MSG) VALUES (?, ?, ?)",
+        [
+            ("https://example.com/only-hreflang/", 200, "OK"),
+            ("https://example.com/normal-target/", 200, "OK"),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO APP.INLINK_COUNTS (ENCODED_URL, NUM_HYPER_LINKS) VALUES (?, ?)",
+        [
+            ("https://example.com/only-hreflang/", 0),
+            ("https://example.com/normal-target/", 3),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO APP.LINKS (SRC_ID, DST_ID, LINK_TYPE, HREF_LANG, PATH_TYPE, ORIGIN) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        [
+            (1, 2, 13, "en-gb", "html", 1),
+            (1, 3, 13, "de-de", "html", 1),
+        ],
+    )
+    mapping = {
+        "hreflang_unlinked_hreflang_urls.csv": [
+            {"csv_column": "Type", "db_column": "LINK_TYPE", "db_table": "APP.LINKS"},
+            {"csv_column": "hreflang", "db_column": "HREF_LANG", "db_table": "APP.LINKS"},
+        ]
+    }
+    backend = _backend_for_mapping(conn, mapping)
+
+    rows = list(backend.get_tab("Hreflang", {"__gui__": "Unlinked hreflang URLs"}))
+
+    assert rows == [{"Type": 13, "hreflang": "en-gb"}]
+    conn.close()
+
+
 def test_derby_internal_filters_support_expression_and_header_fields() -> None:
     conn = _derby_like_connection()
     conn.execute(

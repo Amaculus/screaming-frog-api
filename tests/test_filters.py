@@ -24,6 +24,15 @@ def test_hreflang_not_using_canonical_filter_is_backed_by_sql() -> None:
     assert "u.IS_CANONICALISED = 1" in filt.sql_where
 
 
+def test_hreflang_unlinked_filter_is_backed_by_sql() -> None:
+    filt = get_filter("Hreflang", "Unlinked hreflang URLs")
+    assert filt is not None
+    assert filt.sql_where is not None
+    assert "APP.LINKS.LINK_TYPE IN (12, 13)" in filt.sql_where
+    assert "APP.INLINK_COUNTS" in filt.sql_where
+    assert "APP.LINKS.DST_ID" in filt.sql_where
+
+
 def test_structured_data_contains_and_missing_use_blob_length() -> None:
     contains = get_filter("Structured Data", "Contains Structured Data")
     missing = get_filter("Structured Data", "Missing")
