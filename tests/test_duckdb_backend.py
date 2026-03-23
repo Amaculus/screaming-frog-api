@@ -102,6 +102,7 @@ class MinimalDuckReportBackend(CrawlBackend):
                     "Address": "https://example.com/home",
                     "Status Code": 200,
                     "Title 1": "Home",
+                    "Meta Description 1": "Welcome home",
                     "Indexability": "Indexable",
                     "Indexability Status": "Indexable",
                 },
@@ -109,13 +110,15 @@ class MinimalDuckReportBackend(CrawlBackend):
                     "Address": "https://example.com/orphan",
                     "Status Code": 200,
                     "Title 1": "Orphan",
+                    "Meta Description 1": "",
                     "Indexability": "Indexable",
                     "Indexability Status": "Indexable",
                 },
                 {
                     "Address": "https://example.com/noindex-orphan",
                     "Status Code": 200,
-                    "Title 1": "Hidden",
+                    "Title 1": "",
+                    "Meta Description 1": "",
                     "Indexability": "Non-Indexable",
                     "Indexability Status": "Noindex",
                 },
@@ -123,6 +126,7 @@ class MinimalDuckReportBackend(CrawlBackend):
                     "Address": "https://example.com/broken-page",
                     "Status Code": 404,
                     "Title 1": "Broken Page",
+                    "Meta Description 1": "Broken page",
                     "Indexability": "Indexable",
                     "Indexability Status": "Indexable",
                 },
@@ -434,6 +438,7 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
 
     broken = duck.broken_inlinks_report()
     broken_pages = duck.broken_links_report()
+    title_meta = duck.title_meta_audit()
     non_indexable = duck.indexability_audit()
     nofollow = duck.nofollow_inlinks_report()
     orphans = duck.orphan_pages_report()
@@ -527,6 +532,11 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
             "Inlink Sources": ["https://example.com/nav"],
             "Inlink Anchors": ["Broken internal"],
         }
+    ]
+    assert title_meta == [
+        {"Address": "https://example.com/noindex-orphan", "Issue": "Missing Title"},
+        {"Address": "https://example.com/noindex-orphan", "Issue": "Missing Meta Description"},
+        {"Address": "https://example.com/orphan", "Issue": "Missing Meta Description"},
     ]
     assert non_indexable == [
         {

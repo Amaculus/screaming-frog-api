@@ -137,6 +137,7 @@ Notes:
 - Current DuckDB export materializes key tabs (`internal_all`, `all_inlinks`, `all_outlinks`, redirect/canonical chain tabs) plus raw `APP.URLS`, `APP.LINKS`, and `APP.UNIQUE_URLS`.
 - Key link-graph reports (`broken_links_report`, `broken_inlinks_report`, `nofollow_inlinks_report`, `orphan_pages_report`) and `summary()` now compute directly from raw DuckDB relations where possible, so they still work even when `all_inlinks` is not materialized.
 - `compare()` now uses a DuckDB-first projection path too, so crawl diffs only pull the internal fields required for diffing instead of full `internal_all` rows.
+- `title_meta_audit()` also runs DuckDB-first from `internal_all`, so missing title/meta checks work without extra issue-tab materialization.
 - You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
 - `.dbseospider`, `.seospider`, and DB crawl ID loaders can all auto-promote to DuckDB.
 - Use `tabs="all"` if you want to materialize every currently available mapped tab into the DuckDB cache.

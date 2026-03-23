@@ -1174,6 +1174,9 @@ class Crawl:
 
     def title_meta_audit(self) -> list[dict[str, Any]]:
         """Return page-level missing title/meta issues as flat rows."""
+        duckdb_rows = _duckdb_title_meta_audit(self)
+        if duckdb_rows is not None:
+            return duckdb_rows
         rows: list[dict[str, Any]] = []
         for url in _iter_missing_titles(self):
             rows.append({"Address": url, "Issue": "Missing Title"})
@@ -2130,6 +2133,56 @@ def _duckdb_indexability_audit(crawl: Crawl) -> list[dict[str, Any]] | None:
         }
         for row in rows
     ]
+
+
+def _duckdb_title_meta_audit(crawl: Crawl) -> list[dict[str, Any]] | None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return None
+
+    internal_relation = getattr(backend, "_internal_relation", None)
+    internal_columns = set(getattr(backend, "_internal_columns", []))
+    if not internal_relation:
+        return None
+
+    title_expr = _duckdb_optional_internal_select(
+        internal_columns,
+        ("Title 1", "Title", "TITLE_1"),
+        "title_1",
+    )
+    meta_expr = _duckdb_optional_internal_select(
+        internal_columns,
+        ("Meta Description 1", "Meta Description", "META_DESCRIPTION_1"),
+        "meta_description_1",
+    )
+    if title_expr == "NULL AS title_1" and meta_expr == "NULL AS meta_description_1":
+        return []
+
+    sql = f"""
+        SELECT
+            i."Address" AS address,
+            {title_expr},
+            {meta_expr}
+        FROM {internal_relation} i
+        ORDER BY i."Address"
+    """
+    try:
+        rows = list(backend.sql(sql))
+    except Exception:
+        return None
+
+    issues: list[dict[str, Any]] = []
+    for row in rows:
+        address = str(row.get("address") or "").strip()
+        if not address:
+            continue
+        title = row.get("title_1")
+        meta = row.get("meta_description_1")
+        if title in (None, ""):
+            issues.append({"Address": address, "Issue": "Missing Title"})
+        if meta in (None, ""):
+            issues.append({"Address": address, "Issue": "Missing Meta Description"})
+    return issues
 
 
 def _duckdb_non_indexable_where(internal_columns: set[str]) -> str | None:
