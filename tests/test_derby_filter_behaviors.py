@@ -5,6 +5,7 @@ import sqlite3
 
 from screamingfrog.backends.derby_backend import (
     DerbyBackend,
+    _normalize_gui_where_sql,
     _resolve_internal_alias_map,
     _resolve_internal_expression_selects,
     _resolve_internal_header_extract_map,
@@ -180,6 +181,18 @@ def test_derby_hreflang_unlinked_filter_returns_only_hreflang_only_destinations(
 
     assert rows == [{"Type": 13, "hreflang": "en-gb"}]
     conn.close()
+
+
+def test_normalize_gui_where_sql_converts_boolean_integer_comparisons() -> None:
+    sql = (
+        "IS_INTERNAL = 1 AND BLOCKED_BY_ROBOTS_TXT = 1 "
+        "AND RESPONSE_CODE = 0 AND j.CANONICAL_OUTSIDE_HEAD = 1"
+    )
+
+    assert _normalize_gui_where_sql(sql) == (
+        "IS_INTERNAL = TRUE AND BLOCKED_BY_ROBOTS_TXT = TRUE "
+        "AND RESPONSE_CODE = 0 AND j.CANONICAL_OUTSIDE_HEAD = TRUE"
+    )
 
 
 def test_derby_internal_filters_support_expression_and_header_fields() -> None:

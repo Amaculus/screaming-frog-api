@@ -16,12 +16,14 @@ This file lists the current callable API in `screaming-frog-api`.
 
 - `crawl.internal` (property-like view object: `InternalView`)
 - `crawl.tab(name) -> TabView`
-- `crawl.pages() -> TabView`
+- `crawl.pages() -> PageView`
 - `crawl.search(term, fields=None, case_sensitive=False) -> SearchRowView`
 - `crawl.links(direction="out") -> LinkView`
 - `crawl.section(prefix) -> CrawlSection`
 - `crawl.tabs -> list[str]`
 - `crawl.summary() -> dict[str, Any]`
+  - core counts are always populated
+  - issue-family and chain totals may be `None` on lean DuckDB caches until those tabs are materialized
 - `crawl.inlinks(url) -> Iterator[Link]`
 - `crawl.outlinks(url) -> Iterator[Link]`
 - `crawl.redirect_chains(min_hops=None, max_hops=None, loop=None) -> Iterator[dict[str, Any]]`
@@ -112,6 +114,16 @@ This file lists the current callable API in `screaming-frog-api`.
 - `links(direction="out") -> ScopedRowView`
 - `tab(name, fields=None) -> ScopedRowView`
 - prefix can be a full URL prefix or a path prefix like `/blog`
+
+## `PageView` (returned by `crawl.pages()`)
+- `filter(**kwargs) -> PageView`
+- `search(term, fields=None, case_sensitive=False) -> SearchRowView`
+- `count() -> int`
+- `collect() -> list[dict[str, Any]]`
+- `first() -> dict[str, Any] | None`
+- `to_pandas()`
+- `to_polars()`
+- iterable (`for row in crawl.pages().filter(...): ...`)
 
 ## `QueryView` (returned by `crawl.query("APP", "URLS")`)
 - `select(*columns) -> QueryView`

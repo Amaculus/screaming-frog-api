@@ -6,6 +6,9 @@ from typing import Any, Callable, Iterator, Optional, Sequence
 
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.duckdb import (
+    _helper_relation_name,
+    _relation_exists,
+    _write_relation,
     export_duckdb_from_backend,
     iter_cursor_rows,
     iter_relation_rows,
@@ -30,12 +33,8 @@ class DuckDBBackend(CrawlBackend):
         self._available_tabs: tuple[str, ...] | None = None
         self._open_connection()
         internal_relation = _resolve_tab_relation(self.conn, "internal_all", None)
-        if not internal_relation:
-            raise ValueError(
-                "DuckDB cache is missing the materialized internal_all tab. Re-export the crawl."
-            )
         self._internal_relation = internal_relation
-        self._internal_columns = self._get_relation_columns(self._internal_relation)
+        self._internal_columns = self._get_relation_columns(self._internal_relation) if internal_relation else []
         self._internal_column_map = {col.lower(): col for col in self._internal_columns}
 
     def configure_lazy_source(
@@ -53,11 +52,31 @@ class DuckDBBackend(CrawlBackend):
             self._available_tabs = tuple(str(name) for name in available_tabs if str(name).strip())
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
+        if not self._internal_relation:
+            source_backend = self.get_lazy_source_backend()
+            if source_backend is not None:
+                yield from source_backend.get_internal(filters=filters)
+                return
+            if not self.ensure_internal():
+                raise NotImplementedError(
+                    "DuckDB cache does not include internal_all and no lazy source is configured."
+                )
         for row in self._iter_relation(self._internal_relation, filters=filters):
             yield InternalPage.from_data(row, copy_data=False)
 
     def get_inlinks(self, url: str) -> Iterator[Link]:
+        relation = self.ensure_helper_relation("links_core")
+        if relation:
+            for row in self._iter_relation(relation, filters={"Destination": url}):
+                yield Link.from_row(row)
+            return
+        source_backend = self.get_lazy_source_backend()
+        if source_backend is not None:
+            yield from source_backend.get_inlinks(url)
+            return
         relation = resolve_relation_name(self.conn, "tab", "all_inlinks")
+        if not relation and self.ensure_tab("all_inlinks"):
+            relation = resolve_relation_name(self.conn, "tab", "all_inlinks")
         if relation:
             for row in self._iter_relation(relation, filters={"Address": url}):
                 data = dict(row)
@@ -68,7 +87,18 @@ class DuckDBBackend(CrawlBackend):
             yield Link.from_row(row)
 
     def get_outlinks(self, url: str) -> Iterator[Link]:
+        relation = self.ensure_helper_relation("links_core")
+        if relation:
+            for row in self._iter_relation(relation, filters={"Source": url}):
+                yield Link.from_row(row)
+            return
+        source_backend = self.get_lazy_source_backend()
+        if source_backend is not None:
+            yield from source_backend.get_outlinks(url)
+            return
         relation = resolve_relation_name(self.conn, "tab", "all_outlinks")
+        if not relation and self.ensure_tab("all_outlinks"):
+            relation = resolve_relation_name(self.conn, "tab", "all_outlinks")
         if relation:
             for row in self._iter_relation(relation, filters={"Source": url}):
                 yield Link.from_row(row)
@@ -79,6 +109,26 @@ class DuckDBBackend(CrawlBackend):
     def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
         if table != "internal":
             raise NotImplementedError("DuckDB backend currently supports count() for internal only")
+        if not self._internal_relation:
+            source_backend = self.get_lazy_source_backend()
+            if source_backend is not None:
+                return source_backend.count(table, filters=filters)
+        basic_relation = self._basic_internal_relation(filters)
+        if basic_relation:
+            basic_columns = self._get_relation_columns(basic_relation)
+            sql, params, post_filters = _build_relation_query(
+                basic_relation,
+                basic_columns,
+                filters,
+            )
+            if post_filters:
+                return sum(1 for _ in self.get_internal(filters=filters))
+            row = self.conn.execute(f"SELECT COUNT(*) FROM ({sql}) AS sf_count", params).fetchone()
+            return int(row[0]) if row else 0
+        if not self.ensure_internal():
+            raise NotImplementedError(
+                "DuckDB cache does not include internal_all and no lazy source is configured."
+            )
         sql, params, post_filters = _build_relation_query(
             self._internal_relation,
             self._internal_columns,
@@ -92,6 +142,24 @@ class DuckDBBackend(CrawlBackend):
     def aggregate(self, table: str, column: str, func: str) -> Any:
         if table != "internal":
             raise NotImplementedError("DuckDB backend currently supports aggregate() for internal only")
+        if not self._internal_relation:
+            source_backend = self.get_lazy_source_backend()
+            if source_backend is not None:
+                return source_backend.aggregate(table, column, func)
+        basic_relation = self._basic_internal_relation_for_column(column)
+        if basic_relation:
+            func_name = func.strip().upper()
+            if func_name not in {"COUNT", "SUM", "AVG", "MIN", "MAX"}:
+                raise ValueError(f"Unsupported aggregation: {func}")
+            cursor = self.conn.execute(
+                f"SELECT {func_name}({_quote_identifier(column)}) FROM {basic_relation}"
+            )
+            row = cursor.fetchone()
+            return row[0] if row else None
+        if not self.ensure_internal():
+            raise NotImplementedError(
+                "DuckDB cache does not include internal_all and no lazy source is configured."
+            )
         func_name = func.strip().upper()
         if func_name not in {"COUNT", "SUM", "AVG", "MIN", "MAX"}:
             raise ValueError(f"Unsupported aggregation: {func}")
@@ -125,6 +193,15 @@ class DuckDBBackend(CrawlBackend):
         gui_filter = filters.pop("__gui__", None)
         relation = _resolve_tab_relation(self.conn, tab_name, gui_filter)
         if not relation:
+            source_backend = self.get_lazy_source_backend()
+            if source_backend is not None:
+                source_filters = dict(filters)
+                if gui_filter is not None:
+                    source_filters["__gui__"] = gui_filter
+                try:
+                    return source_backend.get_tab(tab_name, filters=source_filters)
+                except (AttributeError, NotImplementedError, ValueError):
+                    pass
             self.ensure_tab(tab_name, gui_filter=gui_filter)
             relation = _resolve_tab_relation(self.conn, tab_name, gui_filter)
         if not relation:
@@ -154,11 +231,49 @@ class DuckDBBackend(CrawlBackend):
     def tab_columns(self, tab_name: str) -> list[str]:
         relation = _resolve_tab_relation(self.conn, tab_name, None)
         if not relation:
+            source_backend = self.get_lazy_source_backend()
+            if source_backend is not None and hasattr(source_backend, "tab_columns"):
+                try:
+                    return list(source_backend.tab_columns(tab_name))
+                except (AttributeError, NotImplementedError, ValueError):
+                    pass
             self.ensure_tab(tab_name)
             relation = _resolve_tab_relation(self.conn, tab_name, None)
         if not relation:
             return []
         return self._get_relation_columns(relation)
+
+    def ensure_internal(self) -> bool:
+        if self._internal_relation:
+            return True
+        if not self.ensure_tab("internal_all"):
+            return False
+        relation = _resolve_tab_relation(self.conn, "internal_all", None)
+        if not relation:
+            return False
+        self._internal_relation = relation
+        self._internal_columns = self._get_relation_columns(relation)
+        self._internal_column_map = {col.lower(): col for col in self._internal_columns}
+        return True
+
+    def ensure_helper_relation(self, helper_name: str) -> str | None:
+        relation = _helper_relation_name(helper_name)
+        if _relation_exists(self.conn, relation):
+            return relation
+        rows = self._helper_rows(helper_name)
+        if rows is None:
+            return None
+        self.conn.close()
+        try:
+            conn = self._duckdb.connect(str(self.db_path))
+            try:
+                if not _write_relation(conn, relation, rows):
+                    return None
+            finally:
+                conn.close()
+        finally:
+            self._open_connection()
+        return relation if _relation_exists(self.conn, relation) else None
 
     def ensure_raw_tables(self, tables: Sequence[str]) -> bool:
         requested = tuple(str(table).strip().upper() for table in tables if str(table).strip())
@@ -257,16 +372,45 @@ class DuckDBBackend(CrawlBackend):
         )
         return [str(row[0]) for row in cursor.fetchall()]
 
+    def _basic_internal_relation(self, filters: Optional[dict[str, Any]]) -> str | None:
+        if self._internal_relation:
+            return None
+        filter_keys = {
+            _normalize_key(str(key))
+            for key in dict(filters or {}).keys()
+            if not str(key).startswith("__")
+        }
+        if filter_keys - {"address", "status_code"}:
+            return None
+        return self.ensure_helper_relation("internal_basic")
+
+    def _basic_internal_relation_for_column(self, column: str) -> str | None:
+        if self._internal_relation:
+            return None
+        if _normalize_key(column) not in {"address", "status_code"}:
+            return None
+        return self.ensure_helper_relation("internal_basic")
+
+    def _helper_rows(self, helper_name: str) -> Iterator[dict[str, Any]] | None:
+        source_backend = self.get_lazy_source_backend()
+        if source_backend is None:
+            return None
+        normalized = str(helper_name).strip().lower()
+        if normalized == "internal_basic":
+            return _iter_internal_basic_rows_from_source(source_backend)
+        if normalized == "links_core":
+            return _iter_links_core_rows_from_source(source_backend)
+        return None
+
     def _materialize_exports(
         self,
         *,
         tables: Sequence[str] = (),
         tabs: Sequence[str] = (),
     ) -> bool:
-        if self._lazy_source_backend is None:
-            if self._lazy_source_backend_factory is None:
-                return False
-            self._lazy_source_backend = self._lazy_source_backend_factory()
+        source_backend = self.get_lazy_source_backend()
+        if source_backend is None:
+            return False
         requested_tables = tuple(str(name).strip().upper() for name in tables if str(name).strip())
         requested_tabs = tuple(str(name).strip() for name in tabs if str(name).strip())
         if not requested_tables and not requested_tabs:
@@ -276,7 +420,7 @@ class DuckDBBackend(CrawlBackend):
             for tab_name in requested_tabs or ():
                 try:
                     export_duckdb_from_backend(
-                        self._lazy_source_backend,
+                        source_backend,
                         self.db_path,
                         tables=(),
                         tabs=(tab_name,),
@@ -287,7 +431,7 @@ class DuckDBBackend(CrawlBackend):
                     continue
             if requested_tables:
                 export_duckdb_from_backend(
-                    self._lazy_source_backend,
+                    source_backend,
                     self.db_path,
                     tables=requested_tables,
                     tabs=(),
@@ -297,6 +441,14 @@ class DuckDBBackend(CrawlBackend):
         finally:
             self._open_connection()
         return True
+
+    def get_lazy_source_backend(self) -> Any | None:
+        if self._lazy_source_backend is not None:
+            return self._lazy_source_backend
+        if self._lazy_source_backend_factory is None:
+            return None
+        self._lazy_source_backend = self._lazy_source_backend_factory()
+        return self._lazy_source_backend
 
     def _open_connection(self) -> None:
         self.conn = self._duckdb.connect(str(self.db_path), read_only=True)
@@ -407,6 +559,114 @@ def _shape_raw_link_row(row: dict[str, Any]) -> dict[str, Any]:
         "Noopener": noopener,
         "Noreferrer": noreferrer,
     }
+
+
+def _iter_internal_basic_rows_from_source(source_backend: Any) -> Iterator[dict[str, Any]]:
+    sql = """
+        SELECT
+            ENCODED_URL AS "Address",
+            RESPONSE_CODE AS "Status Code"
+        FROM APP.URLS
+        WHERE IS_INTERNAL = TRUE
+        ORDER BY ENCODED_URL
+    """
+    if hasattr(source_backend, "sql"):
+        try:
+            for row in source_backend.sql(sql):
+                yield {
+                    "Address": row.get("Address") or row.get("address") or row.get("ENCODED_URL"),
+                    "Status Code": row.get("Status Code")
+                    if "Status Code" in row
+                    else row.get("status_code", row.get("RESPONSE_CODE")),
+                }
+            return
+        except Exception:
+            pass
+    if not hasattr(source_backend, "raw"):
+        return
+    for row in source_backend.raw("APP.URLS"):
+        address = row.get("ENCODED_URL") or row.get("Address")
+        if not address:
+            continue
+        yield {
+            "Address": address,
+            "Status Code": row.get("RESPONSE_CODE", row.get("Status Code")),
+        }
+
+
+def _iter_links_core_rows_from_source(source_backend: Any) -> Iterator[dict[str, Any]]:
+    sql = """
+        SELECT
+            s.ENCODED_URL AS source_url,
+            d.ENCODED_URL AS destination_url,
+            l.ALT_TEXT AS alt_text,
+            l.LINK_TEXT AS anchor_text,
+            u.RESPONSE_CODE AS destination_status_code,
+            u.RESPONSE_MSG AS destination_status,
+            l.NOFOLLOW AS nofollow,
+            l.UGC AS ugc,
+            l.SPONSORED AS sponsored,
+            l.NOOPENER AS noopener,
+            l.NOREFERRER AS noreferrer,
+            l.TARGET AS target_value,
+            l.PATH_TYPE AS path_type,
+            l.ELEMENT_PATH AS element_path,
+            l.ELEMENT_POSITION AS element_position,
+            l.HREF_LANG AS href_lang,
+            l.LINK_TYPE AS link_type,
+            l.SCOPE AS scope_value,
+            l.ORIGIN AS origin_value
+        FROM APP.LINKS l
+        JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID
+        JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID
+        LEFT JOIN APP.URLS u ON u.ENCODED_URL = d.ENCODED_URL
+    """
+    if hasattr(source_backend, "sql"):
+        try:
+            for row in source_backend.sql(sql):
+                yield _shape_raw_link_row(dict(row))
+            return
+        except Exception:
+            pass
+    if not hasattr(source_backend, "raw"):
+        return
+    urls = {
+        str(row.get("ENCODED_URL")): row for row in source_backend.raw("APP.URLS") if row.get("ENCODED_URL")
+    }
+    unique_urls: dict[Any, str] = {}
+    for row in source_backend.raw("APP.UNIQUE_URLS"):
+        if row.get("ID") is None or row.get("ENCODED_URL") is None:
+            continue
+        unique_urls[row.get("ID")] = str(row.get("ENCODED_URL"))
+    for row in source_backend.raw("APP.LINKS"):
+        source_url = unique_urls.get(row.get("SRC_ID"))
+        destination_url = unique_urls.get(row.get("DST_ID"))
+        if not source_url or not destination_url:
+            continue
+        destination_data = urls.get(destination_url, {})
+        yield _shape_raw_link_row(
+            {
+                "source_url": source_url,
+                "destination_url": destination_url,
+                "alt_text": row.get("ALT_TEXT"),
+                "anchor_text": row.get("LINK_TEXT"),
+                "destination_status_code": destination_data.get("RESPONSE_CODE"),
+                "destination_status": destination_data.get("RESPONSE_MSG"),
+                "nofollow": row.get("NOFOLLOW"),
+                "ugc": row.get("UGC"),
+                "sponsored": row.get("SPONSORED"),
+                "noopener": row.get("NOOPENER"),
+                "noreferrer": row.get("NOREFERRER"),
+                "target_value": row.get("TARGET"),
+                "path_type": row.get("PATH_TYPE"),
+                "element_path": row.get("ELEMENT_PATH"),
+                "element_position": row.get("ELEMENT_POSITION"),
+                "href_lang": row.get("HREF_LANG"),
+                "link_type": row.get("LINK_TYPE"),
+                "scope_value": row.get("SCOPE"),
+                "origin_value": row.get("ORIGIN"),
+            }
+        )
 
 
 def _rel_value(

@@ -134,13 +134,18 @@ rows = (
 Notes:
 - Derby remains the source-of-truth crawl store.
 - DuckDB is the default analysis engine for DB-backed workflows.
-- Current DuckDB export materializes key tabs (`internal_all`, `all_inlinks`, `all_outlinks`, redirect/canonical chain tabs) plus raw `APP.URLS`, `APP.LINKS`, and `APP.UNIQUE_URLS`.
-- Key link-graph reports (`broken_links_report`, `broken_inlinks_report`, `nofollow_inlinks_report`, `orphan_pages_report`) and `summary()` now compute directly from raw DuckDB relations where possible, so they still work even when `all_inlinks` is not materialized.
+- Default DB-backed loads now create a tiny sidecar DuckDB cache first, keep Derby prewarmed as the lazy source backend, and only materialize heavier relations if you actually ask for them.
+- Repeated DB-backed loads in the same Python process now reuse the cached Derby source backend for the same crawl fingerprint, so reopening the same crawl avoids paying Derby startup again.
+- High-level page workflows (`crawl.pages()`, page counts, page iteration) now read from the internal model directly instead of forcing `internal_all` tab materialization on a cold cache.
+- Cold-cache graph workflows (`broken_links_report`, `broken_inlinks_report`, `nofollow_inlinks_report`) can execute directly from the prewarmed Derby source, so they return without first exporting wide `all_inlinks` tables into DuckDB.
+- Generic `crawl.tab(...)` / `crawl.tab_columns(...)` calls also fall back to the prewarmed source backend when a tab is not cached yet, so first-use tab access no longer forces a DuckDB export round-trip.
+- When DuckDB does need cached subsets, it now materializes narrow helper relations instead of forcing full `internal_all` / `all_inlinks` exports.
 - `compare()` now uses a DuckDB-first projection path too, so crawl diffs only pull the internal fields required for diffing instead of full `internal_all` rows.
-- `title_meta_audit()` also runs DuckDB-first from `internal_all`, so missing title/meta checks work without extra issue-tab materialization.
-- DuckDB `inlinks(url)` / `outlinks(url)` now fall back to raw link relations too, so they still work on lean caches without `all_inlinks` / `all_outlinks`.
+- `title_meta_audit()` runs DuckDB-first when `internal_all` is already cached, and otherwise falls back to the same high-level internal model.
+- DuckDB `inlinks(url)` / `outlinks(url)` fall back to the source backend or narrow cached link relations, so they still work on lean caches without `all_inlinks` / `all_outlinks`.
 - Issue-family helpers read DuckDB issue relations directly when they exist in the cache.
 - Chain helpers now fall back to raw DuckDB traversal too, so redirect/canonical chain methods no longer require materialized chain tabs on lean caches.
+- `summary()` keeps the core crawl counts fast on cold caches; issue-family and chain counts are `None` until those tab families are materialized.
 - You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
 - `.dbseospider`, `.seospider`, and DB crawl ID loaders can all auto-promote to DuckDB.
 - Use `tabs="all"` if you want to materialize every currently available mapped tab into the DuckDB cache.
@@ -237,8 +242,8 @@ blog_outlinks = crawl.section("/blog").links("out").collect()
 ```
 
 Notes:
-- `crawl.pages()` is a mapped sitewide page view backed by `internal_all`.
-- `crawl.links("in")` / `crawl.links("out")` are sitewide mapped link views backed by `all_inlinks` / `all_outlinks`.
+- `crawl.pages()` is a mapped sitewide page view backed by the internal page model, with DuckDB/source-backed fast paths for counts and iteration.
+- `crawl.links("in")` / `crawl.links("out")` are sitewide mapped link views backed by cached link tabs when available and by the source backend when the cache is still lean.
 - `crawl.section("/blog")` matches by URL path prefix; pass a full URL prefix if you want host-specific scoping.
 
 ## Inlinks / Outlinks (Derby)

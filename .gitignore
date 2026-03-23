@@ -34,6 +34,8 @@ wheels/
 .pytest_cache/
 .pytest-tmp/
 .pytest-tmp-*/
+.pytest-tmp-*.py
+.venv*/
 
 # Derby database
 derby.log

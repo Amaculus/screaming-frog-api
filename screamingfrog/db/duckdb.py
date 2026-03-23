@@ -70,6 +70,75 @@ def export_duckdb_from_db_id(
     )
 
 
+def ensure_duckdb_cache(
+    duckdb_path: str | Path,
+    *,
+    source_label: str,
+    source_fingerprint: str | None,
+    if_exists: str = "auto",
+) -> Path:
+    mode = str(if_exists).strip().lower()
+    if mode not in {"replace", "skip", "auto"}:
+        raise ValueError("if_exists must be 'replace', 'skip', or 'auto'")
+
+    target = Path(duckdb_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    duckdb = _import_duckdb()
+    if target.exists():
+        try:
+            read_only_conn = duckdb.connect(str(target), read_only=True)
+        except Exception:
+            read_only_conn = None
+        else:
+            try:
+                existing = _get_import_metadata(read_only_conn)
+                same_source = bool(
+                    existing
+                    and existing.get("source_label") == source_label
+                    and (
+                        source_fingerprint is None
+                        or existing.get("source_fingerprint") == source_fingerprint
+                    )
+                )
+                if existing and mode == "skip":
+                    return target
+                if same_source and mode == "auto":
+                    return target
+            except Exception:
+                pass
+            finally:
+                read_only_conn.close()
+
+    conn = duckdb.connect(str(target))
+    try:
+        _ensure_metadata_tables(conn)
+        existing = _get_import_metadata(conn)
+        same_source = bool(
+            existing
+            and existing.get("source_label") == source_label
+            and (
+                source_fingerprint is None
+                or existing.get("source_fingerprint") == source_fingerprint
+            )
+        )
+        if existing and mode == "skip":
+            return target
+        if same_source and mode == "auto":
+            return target
+        if existing and (mode == "replace" or not same_source):
+            _drop_exported_objects(conn)
+        _store_export_metadata(
+            conn,
+            source_label=source_label,
+            source_fingerprint=source_fingerprint,
+            objects=[],
+        )
+        return target
+    finally:
+        conn.close()
+
+
 def export_duckdb_from_backend(
     backend: Any,
     duckdb_path: str | Path,
@@ -383,7 +452,12 @@ def _get_export_objects(conn: Any) -> list[tuple[str, str, str]]:
 def _drop_exported_objects(conn: Any) -> None:
     cursor = conn.execute("SELECT relation_name FROM sf_alpha_exports")
     relations = [str(row[0]) for row in cursor.fetchall()]
+    relations.extend(_list_helper_relations(conn))
+    seen: set[str] = set()
     for relation in relations:
+        if relation in seen:
+            continue
+        seen.add(relation)
         _drop_relation(conn, relation)
     conn.execute("DELETE FROM sf_alpha_exports")
     conn.execute("DELETE FROM sf_alpha_imports")
@@ -402,9 +476,12 @@ def _store_export_metadata(
         "INSERT INTO sf_alpha_imports (source_label, source_fingerprint, imported_at) VALUES (?, ?, ?)",
         [source_label, source_fingerprint, datetime.now(timezone.utc)],
     )
+    rows = list(objects)
+    if not rows:
+        return
     conn.executemany(
         "INSERT INTO sf_alpha_exports (export_name, kind, relation_name) VALUES (?, ?, ?)",
-        list(objects),
+        rows,
     )
 
 
@@ -443,6 +520,18 @@ def _table_columns(conn: Any, schema_name: str, table_name: str) -> list[str]:
     return [str(row[0]) for row in cursor.fetchall()]
 
 
+def _list_helper_relations(conn: Any) -> list[str]:
+    cursor = conn.execute(
+        """
+        SELECT table_schema, table_name
+        FROM information_schema.tables
+        WHERE lower(table_schema) = 'main'
+          AND lower(table_name) LIKE 'sf_helper_%'
+        """
+    )
+    return [f"{row[0]}.{row[1]}" for row in cursor.fetchall()]
+
+
 def _raw_relation_name(raw_name: str) -> str:
     upper = str(raw_name).strip().upper()
     if "." in upper:
@@ -469,6 +558,11 @@ def _tab_relation_name(tab_name: str) -> str:
     stem = Path(tab_name).stem
     safe = "".join(ch if ch.isalnum() else "_" for ch in stem)
     return f"main.sf_tab_{safe}"
+
+
+def _helper_relation_name(helper_name: str) -> str:
+    safe = "".join(ch if ch.isalnum() else "_" for ch in str(helper_name).strip().lower())
+    return f"main.sf_helper_{safe}"
 
 
 def iter_cursor_rows(cursor: Any, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:

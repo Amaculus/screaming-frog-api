@@ -138,6 +138,22 @@ _CHAIN_MAX_HOPS = 10
 _FETCH_BATCH_SIZE = 1000
 _BLOB_FETCH_BATCH_SIZE = 1
 _APP_URLS_ENCODED_URL_RE = re.compile(r"(?i)\bAPP\.URLS\.ENCODED_URL\b")
+_DERBY_BOOLEAN_SQL_COLUMNS = {
+    "BLOCKED_BY_ROBOTS_TXT",
+    "CANONICAL_CONTAINS_FRAGMENT_URL",
+    "CANONICAL_CONTAINS_INVALID_ATTRIBUTE",
+    "CANONICAL_OUTSIDE_HEAD",
+    "HREFLANG_OUTSIDE_HEAD",
+    "IS_CANONICALISED",
+    "IS_INTERNAL",
+    "IS_REDIRECT",
+    "LOADED_AS_A_RESOURCE",
+    "META_DESCRIPTION_OUTSIDE_HEAD",
+    "META_ROBOTS_OUTSIDE_HEAD",
+    "NON_SEQUENTIAL_H1",
+    "NON_SEQUENTIAL_H2",
+    "TITLE_OUTSIDE_HEAD",
+}
 
 
 class DerbyBackend(CrawlBackend):
@@ -638,7 +654,7 @@ class DerbyBackend(CrawlBackend):
 
         for filt in gui_defs:
             if filt.sql_where:
-                where_parts.append(filt.sql_where)
+                where_parts.append(_normalize_gui_where_sql(filt.sql_where))
 
         if where_parts:
             sql = f"{sql} WHERE {' AND '.join(where_parts)}"
@@ -2711,6 +2727,23 @@ def _normalize_select_expression(expr: Any) -> str:
             text,
         )
 
+    return text
+
+
+def _normalize_gui_where_sql(sql_where: Any) -> str:
+    text = str(sql_where or "").strip()
+    if not text:
+        return ""
+    for column in _DERBY_BOOLEAN_SQL_COLUMNS:
+        pattern = re.compile(
+            rf"(?<![A-Z0-9_])((?:[A-Z_][A-Z0-9_]*\.)?{re.escape(column)})\s*=\s*([01])\b"
+        )
+
+        def replacer(match: re.Match[str]) -> str:
+            value = "TRUE" if match.group(2) == "1" else "FALSE"
+            return f"{match.group(1)} = {value}"
+
+        text = pattern.sub(replacer, text)
     return text
 
 

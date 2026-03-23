@@ -9,6 +9,7 @@ import pytest
 
 from screamingfrog import Crawl
 from screamingfrog.backends.base import CrawlBackend
+from screamingfrog.db.duckdb import ensure_duckdb_cache
 from screamingfrog.models import InternalPage
 
 
@@ -258,6 +259,13 @@ class MinimalDuckReportBackend(CrawlBackend):
         name = tab_name if str(tab_name).endswith(".csv") else f"{tab_name}.csv"
         for row in self._tabs.get(name, []):
             yield dict(row)
+
+    def tab_columns(self, tab_name: str) -> list[str]:
+        name = tab_name if str(tab_name).endswith(".csv") else f"{tab_name}.csv"
+        rows = self._tabs.get(name, [])
+        if not rows:
+            return []
+        return list(rows[0].keys())
 
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         for row in self._raw.get(str(table).upper(), []):
@@ -556,6 +564,34 @@ def test_export_duckdb_respects_explicit_empty_raw_table_list(tmp_path: Path) ->
         next(duck.raw("APP.URLS"))
 
 
+def test_duckdb_backend_can_lazy_materialize_internal_tab_from_empty_cache(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-empty.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="fake-crawl",
+        tables=(),
+        tabs=(),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        FakeDuckExportBackend(),
+        source_label="fake-crawl",
+        available_tabs=("internal_all.csv", "response_codes_internal_client_error_(4xx).csv"),
+    )
+
+    assert duck._backend._internal_relation is None  # type: ignore[attr-defined]
+    assert duck.pages().count() == 2
+    assert duck.tab("internal_all").first() == {
+        "Address": "https://example.com/ok",
+        "Status Code": 200,
+        "Title 1": "OK",
+    }
+    assert duck.tab_columns("internal_all") == ["Address", "Status Code", "Title 1"]
+    assert duck._backend._internal_relation is None  # type: ignore[attr-defined]
+
+
 def test_duckdb_backend_lazy_materializes_raw_tables_from_source(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl-lazy-raw.duckdb"
@@ -581,6 +617,24 @@ def test_duckdb_backend_lazy_materializes_raw_tables_from_source(tmp_path: Path)
         .collect()
         == [{"ENCODED_URL": "https://example.com/broken", "RESPONSE_CODE": 404}]
     )
+
+
+def test_ensure_duckdb_cache_reuses_existing_db_while_read_only_connection_is_open(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-reuse.duckdb"
+
+    crawl.export_duckdb(str(target), source_label="fake-crawl", tables=(), tabs=())
+    duck = Crawl.from_duckdb(str(target))
+
+    reused = ensure_duckdb_cache(
+        target,
+        source_label="fake-crawl",
+        source_fingerprint=None,
+        if_exists="auto",
+    )
+
+    assert reused == target
+    assert duck.tabs == []
 
 
 def test_duckdb_backend_lazy_materializes_tabs_from_source(tmp_path: Path) -> None:
@@ -841,11 +895,11 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
         "nofollow_inlinks": 1,
         "orphan_pages": 2,
         "non_indexable_pages": 1,
-        "redirect_chains": 0,
-        "security_issues": 0,
-        "canonical_issues": 0,
-        "hreflang_issues": 0,
-        "redirect_issues": 0,
+        "redirect_chains": None,
+        "security_issues": None,
+        "canonical_issues": None,
+        "hreflang_issues": None,
+        "redirect_issues": None,
     }
 
 

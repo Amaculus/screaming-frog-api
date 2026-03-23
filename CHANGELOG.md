@@ -2,7 +2,16 @@
 
 ## Unreleased
 - Fixed DuckDB export so `tables=()` truly disables raw-table materialization instead of silently falling back to `APP.URLS` / `APP.LINKS` / `APP.UNIQUE_URLS`.
-- Changed DB-backed DuckDB loads to build a lean cache by default (`internal_all` only) and lazily materialize raw tables or requested tabs on first use instead of front-loading them all at open time.
+- Changed DB-backed DuckDB loads to initialize an empty cache by default, then prewarm the Derby source backend without exporting tabs or raw tables up front.
+- Added a lightweight cache-initialization path for empty DuckDB sidecars so default DB-backed loads no longer pay a Derby export cost before returning.
+- `crawl.pages()` now uses the internal page model directly instead of routing through `tab("internal_all")`, so `pages().count()` and page iteration stay fast on cold DuckDB caches.
+- Added cold-cache source-backed fast paths for `broken_links_report()`, `broken_inlinks_report()`, `nofollow_inlinks_report()`, and `summary()`, so they avoid materializing wide tabs before the first result.
+- Generic `crawl.tab(...)` / `crawl.tab_columns(...)` now fall back to the source backend when a tab is not cached yet, which removes the first-use export hit for long-tail tab access.
+- DuckDB now materializes narrow helper relations (`internal_basic`, `links_core`) when it needs cached page/link subsets instead of forcing full `internal_all` / `all_inlinks` exports.
+- `summary()` now keeps expensive issue-family and chain totals as `None` until those tab families are actually materialized, so cold-cache summaries stay cheap instead of traversing long-tail reports on first call.
+- Fixed Derby GUI filter SQL normalization for boolean columns so source-backed filtered tab access does not emit invalid `BOOLEAN = 1` comparisons.
+- Fixed `ensure_duckdb_cache(..., if_exists=\"auto\")` so it can reuse an existing read-only DuckDB cache without failing when another crawl object already has that file open.
+- Repeated DB-backed loads in the same process now reuse cached Derby source backends keyed by crawl fingerprint, which removes repeated Derby/JVM startup cost for already-open crawls.
 
 ## 0.2.0 (2026-03-23)
 - Implemented Derby-backed `Hreflang > Unlinked hreflang URLs` GUI filter support using `APP.LINKS` + `APP.INLINK_COUNTS`.

@@ -6,15 +6,14 @@ from screamingfrog import Crawl
 import screamingfrog.crawl as crawl_module
 
 
-def test_from_derby_defaults_to_export_and_load_duckdb(tmp_path: Path, monkeypatch) -> None:
+def test_from_derby_defaults_to_initialize_and_load_duckdb(tmp_path: Path, monkeypatch) -> None:
     calls: dict[str, object] = {}
     sentinel = object()
     source = tmp_path / "crawl.dbseospider"
     source.write_text("stub", encoding="utf-8")
     target = tmp_path / "crawl.duckdb"
 
-    def fake_export(path: str, duckdb_path: Path, **kwargs: object) -> Path:
-        calls["path"] = path
+    def fake_init(duckdb_path: Path, **kwargs: object) -> Path:
         calls["duckdb_path"] = duckdb_path
         calls["kwargs"] = kwargs
         return duckdb_path
@@ -23,24 +22,24 @@ def test_from_derby_defaults_to_export_and_load_duckdb(tmp_path: Path, monkeypat
         calls["loaded"] = path
         return sentinel
 
-    monkeypatch.setattr(crawl_module, "export_duckdb_from_derby", fake_export)
+    monkeypatch.setattr(crawl_module, "ensure_duckdb_cache", fake_init)
     monkeypatch.setattr(Crawl, "from_duckdb", classmethod(fake_from_duckdb))
 
     result = Crawl.from_derby(str(source))
 
     assert result is sentinel
-    assert calls["path"] == str(source)
     assert calls["duckdb_path"] == target
     assert calls["loaded"] == str(target)
-    assert calls["kwargs"]["tables"] == ()
-    assert calls["kwargs"]["tabs"] == ("internal_all",)
     assert calls["kwargs"]["if_exists"] == "auto"
+    assert calls["kwargs"]["source_label"] == str(source.resolve())
+    assert calls["kwargs"]["source_fingerprint"].startswith("file:")
 
 
 def test_from_db_id_can_export_and_load_duckdb(tmp_path: Path, monkeypatch) -> None:
     calls: dict[str, object] = {}
     sentinel = object()
     target = tmp_path / "crawl.duckdb"
+    project_dir = tmp_path / "projects" / "crawl-123"
 
     def fake_export(crawl_id: str, path: Path, **kwargs: object) -> Path:
         calls["crawl_id"] = crawl_id
@@ -53,6 +52,7 @@ def test_from_db_id_can_export_and_load_duckdb(tmp_path: Path, monkeypatch) -> N
         return sentinel
 
     monkeypatch.setattr(crawl_module, "export_duckdb_from_db_id", fake_export)
+    monkeypatch.setattr(crawl_module, "find_project_dir", lambda crawl_id, project_root=None: project_dir)
     monkeypatch.setattr(Crawl, "from_duckdb", classmethod(fake_from_duckdb))
 
     result = Crawl.from_db_id(
