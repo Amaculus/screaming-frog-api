@@ -2150,7 +2150,40 @@ def test_get_mobile_all_tab_derives_mobile_alternate_link() -> None:
             "Mobile Alternate Link": None,
         },
     ]
-    assert "LEFT JOIN APP.URLS u ON u.ENCODED_URL = p.ENCODED_URL" in (cursor.executed_sql or "")
-    assert cursor.executed_params == []
+
+
+def test_get_tab_returns_empty_when_base_table_is_absent() -> None:
+    cursor = _FakeCursor(["ENCODED_URL"], [("https://example.com/",)])
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _FakeConnection(cursor)
+    backend._existing_tables = frozenset({"APP.URLS"})
+    backend._mapping = {
+        "psi_custom.csv": [
+            {
+                "csv_column": "Address",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.PAGE_SPEED_API",
+            }
+        ]
+    }
+
+    rows = list(backend.get_tab("psi_custom"))
+
+    assert rows == []
+    assert cursor.executed_sql is None
+
+
+def test_get_pagespeed_special_tab_returns_empty_when_pagespeed_table_is_absent() -> None:
+    cursor = _FakeCursor(["ENCODED_URL", "JSON_RESPONSE"], [])
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _FakeConnection(cursor)
+    backend._existing_tables = frozenset({"APP.URLS"})
+    backend._mapping = {"css_coverage_summary.csv": [{"csv_column": "Resource"}]}
+
+    rows = list(backend.get_tab("css_coverage_summary"))
+
+    assert rows == []
+    assert cursor.executed_sql is None
+    assert cursor.executed_params is None
     assert cursor.fetchall_called == 0
-    assert cursor.fetchmany_calls == [1, 1, 1]
+    assert cursor.fetchmany_calls == []

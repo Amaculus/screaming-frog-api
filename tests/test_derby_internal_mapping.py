@@ -3,7 +3,10 @@ from __future__ import annotations
 from screamingfrog.backends.derby_backend import (
     _build_supplementary_map,
     _build_where_from_entries,
+    _compile_internal_filters,
+    _expression_references_absent_table,
     _extract_header_value,
+    _fetch_existing_tables,
     _header_extract_column,
     _normalize_select_expression,
     _resolve_tab_entries,
@@ -11,6 +14,26 @@ from screamingfrog.backends.derby_backend import (
     _resolve_internal_expression_selects,
     _resolve_internal_header_extract_map,
 )
+
+
+class _MetadataCursor:
+    def __init__(self, rows: list[tuple[str, ...]]) -> None:
+        self._rows = rows
+        self.executed_sql: str | None = None
+
+    def execute(self, sql: str) -> None:
+        self.executed_sql = sql
+
+    def fetchall(self) -> list[tuple[str, ...]]:
+        return list(self._rows)
+
+
+class _MetadataConnection:
+    def __init__(self, cursor: _MetadataCursor) -> None:
+        self._cursor = cursor
+
+    def cursor(self) -> _MetadataCursor:
+        return self._cursor
 
 
 def test_resolve_internal_alias_map_uses_first_direct_mapping_per_csv_column() -> None:
@@ -330,3 +353,67 @@ def test_build_where_from_entries_treats_null_literal_expressions_as_post_filter
     assert where == "ENCODED_URL = ?"
     assert params == ["https://example.com/source"]
     assert post_filters == {"Extractor 1": None}
+
+
+def test_fetch_existing_tables_reads_schema_names_from_sysschemas() -> None:
+    cursor = _MetadataCursor([("APP.URLS",), ("APP.PAGE_SPEED_API",)])
+
+    tables = _fetch_existing_tables(_MetadataConnection(cursor))
+
+    assert "JOIN SYS.SYSSCHEMAS s ON t.SCHEMAID = s.SCHEMAID" in str(cursor.executed_sql)
+    assert tables == frozenset({"APP.URLS", "APP.PAGE_SPEED_API"})
+
+
+def test_expression_references_absent_table_detects_joined_optional_tables() -> None:
+    expr = (
+        "SELECT p.SF_REQUEST_ERROR_KEY "
+        "FROM APP.URLS u JOIN APP.PAGE_SPEED_API p ON p.ENCODED_URL = u.ENCODED_URL"
+    )
+
+    assert _expression_references_absent_table(expr, frozenset({"APP.URLS"})) is True
+    assert _expression_references_absent_table(
+        expr, frozenset({"APP.URLS", "APP.PAGE_SPEED_API"})
+    ) is False
+
+
+def test_compile_internal_filters_treats_unavailable_expression_fields_as_post_filters() -> None:
+    where, params, post_filters = _compile_internal_filters(
+        {
+            "Address": "https://example.com/",
+            "PSI Request Status": "Success",
+        },
+        {"Address": "ENCODED_URL"},
+        [],
+        {},
+        {"psi_request_status"},
+    )
+
+    assert where == "ENCODED_URL = ?"
+    assert params == ["https://example.com/"]
+    assert post_filters == {"PSI Request Status": "Success"}
+
+
+def test_build_where_from_entries_treats_absent_table_expressions_as_post_filters() -> None:
+    where, params, post_filters = _build_where_from_entries(
+        {"PSI Request Status": None, "Address": "https://example.com/source"},
+        [
+            {
+                "csv_column": "Address",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.URLS",
+            },
+            {
+                "csv_column": "PSI Request Status",
+                "db_expression": (
+                    "SELECT p.SF_REQUEST_ERROR_KEY FROM APP.PAGE_SPEED_API p "
+                    "WHERE p.ENCODED_URL = APP.URLS.ENCODED_URL"
+                ),
+                "db_table": "APP.URLS",
+            },
+        ],
+        existing_tables=frozenset({"APP.URLS"}),
+    )
+
+    assert where == "ENCODED_URL = ?"
+    assert params == ["https://example.com/source"]
+    assert post_filters == {"PSI Request Status": None}

@@ -173,9 +173,23 @@ class DerbyBackend(CrawlBackend):
         self._internal_header_extract_map = _resolve_internal_header_extract_map(
             self._mapping, self._table
         )
-        self._internal_expr_selects = _resolve_internal_expression_selects(
+        all_internal_expr_selects = _resolve_internal_expression_selects(
             self._mapping, self._table
         )
+        self._existing_tables: frozenset[str] = _fetch_existing_tables(self._conn)
+        self._internal_missing_expr_names = {
+            csv_col
+            for _alias, csv_col, expr in all_internal_expr_selects
+            if _expression_references_absent_table(expr, self._existing_tables)
+        }
+        self._internal_unavailable_expr_keys = {
+            _normalize_key(csv_col) for csv_col in self._internal_missing_expr_names
+        }
+        self._internal_expr_selects = [
+            (alias, csv_col, expr)
+            for alias, csv_col, expr in all_internal_expr_selects
+            if csv_col not in self._internal_missing_expr_names
+        ]
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         table_alias = "sf_internal"
@@ -194,6 +208,7 @@ class DerbyBackend(CrawlBackend):
                 alias_map,
                 getattr(self, "_internal_expr_selects", []),
                 getattr(self, "_internal_header_extract_map", {}),
+                getattr(self, "_internal_unavailable_expr_keys", set()),
             )
             if where:
                 where_parts.append(where)
@@ -259,6 +274,8 @@ class DerbyBackend(CrawlBackend):
             for alias, csv_col in active_expr_aliases:
                 value = data.pop(alias, None)
                 data.setdefault(csv_col, value)
+            for csv_col in getattr(self, "_internal_missing_expr_names", set()):
+                data.setdefault(csv_col, None)
             # Expose CSV-style aliases (e.g., "Status Code") for mapped direct columns.
             for csv_col, db_col in active_aliases:
                 data.setdefault(csv_col, data.get(db_col))
@@ -430,6 +447,7 @@ class DerbyBackend(CrawlBackend):
                 alias_map,
                 getattr(self, "_internal_expr_selects", []),
                 getattr(self, "_internal_header_extract_map", {}),
+                getattr(self, "_internal_unavailable_expr_keys", set()),
             )
             if post_filters:
                 return sum(1 for _ in self.get_internal(filters=filters))
@@ -511,6 +529,9 @@ class DerbyBackend(CrawlBackend):
         table, entries, gui_defs, supplementary = _resolve_tab_entries(
             self._mapping, tab_name, gui_filter
         )
+        existing_tables = getattr(self, "_existing_tables", frozenset())
+        if _table_references_absent(table, existing_tables):
+            return
         if not entries:
             raise ValueError(f"No columns mapped for tab: {tab_name}")
         select_items: list[str] = []
@@ -570,7 +591,9 @@ class DerbyBackend(CrawlBackend):
 
             expr = entry.get("db_expression")
             if expr:
-                if _is_null_expression(expr):
+                if _is_null_expression(expr) or _expression_references_absent_table(
+                    expr, existing_tables
+                ):
                     entry_indexes.append(None)
                     csv_columns.append(entry["csv_column"])
                     continue
@@ -598,6 +621,8 @@ class DerbyBackend(CrawlBackend):
         params: list[Any] = []
 
         join_table, join_on, join_type = _resolve_join(gui_defs)
+        if join_table and _table_references_absent(join_table, existing_tables):
+            return
         if join_table and join_on:
             join_sql = f" {join_type} JOIN {join_table} j ON {join_on}"
 
@@ -606,7 +631,7 @@ class DerbyBackend(CrawlBackend):
         post_filters: dict[str, Any] = {}
         if filters:
             where, params, post_filters = _build_where_from_entries(
-                filters, entries, supplementary
+                filters, entries, supplementary, existing_tables
             )
             if where:
                 where_parts.append(where)
@@ -618,7 +643,11 @@ class DerbyBackend(CrawlBackend):
         if where_parts:
             sql = f"{sql} WHERE {' AND '.join(where_parts)}"
 
-        supplementary_specs = _build_supplementary_specs(supplementary)
+        supplementary_specs = {
+            table_name: specs
+            for table_name, specs in _build_supplementary_specs(supplementary).items()
+            if not _table_references_absent(table_name, existing_tables)
+        }
         supplementary_cache: dict[tuple[str, str], dict[str, Any]] = {}
         multi_row_cache: dict[tuple[str, str], dict[int, list[Any]]] = {}
         unique_url_cache: dict[Any, str | None] = {}
@@ -1073,6 +1102,8 @@ class DerbyBackend(CrawlBackend):
     def _get_mobile_all_tab(
         self, tab_key: str, filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
+        if _table_references_absent("APP.PAGE_SPEED_API", getattr(self, "_existing_tables", frozenset())):
+            return
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         address_values = _filter_values(norm_filters, "address", "url", "source_page")
@@ -1143,6 +1174,8 @@ class DerbyBackend(CrawlBackend):
     def _get_accessibility_tab(
         self, tab_key: str, filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
+        if _table_references_absent("APP.AXE_CORE_RESULTS", getattr(self, "_existing_tables", frozenset())):
+            return
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         if tab_key == "accessibility_violations_summary.csv":
@@ -1247,6 +1280,8 @@ class DerbyBackend(CrawlBackend):
     def _get_pagespeed_tab(
         self, tab_key: str, filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
+        if _table_references_absent("APP.PAGE_SPEED_API", getattr(self, "_existing_tables", frozenset())):
+            return
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         if tab_key in {
@@ -1437,6 +1472,8 @@ class DerbyBackend(CrawlBackend):
     def _get_rich_results_tab(
         self, tab_key: str, filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
+        if _table_references_absent("APP.URL_INSPECTION", getattr(self, "_existing_tables", frozenset())):
+            return
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         if tab_key == "google_rich_results_features_summary_report.csv":
@@ -1450,6 +1487,8 @@ class DerbyBackend(CrawlBackend):
     def _get_url_inspection_tab(
         self, tab_key: str, filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
+        if _table_references_absent("APP.URL_INSPECTION", getattr(self, "_existing_tables", frozenset())):
+            return
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         rows = self._iter_url_inspection_rows(tab_key, norm_filters)
@@ -2531,6 +2570,7 @@ def _compile_internal_filters(
     alias_map: dict[str, str],
     expr_selects: Sequence[tuple[str, str, str]],
     header_extract_map: dict[str, dict[str, Any]],
+    unavailable_expr_keys: Optional[set[str]] = None,
 ) -> tuple[str, list[Any], dict[str, Any]]:
     clauses: list[str] = []
     params: list[Any] = []
@@ -2540,6 +2580,7 @@ def _compile_internal_filters(
         _normalize_key(csv_col): expr for _alias, csv_col, expr in expr_selects
     }
     post_map = {_normalize_key(csv_col) for csv_col in header_extract_map}
+    unavailable_keys = set(unavailable_expr_keys or ())
 
     for key, expected in filters.items():
         lookup = _normalize_key(str(key))
@@ -2551,7 +2592,7 @@ def _compile_internal_filters(
         if column:
             _append_filter_clause(clauses, params, column, expected)
             continue
-        if lookup in post_map:
+        if lookup in post_map or lookup in unavailable_keys:
             post_filters[key] = expected
             continue
         _append_filter_clause(clauses, params, str(key), expected)
@@ -2563,6 +2604,7 @@ def _build_where_from_entries(
     filters: dict[str, Any],
     entries: list[dict[str, Any]],
     supplementary: Optional[list[dict[str, Any]]] = None,
+    existing_tables: Optional[frozenset[str]] = None,
 ) -> tuple[str, list[Any], dict[str, Any]]:
     clauses: list[str] = []
     params: list[Any] = []
@@ -2578,12 +2620,15 @@ def _build_where_from_entries(
             or entry.get("blob_extract")
             or entry.get("derived_extract")
             or entry.get("multi_row_extract")
+            or _table_references_absent(entry.get("db_table"), existing_tables)
         ):
             field_map[csv_key] = ("post", None)
             continue
         expr = entry.get("db_expression")
         if expr:
-            if _is_null_expression(expr):
+            if _is_null_expression(expr) or _expression_references_absent_table(
+                expr, existing_tables or frozenset()
+            ):
                 field_map[csv_key] = ("post", None)
                 continue
             field_map[csv_key] = ("expr", _normalize_select_expression(expr))
@@ -2818,6 +2863,52 @@ def _preferred_tables(table_counts: dict[str, int]) -> list[str]:
         return (bonus, count)
 
     return [name for name, _ in sorted(table_counts.items(), key=score, reverse=True)]
+
+
+def _fetch_existing_tables(conn) -> frozenset[str]:
+    """Return uppercase SCHEMA.TABLE names for every base table in the Derby database."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT UPPER(s.SCHEMANAME) || '.' || UPPER(t.TABLENAME) "
+            "FROM SYS.SYSTABLES t "
+            "JOIN SYS.SYSSCHEMAS s ON t.SCHEMAID = s.SCHEMAID "
+            "WHERE t.TABLETYPE = 'T'"
+        )
+        return frozenset(str(row[0]).upper() for row in cursor.fetchall() if row and row[0])
+    except Exception:
+        return frozenset()
+
+
+_TABLE_REFERENCE_RE = re.compile(
+    r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)\b", re.IGNORECASE
+)
+
+
+def _normalize_table_reference(table: Any) -> str:
+    text = str(table or "").strip().upper()
+    if not text:
+        return text
+    if "." not in text:
+        return f"APP.{text}"
+    return text
+
+
+def _table_references_absent(table: Any, existing: frozenset[str]) -> bool:
+    if not existing:
+        return False
+    table_ref = _normalize_table_reference(table)
+    return bool(table_ref) and table_ref not in existing
+
+
+def _expression_references_absent_table(expr: str, existing: frozenset[str]) -> bool:
+    """Return True when the SQL expression references a table not present in this crawl."""
+    if not existing:
+        return False
+    for match in _TABLE_REFERENCE_RE.finditer(str(expr)):
+        if _table_references_absent(match.group(1), existing):
+            return True
+    return False
 
 
 def _connect_derby(db_root: Path, derby_jars: list[Path]):
