@@ -84,7 +84,7 @@ def export_duckdb_from_backend(
     if mode not in {"replace", "skip", "auto"}:
         raise ValueError("if_exists must be 'replace', 'skip', or 'auto'")
 
-    relation_tables = tuple(tables or DEFAULT_DUCKDB_TABLES)
+    relation_tables = DEFAULT_DUCKDB_TABLES if tables is None else tuple(tables)
     materialized_tabs = _resolve_export_tabs(backend, tabs)
     target = Path(duckdb_path)
     target.parent.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed DuckDB export so `tables=()` truly disables raw-table materialization instead of silently falling back to `APP.URLS` / `APP.LINKS` / `APP.UNIQUE_URLS`.
 
 ## 0.2.0 (2026-03-23)
 - Implemented Derby-backed `Hreflang > Unlinked hreflang URLs` GUI filter support using `APP.LINKS` + `APP.INLINK_COUNTS`.

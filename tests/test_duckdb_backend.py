@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
 
+import pytest
+
 from screamingfrog import Crawl
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.models import InternalPage
@@ -533,6 +535,25 @@ def test_export_and_load_duckdb_cache(tmp_path: Path) -> None:
         .collect()
         == [{"ENCODED_URL": "https://example.com/broken", "RESPONSE_CODE": 404}]
     )
+
+
+def test_export_duckdb_respects_explicit_empty_raw_table_list(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-tabs-only.duckdb"
+
+    exported = crawl.export_duckdb(
+        str(target),
+        source_label="fake-crawl",
+        tables=(),
+        tabs=("internal_all",),
+    )
+    duck = Crawl.from_duckdb(str(exported))
+
+    assert duck.pages().filter(status_code=404).collect() == [
+        {"Address": "https://example.com/broken", "Status Code": 404, "Title 1": ""}
+    ]
+    with pytest.raises(NotImplementedError, match="Raw table not available"):
+        next(duck.raw("APP.URLS"))
 
 
 def test_duckdb_backend_supports_links_and_chain_reports(tmp_path: Path) -> None:
