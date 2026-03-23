@@ -1438,84 +1438,31 @@ class Crawl:
         redirect_type_fields = redirect_type_fields or ("Redirect Type",)
         field_groups = _DEFAULT_FIELD_GROUPS if field_groups is None else field_groups
 
-        new_pages = _index_internal(self)
-        old_pages = _index_internal(other)
-        new_pages_norm = _index_internal_normalized(self)
-        old_pages_norm = _index_internal_normalized(other)
+        projected = _duckdb_compare_indices(
+            self,
+            other,
+            title_fields=title_fields,
+            redirect_fields=redirect_fields,
+            redirect_type_fields=redirect_type_fields,
+            field_groups=field_groups,
+        )
+        if projected is not None:
+            new_pages, old_pages, new_pages_norm, old_pages_norm = projected
+        else:
+            new_pages = _index_internal(self)
+            old_pages = _index_internal(other)
+            new_pages_norm = _index_internal_normalized(self)
+            old_pages_norm = _index_internal_normalized(other)
 
-        new_urls = set(new_pages.keys())
-        old_urls = set(old_pages.keys())
-
-        added = sorted(new_urls - old_urls)
-        removed = sorted(old_urls - new_urls)
-
-        status_changes: list[StatusChange] = []
-        title_changes: list[TitleChange] = []
-        redirect_changes: list[RedirectChange] = []
-        field_changes: list[FieldChange] = []
-
-        for url in sorted(new_urls & old_urls):
-            new_page = new_pages[url]
-            old_page = old_pages[url]
-
-            if new_page.status_code != old_page.status_code:
-                status_changes.append(
-                    StatusChange(
-                        url=url,
-                        old_status=old_page.status_code,
-                        new_status=new_page.status_code,
-                    )
-                )
-
-            new_title = _get_first_value(new_page.data, title_fields)
-            old_title = _get_first_value(old_page.data, title_fields)
-            if _diff_values(old_title, new_title):
-                title_changes.append(
-                    TitleChange(url=url, old_title=old_title, new_title=new_title)
-                )
-
-            new_redirect, new_rtype = _resolve_redirect(new_page, redirect_fields, redirect_type_fields)
-            old_redirect, old_rtype = _resolve_redirect(old_page, redirect_fields, redirect_type_fields)
-            if _diff_values(old_redirect, new_redirect) or _diff_values(old_rtype, new_rtype):
-                if old_redirect is not None or new_redirect is not None:
-                    redirect_changes.append(
-                        RedirectChange(
-                            url=url,
-                            old_target=old_redirect,
-                            new_target=new_redirect,
-                            old_type=old_rtype,
-                            new_type=new_rtype,
-                        )
-                    )
-
-            for label, candidates in field_groups.items():
-                if label == "Directives Summary":
-                    new_value = _directives_summary(new_page)
-                    old_value = _directives_summary(old_page)
-                elif label == "Canonical Status":
-                    canonical_fields = candidates or _DEFAULT_FIELD_GROUPS.get("Canonical", ())
-                    new_value = _canonical_status(new_page, new_pages, new_pages_norm, canonical_fields)
-                    old_value = _canonical_status(old_page, old_pages, old_pages_norm, canonical_fields)
-                else:
-                    new_value = _get_first_value(new_page.data, candidates)
-                    old_value = _get_first_value(old_page.data, candidates)
-                if _diff_values(old_value, new_value):
-                    field_changes.append(
-                        FieldChange(
-                            url=url,
-                            field=label,
-                            old_value=old_value,
-                            new_value=new_value,
-                        )
-                    )
-
-        return CrawlDiff(
-            added_pages=added,
-            removed_pages=removed,
-            status_changes=status_changes,
-            title_changes=title_changes,
-            redirect_changes=redirect_changes,
-            field_changes=field_changes,
+        return _compare_page_indices(
+            new_pages,
+            old_pages,
+            new_pages_norm,
+            old_pages_norm,
+            title_fields=title_fields,
+            redirect_fields=redirect_fields,
+            redirect_type_fields=redirect_type_fields,
+            field_groups=field_groups,
         )
 
     def _iter_chain_tab(
@@ -1692,6 +1639,123 @@ def _index_internal(crawl: Crawl) -> dict[str, InternalPage]:
         if page.address:
             pages[page.address] = page
     return pages
+
+
+def _compare_page_indices(
+    new_pages: dict[str, InternalPage],
+    old_pages: dict[str, InternalPage],
+    new_pages_norm: dict[str, InternalPage],
+    old_pages_norm: dict[str, InternalPage],
+    *,
+    title_fields: Sequence[str],
+    redirect_fields: Sequence[str],
+    redirect_type_fields: Sequence[str],
+    field_groups: dict[str, Sequence[str]],
+) -> CrawlDiff:
+    new_urls = set(new_pages.keys())
+    old_urls = set(old_pages.keys())
+
+    added = sorted(new_urls - old_urls)
+    removed = sorted(old_urls - new_urls)
+
+    status_changes: list[StatusChange] = []
+    title_changes: list[TitleChange] = []
+    redirect_changes: list[RedirectChange] = []
+    field_changes: list[FieldChange] = []
+
+    for url in sorted(new_urls & old_urls):
+        new_page = new_pages[url]
+        old_page = old_pages[url]
+
+        if new_page.status_code != old_page.status_code:
+            status_changes.append(
+                StatusChange(
+                    url=url,
+                    old_status=old_page.status_code,
+                    new_status=new_page.status_code,
+                )
+            )
+
+        new_title = _get_first_value(new_page.data, title_fields)
+        old_title = _get_first_value(old_page.data, title_fields)
+        if _diff_values(old_title, new_title):
+            title_changes.append(TitleChange(url=url, old_title=old_title, new_title=new_title))
+
+        new_redirect, new_rtype = _resolve_redirect(new_page, redirect_fields, redirect_type_fields)
+        old_redirect, old_rtype = _resolve_redirect(old_page, redirect_fields, redirect_type_fields)
+        if _diff_values(old_redirect, new_redirect) or _diff_values(old_rtype, new_rtype):
+            if old_redirect is not None or new_redirect is not None:
+                redirect_changes.append(
+                    RedirectChange(
+                        url=url,
+                        old_target=old_redirect,
+                        new_target=new_redirect,
+                        old_type=old_rtype,
+                        new_type=new_rtype,
+                    )
+                )
+
+        for label, candidates in field_groups.items():
+            if label == "Directives Summary":
+                new_value = _directives_summary(new_page)
+                old_value = _directives_summary(old_page)
+            elif label == "Canonical Status":
+                canonical_fields = candidates or _DEFAULT_FIELD_GROUPS.get("Canonical", ())
+                new_value = _canonical_status(new_page, new_pages, new_pages_norm, canonical_fields)
+                old_value = _canonical_status(old_page, old_pages, old_pages_norm, canonical_fields)
+            else:
+                new_value = _get_first_value(new_page.data, candidates)
+                old_value = _get_first_value(old_page.data, candidates)
+            if _diff_values(old_value, new_value):
+                field_changes.append(
+                    FieldChange(
+                        url=url,
+                        field=label,
+                        old_value=old_value,
+                        new_value=new_value,
+                    )
+                )
+
+    return CrawlDiff(
+        added_pages=added,
+        removed_pages=removed,
+        status_changes=status_changes,
+        title_changes=title_changes,
+        redirect_changes=redirect_changes,
+        field_changes=field_changes,
+    )
+
+
+def _duckdb_compare_indices(
+    crawl: Crawl,
+    other: Crawl,
+    *,
+    title_fields: Sequence[str],
+    redirect_fields: Sequence[str],
+    redirect_type_fields: Sequence[str],
+    field_groups: dict[str, Sequence[str]],
+) -> tuple[
+    dict[str, InternalPage],
+    dict[str, InternalPage],
+    dict[str, InternalPage],
+    dict[str, InternalPage],
+] | None:
+    crawl_backend = getattr(crawl, "_backend", None)
+    other_backend = getattr(other, "_backend", None)
+    if not isinstance(crawl_backend, DuckDBBackend) or not isinstance(other_backend, DuckDBBackend):
+        return None
+
+    required_fields = _duckdb_compare_fields(
+        title_fields=title_fields,
+        redirect_fields=redirect_fields,
+        redirect_type_fields=redirect_type_fields,
+        field_groups=field_groups,
+    )
+    new_pages = _duckdb_project_internal_pages(crawl_backend, required_fields)
+    old_pages = _duckdb_project_internal_pages(other_backend, required_fields)
+    if new_pages is None or old_pages is None:
+        return None
+    return new_pages[0], old_pages[0], new_pages[1], old_pages[1]
 
 
 def _issue_rows_from_tabs(crawl: Crawl, tab_issues: dict[str, str]) -> list[dict[str, Any]]:
@@ -2101,6 +2165,82 @@ def _duckdb_optional_internal_select(
         if column in internal_columns:
             return f'i."{column}" AS {alias}'
     return f"NULL AS {alias}"
+
+
+def _duckdb_compare_fields(
+    *,
+    title_fields: Sequence[str],
+    redirect_fields: Sequence[str],
+    redirect_type_fields: Sequence[str],
+    field_groups: dict[str, Sequence[str]],
+) -> set[str]:
+    required_fields = {"Address", "Status Code"}
+    required_fields.update(str(field) for field in title_fields)
+    required_fields.update(str(field) for field in redirect_fields)
+    required_fields.update(str(field) for field in redirect_type_fields)
+    required_fields.update(
+        {
+            "NUM_METAREFRESH",
+            "num_metarefresh",
+            "META_FULL_URL_1",
+            "META_FULL_URL_2",
+            "HTTP_RESPONSE_HEADER_COLLECTION",
+            "HTTP Canonical",
+            "HTTP_CANONICAL",
+        }
+    )
+    for label, candidates in field_groups.items():
+        if label == "Directives Summary":
+            required_fields.update(_DEFAULT_FIELD_GROUPS.get("Meta Robots", ()))
+            required_fields.update(_DEFAULT_FIELD_GROUPS.get("X-Robots-Tag", ()))
+            continue
+        if label == "Canonical Status":
+            canonical_fields = candidates or _DEFAULT_FIELD_GROUPS.get("Canonical", ())
+            required_fields.update(canonical_fields)
+            required_fields.update(_DEFAULT_FIELD_GROUPS.get("Indexability", ()))
+            required_fields.update(_DEFAULT_FIELD_GROUPS.get("Indexability Status", ()))
+            required_fields.update(_DEFAULT_FIELD_GROUPS.get("Meta Robots", ()))
+            required_fields.update(_DEFAULT_FIELD_GROUPS.get("X-Robots-Tag", ()))
+            required_fields.update({"HTTP_RESPONSE_HEADER_COLLECTION", "HTTP Canonical", "HTTP_CANONICAL"})
+            continue
+        required_fields.update(str(candidate) for candidate in candidates)
+    return {field for field in required_fields if field}
+
+
+def _duckdb_project_internal_pages(
+    backend: DuckDBBackend,
+    required_fields: set[str],
+) -> tuple[dict[str, InternalPage], dict[str, InternalPage]] | None:
+    internal_relation = getattr(backend, "_internal_relation", None)
+    internal_columns = list(getattr(backend, "_internal_columns", []))
+    if not internal_relation or not internal_columns:
+        return None
+
+    selected_columns = [column for column in internal_columns if column in required_fields]
+    if "Address" not in selected_columns and "Address" in internal_columns:
+        selected_columns.insert(0, "Address")
+    if "Status Code" not in selected_columns and "Status Code" in internal_columns:
+        selected_columns.append("Status Code")
+    if not selected_columns:
+        return None
+
+    select_list = ", ".join(f'i."{column}"' for column in selected_columns)
+    sql = f"SELECT {select_list} FROM {internal_relation} i"
+    try:
+        rows = backend.sql(sql)
+        pages: dict[str, InternalPage] = {}
+        pages_norm: dict[str, InternalPage] = {}
+        for row in rows:
+            page = InternalPage.from_data(row, copy_data=False)
+            if not page.address:
+                continue
+            pages[page.address] = page
+            normalized = _normalize_url_for_compare(page.address)
+            if normalized:
+                pages_norm[normalized] = page
+        return pages, pages_norm
+    except Exception:
+        return None
 
 
 def _shape_duckdb_inlink_row(row: dict[str, Any]) -> dict[str, Any]:

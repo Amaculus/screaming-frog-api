@@ -260,6 +260,58 @@ class MinimalDuckReportBackend(CrawlBackend):
         raise NotImplementedError
 
 
+class FakeDuckCompareBackend(CrawlBackend):
+    def __init__(self, rows: list[dict[str, Any]]) -> None:
+        self._tabs = {"internal_all.csv": rows}
+        self._raw = {
+            "APP.URLS": [
+                {
+                    "ENCODED_URL": row["Address"],
+                    "RESPONSE_CODE": row["Status Code"],
+                    "RESPONSE_MSG": "OK" if row["Status Code"] == 200 else "Moved Permanently",
+                }
+                for row in rows
+            ],
+            "APP.UNIQUE_URLS": [
+                {"ID": index + 1, "ENCODED_URL": row["Address"]} for index, row in enumerate(rows)
+            ],
+            "APP.LINKS": [],
+        }
+
+    def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
+        for row in self._tabs["internal_all.csv"]:
+            yield InternalPage.from_data(row)
+
+    def get_inlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def get_outlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
+        return len(self._tabs["internal_all.csv"])
+
+    def aggregate(self, table: str, column: str, func: str) -> Any:  # pragma: no cover
+        return None
+
+    def list_tabs(self) -> list[str]:
+        return sorted(self._tabs.keys())
+
+    def get_tab(
+        self, tab_name: str, filters: Optional[dict[str, Any]] = None
+    ) -> Iterator[dict[str, Any]]:
+        name = tab_name if str(tab_name).endswith(".csv") else f"{tab_name}.csv"
+        for row in self._tabs.get(name, []):
+            yield dict(row)
+
+    def raw(self, table: str) -> Iterator[dict[str, Any]]:
+        for row in self._raw.get(str(table).upper(), []):
+            yield dict(row)
+
+    def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
+        raise NotImplementedError
+
+
 def test_export_and_load_duckdb_cache(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl.duckdb"
@@ -506,3 +558,95 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
         "hreflang_issues": 0,
         "redirect_issues": 0,
     }
+
+
+def test_duckdb_compare_uses_projected_internal_rows(tmp_path: Path) -> None:
+    old_rows = [
+        {
+            "Address": "https://example.com/home",
+            "Status Code": 200,
+            "Title 1": "Home",
+            "Redirect URL": None,
+            "Redirect Type": None,
+            "Canonical Link Element 1": None,
+            "Indexability": "Indexable",
+            "Indexability Status": "Indexable",
+            "Meta Robots 1": None,
+            "X-Robots-Tag 1": None,
+        },
+        {
+            "Address": "https://example.com/removed",
+            "Status Code": 200,
+            "Title 1": "Removed",
+            "Redirect URL": None,
+            "Redirect Type": None,
+            "Canonical Link Element 1": None,
+            "Indexability": "Indexable",
+            "Indexability Status": "Indexable",
+            "Meta Robots 1": None,
+            "X-Robots-Tag 1": None,
+        },
+    ]
+    new_rows = [
+        {
+            "Address": "https://example.com/home",
+            "Status Code": 301,
+            "Title 1": "Homepage",
+            "Redirect URL": "https://example.com/new-home",
+            "Redirect Type": "HTTP Redirect",
+            "Canonical Link Element 1": None,
+            "Indexability": "Indexable",
+            "Indexability Status": "Indexable",
+            "Meta Robots 1": None,
+            "X-Robots-Tag 1": None,
+        },
+        {
+            "Address": "https://example.com/added",
+            "Status Code": 200,
+            "Title 1": "Added",
+            "Redirect URL": None,
+            "Redirect Type": None,
+            "Canonical Link Element 1": None,
+            "Indexability": "Indexable",
+            "Indexability Status": "Indexable",
+            "Meta Robots 1": None,
+            "X-Robots-Tag 1": None,
+        },
+    ]
+
+    old_duckdb = tmp_path / "old.duckdb"
+    new_duckdb = tmp_path / "new.duckdb"
+    Crawl(FakeDuckCompareBackend(old_rows)).export_duckdb(str(old_duckdb), tabs=("internal_all",))
+    Crawl(FakeDuckCompareBackend(new_rows)).export_duckdb(str(new_duckdb), tabs=("internal_all",))
+
+    old_crawl = Crawl.from_duckdb(str(old_duckdb))
+    new_crawl = Crawl.from_duckdb(str(new_duckdb))
+
+    diff = new_crawl.compare(old_crawl)
+
+    assert diff.added_pages == ["https://example.com/added"]
+    assert diff.removed_pages == ["https://example.com/removed"]
+    assert [(change.url, change.old_status, change.new_status) for change in diff.status_changes] == [
+        ("https://example.com/home", 200, 301)
+    ]
+    assert [(change.url, change.old_title, change.new_title) for change in diff.title_changes] == [
+        ("https://example.com/home", "Home", "Homepage")
+    ]
+    assert [
+        (
+            change.url,
+            change.old_target,
+            change.new_target,
+            change.old_type,
+            change.new_type,
+        )
+        for change in diff.redirect_changes
+    ] == [
+        (
+            "https://example.com/home",
+            None,
+            "https://example.com/new-home",
+            None,
+            "HTTP Redirect",
+        )
+    ]
