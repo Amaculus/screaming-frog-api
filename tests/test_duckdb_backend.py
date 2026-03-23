@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
@@ -381,6 +382,137 @@ class IssueDuckBackend(CrawlBackend):
         raise NotImplementedError
 
 
+def _header_blob(headers: dict[str, list[str]]) -> bytes:
+    payload = {
+        "mHeaders": [
+            {"mName": name, "mValue": values}
+            for name, values in headers.items()
+        ]
+    }
+    return json.dumps(payload).encode("utf-8")
+
+
+class ChainDuckBackend(CrawlBackend):
+    def __init__(self) -> None:
+        addresses = [
+            "https://example.com/source",
+            "https://example.com/r1",
+            "https://example.com/r2",
+            "https://example.com/r3",
+            "https://example.com/c1",
+            "https://example.com/c2",
+            "https://example.com/c3",
+            "https://example.com/m1",
+            "https://example.com/m2",
+            "https://example.com/m3",
+            "https://example.com/l1",
+            "https://example.com/l2",
+        ]
+        self._tabs = {
+            "internal_all.csv": [
+                {
+                    "Address": address,
+                    "Status Code": 200,
+                    "Indexability": "Indexable",
+                    "Indexability Status": "Indexable",
+                    "Title 1": address.rsplit("/", 1)[-1],
+                }
+                for address in addresses
+            ]
+        }
+        status_overrides = {
+            "https://example.com/r1": (301, "Moved Permanently", _header_blob({"location": ["/r2"]})),
+            "https://example.com/r2": (302, "Found", _header_blob({"location": ["/r3"]})),
+            "https://example.com/m1": (301, "Moved Permanently", _header_blob({"location": ["/m2"]})),
+            "https://example.com/l1": (301, "Moved Permanently", _header_blob({"location": ["/l2"]})),
+            "https://example.com/l2": (301, "Moved Permanently", _header_blob({"location": ["/l1"]})),
+        }
+        self._raw = {
+            "APP.URLS": [],
+            "APP.UNIQUE_URLS": [{"ID": index + 1, "ENCODED_URL": address} for index, address in enumerate(addresses)],
+            "APP.LINKS": [],
+        }
+        for address in addresses:
+            code, msg, headers = status_overrides.get(address, (200, "OK", None))
+            self._raw["APP.URLS"].append(
+                {
+                    "ENCODED_URL": address,
+                    "RESPONSE_CODE": code,
+                    "RESPONSE_MSG": msg,
+                    "CONTENT_TYPE": "text/html",
+                    "NUM_METAREFRESH": 0,
+                    "META_FULL_URL_1": None,
+                    "META_FULL_URL_2": None,
+                    "HTTP_RESPONSE_HEADER_COLLECTION": headers,
+                }
+            )
+
+        id_by_url = {row["ENCODED_URL"]: row["ID"] for row in self._raw["APP.UNIQUE_URLS"]}
+        def add_link(src: str, dst: str, *, link_type: int = 1, text: str = "Link", pos: int = 1) -> None:
+            self._raw["APP.LINKS"].append(
+                {
+                    "SRC_ID": id_by_url[src],
+                    "DST_ID": id_by_url[dst],
+                    "ALT_TEXT": None,
+                    "LINK_TEXT": text,
+                    "HREF_LANG": None,
+                    "NOFOLLOW": False,
+                    "UGC": False,
+                    "SPONSORED": False,
+                    "TARGET": None,
+                    "NOOPENER": False,
+                    "NOREFERRER": False,
+                    "PATH_TYPE": "html",
+                    "ELEMENT_PATH": f"a.{text.lower().replace(' ', '-')}",
+                    "ELEMENT_POSITION": pos,
+                    "LINK_TYPE": link_type,
+                    "SCOPE": 0,
+                    "ORIGIN": 1,
+                }
+            )
+
+        add_link("https://example.com/source", "https://example.com/r1", text="Redirect start", pos=1)
+        add_link("https://example.com/source", "https://example.com/c1", text="Canonical start", pos=2)
+        add_link("https://example.com/source", "https://example.com/m1", text="Mixed start", pos=3)
+        add_link("https://example.com/source", "https://example.com/l1", text="Loop start", pos=4)
+        add_link("https://example.com/c1", "https://example.com/c2", link_type=6, text="Canonical 1", pos=1)
+        add_link("https://example.com/c2", "https://example.com/c3", link_type=6, text="Canonical 2", pos=1)
+        add_link("https://example.com/m2", "https://example.com/m3", link_type=6, text="Canonical mixed", pos=1)
+
+    def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
+        for row in self._tabs["internal_all.csv"]:
+            yield InternalPage.from_data(row)
+
+    def get_inlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def get_outlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
+        return len(self._tabs["internal_all.csv"])
+
+    def aggregate(self, table: str, column: str, func: str) -> Any:  # pragma: no cover
+        return None
+
+    def list_tabs(self) -> list[str]:
+        return sorted(self._tabs.keys())
+
+    def get_tab(
+        self, tab_name: str, filters: Optional[dict[str, Any]] = None
+    ) -> Iterator[dict[str, Any]]:
+        name = tab_name if str(tab_name).endswith(".csv") else f"{tab_name}.csv"
+        for row in self._tabs.get(name, []):
+            yield dict(row)
+
+    def raw(self, table: str) -> Iterator[dict[str, Any]]:
+        for row in self._raw.get(str(table).upper(), []):
+            yield dict(row)
+
+    def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
+        raise NotImplementedError
+
+
 def test_export_and_load_duckdb_cache(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl.duckdb"
@@ -681,6 +813,45 @@ def test_duckdb_issue_helpers_read_issue_tabs_directly(tmp_path: Path) -> None:
             "Issue": "Redirect Chain",
         }
     ]
+
+
+def test_duckdb_chain_helpers_work_without_materialized_chain_tabs(tmp_path: Path) -> None:
+    crawl = Crawl(ChainDuckBackend())
+    target = tmp_path / "crawl-chains.duckdb"
+
+    crawl.export_duckdb(str(target), source_label="chains", tabs=("internal_all",))
+    duck = Crawl.from_duckdb(str(target))
+
+    redirect_rows = list(duck.redirect_chains(min_hops=2))
+    canonical_rows = list(duck.canonical_chains(min_hops=2))
+    mixed_rows = list(duck.redirect_and_canonical_chains(min_hops=2))
+    loop_rows = list(duck.redirect_chains(loop=True))
+
+    redirect_by_address = {row["Address"]: row for row in redirect_rows}
+    canonical_by_address = {row["Address"]: row for row in canonical_rows}
+    mixed_by_address = {row["Address"]: row for row in mixed_rows}
+    loop_addresses = {row["Address"] for row in loop_rows}
+
+    assert {"https://example.com/l1", "https://example.com/l2", "https://example.com/r1"} <= set(
+        redirect_by_address
+    )
+    assert redirect_by_address["https://example.com/r1"]["Final Address"] == "https://example.com/r3"
+    assert redirect_by_address["https://example.com/r1"]["Number of Redirects"] == 2
+    assert redirect_by_address["https://example.com/r1"]["Redirect Type 1"] == "HTTP Redirect"
+    assert redirect_by_address["https://example.com/r1"]["Redirect URL 1"] == "https://example.com/r2"
+
+    assert list(canonical_by_address) == ["https://example.com/c1"]
+    assert canonical_by_address["https://example.com/c1"]["Number of Canonicals"] == 2
+    assert canonical_by_address["https://example.com/c1"]["Final Address"] == "https://example.com/c3"
+    assert canonical_by_address["https://example.com/c1"]["Chain Type"] == "Canonical"
+
+    assert "https://example.com/m1" in mixed_by_address
+    assert mixed_by_address["https://example.com/m1"]["Number of Redirects/Canonicals"] == 2
+    assert mixed_by_address["https://example.com/m1"]["Chain Type"] == "Redirect & Canonical"
+    assert mixed_by_address["https://example.com/m1"]["Final Address"] == "https://example.com/m3"
+
+    assert {"https://example.com/l1", "https://example.com/l2"} <= loop_addresses
+    assert all(row["Loop"] is True for row in loop_rows)
 
 
 def test_duckdb_compare_uses_projected_internal_rows(tmp_path: Path) -> None:

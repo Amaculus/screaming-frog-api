@@ -10,6 +10,7 @@
 - Added a DuckDB-first `title_meta_audit()` path against `internal_all`, so missing title/meta checks no longer rely on materialized issue tabs in DuckDB caches.
 - Made DuckDB `inlinks(url)` / `outlinks(url)` fall back to raw `APP.LINKS` / `APP.UNIQUE_URLS` / `APP.URLS` when `all_inlinks` / `all_outlinks` are not materialized.
 - Moved issue-family helpers (`security_issues_report`, `canonical_issues_report`, `hreflang_issues_report`, `redirect_issues_report`) onto direct DuckDB issue-tab relation reads when a DuckDB cache is loaded.
+- Added raw-DuckDB chain traversal for `redirect_chains()`, `canonical_chains()`, and `redirect_and_canonical_chains()` when chain tabs are not materialized, including redirect/meta-refresh/canonical hop resolution and loop detection.
 
 ## 0.2.0a1 (2026-03-21)
 - Added DuckDB analytics-cache support:

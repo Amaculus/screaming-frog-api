@@ -140,6 +140,7 @@ Notes:
 - `title_meta_audit()` also runs DuckDB-first from `internal_all`, so missing title/meta checks work without extra issue-tab materialization.
 - DuckDB `inlinks(url)` / `outlinks(url)` now fall back to raw link relations too, so they still work on lean caches without `all_inlinks` / `all_outlinks`.
 - Issue-family helpers read DuckDB issue relations directly when they exist in the cache.
+- Chain helpers now fall back to raw DuckDB traversal too, so redirect/canonical chain methods no longer require materialized chain tabs on lean caches.
 - You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
 - `.dbseospider`, `.seospider`, and DB crawl ID loaders can all auto-promote to DuckDB.
 - Use `tabs="all"` if you want to materialize every currently available mapped tab into the DuckDB cache.

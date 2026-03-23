@@ -67,6 +67,8 @@ _DEFAULT_FIELD_GROUPS: dict[str, Sequence[str]] = {
     "Directives Summary": (),
 }
 
+_CHAIN_MAX_HOPS = 10
+
 _SECURITY_ISSUE_TABS: dict[str, str] = {
     "security_missing_hsts_header": "Missing HSTS Header",
     "security_missing_contentsecuritypolicy_header": "Missing Content-Security-Policy Header",
@@ -1497,7 +1499,14 @@ class Crawl:
         if min_hops is not None and max_hops is not None and min_hops > max_hops:
             raise ValueError("min_hops cannot be greater than max_hops")
 
-        for row in self.tab(tab_name):
+        backend = getattr(self, "_backend", None)
+        rows: Iterator[dict[str, Any]] | list[dict[str, Any]]
+        if isinstance(backend, DuckDBBackend) and not resolve_relation_name(backend.conn, "tab", tab_name):
+            duckdb_rows = _duckdb_chain_rows(self, tab_name)
+            rows = duckdb_rows if duckdb_rows is not None else self.tab(tab_name)
+        else:
+            rows = self.tab(tab_name)
+        for row in rows:
             hops = _safe_int(row.get(hop_column))
             if min_hops is not None and (hops is None or hops < min_hops):
                 continue
@@ -1813,6 +1822,378 @@ def _duckdb_issue_rows_from_tabs(
     return rows
 
 
+def _duckdb_chain_rows(crawl: Crawl, tab_name: str) -> list[dict[str, Any]] | None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return None
+
+    urls_relation = resolve_relation_name(backend.conn, "raw", "APP.URLS")
+    links_relation = resolve_relation_name(backend.conn, "raw", "APP.LINKS")
+    unique_urls_relation = resolve_relation_name(backend.conn, "raw", "APP.UNIQUE_URLS")
+    internal_relation = getattr(backend, "_internal_relation", None)
+    if not urls_relation or not links_relation or not unique_urls_relation or not internal_relation:
+        return None
+    urls_columns = set(backend._get_relation_columns(urls_relation))
+    internal_columns = set(getattr(backend, "_internal_columns", []))
+
+    if tab_name == "canonical_chains":
+        mode = "canonical"
+    elif tab_name == "redirect_and_canonical_chains":
+        mode = "redirect_and_canonical"
+    elif tab_name == "redirect_chains":
+        mode = "redirect"
+    else:
+        return None
+
+    try:
+        from screamingfrog.backends.derby_backend import (  # type: ignore
+            _extract_link_rel,
+            _headers_from_blob,
+            _parse_link_headers,
+            _strip_default_port,
+        )
+    except Exception:
+        return None
+
+    url_cache: dict[str, dict[str, Any] | None] = {}
+    inlink_cache: dict[str, dict[str, Any]] = {}
+    canonical_cache: dict[str, Optional[str]] = {}
+    indexability_cache: dict[str, tuple[Any, Any]] = {}
+
+    def optional_url_column(column: str, alias: str) -> str:
+        if column in urls_columns:
+            return f'{column} AS {alias}'
+        return f"NULL AS {alias}"
+
+    def parse_headers(blob: Any) -> dict[str, list[str]]:
+        headers = _headers_from_blob(blob)
+        if headers:
+            return headers
+        if isinstance(blob, str) and "\\x" in blob:
+            try:
+                decoded = blob.encode("utf-8").decode("unicode_escape")
+                return _headers_from_blob(decoded.encode("utf-8"))
+            except Exception:
+                return {}
+        return {}
+
+    def fetch_url_details(url: str) -> Optional[dict[str, Any]]:
+        if url in url_cache:
+            return url_cache[url]
+        sql = f"""
+            SELECT
+                ENCODED_URL AS url,
+                RESPONSE_CODE AS response_code,
+                {optional_url_column("RESPONSE_MSG", "response_msg")},
+                {optional_url_column("CONTENT_TYPE", "content_type")},
+                {optional_url_column("NUM_METAREFRESH", "num_metarefresh")},
+                {optional_url_column("META_FULL_URL_1", "meta_url_1")},
+                {optional_url_column("META_FULL_URL_2", "meta_url_2")},
+                {optional_url_column("HTTP_RESPONSE_HEADER_COLLECTION", "headers_blob")}
+            FROM {urls_relation}
+            WHERE ENCODED_URL = ?
+            LIMIT 1
+        """
+        row = next(backend.sql(sql, [url]), None)
+        if not row:
+            url_cache[url] = None
+            return None
+        details = {
+            "url": row.get("url"),
+            "response_code": row.get("response_code"),
+            "response_msg": row.get("response_msg"),
+            "content_type": row.get("content_type"),
+            "num_metarefresh": row.get("num_metarefresh"),
+            "meta_url_1": row.get("meta_url_1"),
+            "meta_url_2": row.get("meta_url_2"),
+            "headers": parse_headers(row.get("headers_blob")),
+        }
+        url_cache[url] = details
+        return details
+
+    def fetch_inlink_details(url: str) -> dict[str, Any]:
+        if url in inlink_cache:
+            return inlink_cache[url]
+        sql = f"""
+            SELECT
+                s.ENCODED_URL AS source_url,
+                l.ALT_TEXT AS alt_text,
+                l.LINK_TEXT AS anchor_text,
+                l.ELEMENT_PATH AS element_path,
+                l.ELEMENT_POSITION AS element_position
+            FROM {links_relation} l
+            JOIN {unique_urls_relation} s ON l.SRC_ID = s.ID
+            JOIN {unique_urls_relation} d ON l.DST_ID = d.ID
+            WHERE d.ENCODED_URL = ?
+            ORDER BY s.ENCODED_URL, l.ELEMENT_POSITION, l.LINK_TEXT
+            LIMIT 1
+        """
+        row = next(backend.sql(sql, [url]), None)
+        details = {
+            "Source": row.get("source_url") if row else None,
+            "Alt Text": row.get("alt_text") if row else None,
+            "Anchor Text": row.get("anchor_text") if row else None,
+            "Link Path": row.get("element_path") if row else None,
+            "Link Position": row.get("element_position") if row else None,
+        }
+        inlink_cache[url] = details
+        return details
+
+    def fetch_indexability(url: str) -> tuple[Any, Any]:
+        if url in indexability_cache:
+            return indexability_cache[url]
+        select_parts = [
+            _duckdb_optional_internal_select(
+                internal_columns,
+                ("Indexability", "INDEXABILITY"),
+                "indexability",
+            ),
+            _duckdb_optional_internal_select(
+                internal_columns,
+                ("Indexability Status", "INDEXABILITY_STATUS"),
+                "indexability_status",
+            ),
+        ]
+        sql = f"""
+            SELECT {", ".join(select_parts)}
+            FROM {internal_relation} i
+            WHERE "Address" = ?
+            LIMIT 1
+        """
+        row = next(backend.sql(sql, [url]), None)
+        result = (
+            row.get("indexability") if row else None,
+            row.get("indexability_status") if row else None,
+        )
+        indexability_cache[url] = result
+        return result
+
+    def fetch_canonical_target(url: str, headers: dict[str, list[str]]) -> Optional[str]:
+        if url in canonical_cache:
+            return canonical_cache[url]
+        sql = f"""
+            SELECT d.ENCODED_URL AS canonical_url
+            FROM {links_relation} l
+            JOIN {unique_urls_relation} s ON l.SRC_ID = s.ID
+            JOIN {unique_urls_relation} d ON l.DST_ID = d.ID
+            WHERE s.ENCODED_URL = ? AND l.LINK_TYPE = 6
+            ORDER BY d.ENCODED_URL
+            LIMIT 1
+        """
+        row = next(backend.sql(sql, [url]), None)
+        canonical = row.get("canonical_url") if row else None
+        if not canonical and headers:
+            links = _parse_link_headers(headers.get("link", []))
+            canonical = _extract_link_rel(links, "canonical")
+        canonical_cache[url] = canonical
+        return canonical
+
+    def normalize_target(base: str, target: Optional[str]) -> Optional[str]:
+        if not target:
+            return None
+        text = str(target).strip()
+        if not text:
+            return None
+        return _strip_default_port(urljoin(base, text))
+
+    def resolve_location(headers: dict[str, list[str]]) -> Optional[str]:
+        locations = headers.get("location", []) if headers else []
+        if not locations:
+            return None
+        return locations[0]
+
+    def build_chain(
+        start_url: str, chain_mode: str
+    ) -> Optional[tuple[list[dict[str, Any]], list[str], list[str], bool, bool]]:
+        steps: list[dict[str, Any]] = []
+        hop_types: list[str] = []
+        hop_targets: list[str] = []
+        visited: set[str] = set()
+        loop = False
+        temp_redirect = False
+        current = start_url
+
+        while len(steps) < _CHAIN_MAX_HOPS:
+            if current in visited:
+                loop = True
+                break
+            visited.add(current)
+            data = fetch_url_details(current)
+            if not data:
+                break
+            steps.append(data)
+            next_url = None
+            hop_type = None
+            if chain_mode in {"redirect", "redirect_and_canonical"}:
+                code = _safe_int(data.get("response_code"))
+                if code is not None and 300 <= code < 400:
+                    next_url = resolve_location(data.get("headers") or {})
+                    if next_url:
+                        hop_type = "HTTP Redirect"
+                        if code in {302, 303, 307}:
+                            temp_redirect = True
+                if not next_url and _safe_int(data.get("num_metarefresh")):
+                    next_url = data.get("meta_url_1") or data.get("meta_url_2")
+                    if next_url:
+                        hop_type = "Meta Refresh"
+
+            if next_url:
+                next_url = normalize_target(current, next_url)
+            if not next_url or next_url == current:
+                break
+            hop_types.append(hop_type or "HTTP Redirect")
+            hop_targets.append(next_url)
+            current = next_url
+
+        if chain_mode in {"canonical", "redirect_and_canonical"}:
+            while len(steps) < _CHAIN_MAX_HOPS:
+                data = fetch_url_details(current)
+                if not data:
+                    break
+                canonical = fetch_canonical_target(current, data.get("headers") or {})
+                canonical = normalize_target(current, canonical)
+                if not canonical or canonical == current:
+                    break
+                if canonical in visited:
+                    loop = True
+                    break
+                hop_types.append("Canonical")
+                hop_targets.append(canonical)
+                current = canonical
+                visited.add(current)
+                next_data = fetch_url_details(current)
+                if not next_data:
+                    steps.append(
+                        {
+                            "url": current,
+                            "response_code": None,
+                            "response_msg": None,
+                            "content_type": None,
+                            "num_metarefresh": 0,
+                            "meta_url_1": None,
+                            "meta_url_2": None,
+                            "headers": {},
+                        }
+                    )
+                    break
+                steps.append(next_data)
+
+            if chain_mode == "canonical" and not any(hop == "Canonical" for hop in hop_types):
+                return None
+
+        if chain_mode == "redirect" and not hop_types:
+            return None
+        return steps, hop_types, hop_targets, loop, temp_redirect
+
+    def chain_type_for(chain_mode: str, hop_types: list[str]) -> Optional[str]:
+        has_redirect = any(t in {"HTTP Redirect", "Meta Refresh"} for t in hop_types)
+        has_canonical = any(t == "Canonical" for t in hop_types)
+        if chain_mode == "canonical":
+            return "Canonical" if has_canonical else None
+        if chain_mode == "redirect_and_canonical":
+            if has_redirect and has_canonical:
+                return "Redirect & Canonical"
+            if has_canonical:
+                return "Canonical"
+        if has_redirect:
+            return "HTTP Redirect" if any(t == "HTTP Redirect" for t in hop_types) else "Meta Refresh"
+        return None
+
+    def hop_count_for(chain_mode: str, hop_types: list[str]) -> int:
+        if chain_mode == "canonical":
+            return sum(1 for hop in hop_types if hop == "Canonical")
+        if chain_mode == "redirect_and_canonical":
+            return len(hop_types)
+        return sum(1 for hop in hop_types if hop in {"HTTP Redirect", "Meta Refresh"})
+
+    start_urls: list[str] = []
+    if mode in {"redirect", "redirect_and_canonical"}:
+        redirect_predicates = ["RESPONSE_CODE BETWEEN 300 AND 399"]
+        if "NUM_METAREFRESH" in urls_columns:
+            redirect_predicates.append("COALESCE(NUM_METAREFRESH, 0) > 0")
+        sql = f"""
+            SELECT ENCODED_URL AS address
+            FROM {urls_relation}
+            WHERE {" OR ".join(redirect_predicates)}
+            ORDER BY ENCODED_URL
+        """
+        start_urls.extend(
+            str(row.get("address") or "").strip()
+            for row in backend.sql(sql)
+            if str(row.get("address") or "").strip()
+        )
+    if mode in {"canonical", "redirect_and_canonical"}:
+        sql = f"""
+            SELECT DISTINCT s.ENCODED_URL AS address
+            FROM {links_relation} l
+            JOIN {unique_urls_relation} s ON l.SRC_ID = s.ID
+            WHERE l.LINK_TYPE = 6
+            ORDER BY s.ENCODED_URL
+        """
+        start_urls.extend(
+            str(row.get("address") or "").strip()
+            for row in backend.sql(sql)
+            if str(row.get("address") or "").strip()
+        )
+
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for start_url in start_urls:
+        if not start_url or start_url in seen:
+            continue
+        seen.add(start_url)
+        result = build_chain(start_url, mode)
+        if not result:
+            continue
+        steps, hop_types, hop_targets, loop, temp_redirect = result
+        chain_type = chain_type_for(mode, hop_types)
+        hop_count = hop_count_for(mode, hop_types)
+
+        row: dict[str, Any] = {
+            "Chain Type": chain_type,
+            "Number of Redirects": hop_count,
+            "Number of Redirects/Canonicals": hop_count,
+            "Number of Canonicals": hop_count,
+            "Loop": loop,
+            "Temp Redirect in Chain": temp_redirect,
+            "Address": start_url,
+        }
+        inlink = fetch_inlink_details(start_url)
+        row.update(inlink)
+
+        final = steps[-1] if steps else None
+        final_url = final.get("url") if final else None
+        idx_val, idx_status_val = (None, None)
+        if final_url:
+            idx_val, idx_status_val = fetch_indexability(final_url)
+        row["Final Address"] = final_url
+        row["Final Content"] = final.get("content_type") if final else None
+        row["Final Status Code"] = final.get("response_code") if final else None
+        row["Final Status"] = final.get("response_msg") if final else None
+        row["Final Indexability"] = idx_val
+        row["Final Indexability Status"] = idx_status_val
+
+        for i in range(1, _CHAIN_MAX_HOPS + 1):
+            if i <= len(steps):
+                step = steps[i - 1]
+                row[f"Content {i}"] = step.get("content_type")
+                row[f"Status Code {i}"] = step.get("response_code")
+                row[f"Status {i}"] = step.get("response_msg")
+            else:
+                row[f"Content {i}"] = None
+                row[f"Status Code {i}"] = None
+                row[f"Status {i}"] = None
+            if i <= len(hop_targets):
+                row[f"Redirect Type {i}"] = hop_types[i - 1]
+                row[f"Redirect URL {i}"] = hop_targets[i - 1]
+            else:
+                row[f"Redirect Type {i}"] = None
+                row[f"Redirect URL {i}"] = None
+
+        rows.append(row)
+    return rows
+
+
 def _duckdb_inlink_rows_for_report(
     crawl: Crawl,
     *,
@@ -2013,7 +2394,11 @@ def _duckdb_summary(crawl: Crawl) -> dict[str, Any] | None:
         [400, 599],
     )
     non_indexable_pages = _duckdb_non_indexable_count(backend, internal_relation)
-    redirect_chains = _duckdb_count_exported_tab_rows(backend, "redirect_chains")
+    redirect_chains_relation = resolve_relation_name(backend.conn, "tab", "redirect_chains")
+    if redirect_chains_relation:
+        redirect_chains = _duckdb_count_exported_tab_rows(backend, "redirect_chains")
+    else:
+        redirect_chains = len(_duckdb_chain_rows(crawl, "redirect_chains") or [])
 
     broken_inlinks = 0
     nofollow_inlinks = 0
