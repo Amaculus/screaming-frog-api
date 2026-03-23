@@ -173,9 +173,14 @@ class DerbyBackend(CrawlBackend):
         self._internal_header_extract_map = _resolve_internal_header_extract_map(
             self._mapping, self._table
         )
-        self._internal_expr_selects = _resolve_internal_expression_selects(
-            self._mapping, self._table
-        )
+        self._existing_tables: frozenset[str] = _fetch_existing_tables(self._conn)
+        self._internal_expr_selects = [
+            (alias, csv_col, expr)
+            for alias, csv_col, expr in _resolve_internal_expression_selects(
+                self._mapping, self._table
+            )
+            if not _expression_references_absent_table(expr, self._existing_tables)
+        ]
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         table_alias = "sf_internal"
@@ -570,7 +575,9 @@ class DerbyBackend(CrawlBackend):
 
             expr = entry.get("db_expression")
             if expr:
-                if _is_null_expression(expr):
+                if _is_null_expression(expr) or _expression_references_absent_table(
+                    expr, getattr(self, "_existing_tables", frozenset())
+                ):
                     entry_indexes.append(None)
                     csv_columns.append(entry["csv_column"])
                     continue
@@ -2841,6 +2848,42 @@ def _fetch_column_names(conn, table: str) -> list[str]:
     cursor = conn.cursor()
     cursor.execute(f"SELECT * FROM {table} FETCH FIRST 1 ROWS ONLY")
     return [col[0] for col in cursor.description]
+
+
+def _fetch_existing_tables(conn) -> frozenset[str]:
+    """Return uppercase SCHEMA.TABLE names for every base table in the Derby database."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT SCHEMANAME, TABLENAME FROM SYS.SYSTABLES WHERE TABLETYPE = 'T'"
+        )
+        return frozenset(
+            f"{str(row[0]).upper()}.{str(row[1]).upper()}"
+            for row in cursor.fetchall()
+        )
+    except Exception:
+        return frozenset()
+
+
+_FROM_TABLE_RE = re.compile(r"\bFROM\s+([A-Za-z_][A-Za-z0-9_.]*)\b", re.IGNORECASE)
+
+
+def _expression_references_absent_table(expr: str, existing: frozenset[str]) -> bool:
+    """Return True if the SQL expression references a table not present in the database.
+
+    Used to skip correlated subqueries (e.g. PageSpeed API columns) that were added
+    to the mapping for SF versions that ran the built-in PSI audit, but are absent in
+    crawls that did not. Treats unqualified table names as APP-schema members.
+    """
+    if not existing:
+        return False
+    for match in _FROM_TABLE_RE.finditer(expr):
+        table_ref = match.group(1).upper()
+        if "." not in table_ref:
+            table_ref = f"APP.{table_ref}"
+        if table_ref not in existing:
+            return True
+    return False
 
 
 def _resolve_column_name(columns: Sequence[str], target: str) -> str | None:
