@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Added `crawl.pages().select(...)` / `ProjectedPageView` for narrow page projections, with DuckDB-first `internal_common` helper caching and source-backed fallback so lightweight page workflows do not force `internal_all` materialization.
+- Moved DuckDB-first `title_meta_audit()`, `indexability_audit()`, and the DuckDB diff projection path onto the new projected-page flow, so they can stay lean on cold caches too.
 - Fixed DuckDB export so `tables=()` truly disables raw-table materialization instead of silently falling back to `APP.URLS` / `APP.LINKS` / `APP.UNIQUE_URLS`.
 - Changed DB-backed DuckDB loads to initialize an empty cache by default, then prewarm the Derby source backend without exporting tabs or raw tables up front.
 - Added a lightweight cache-initialization path for empty DuckDB sidecars so default DB-backed loads no longer pay a Derby export cost before returning.

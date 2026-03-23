@@ -592,6 +592,44 @@ def test_duckdb_backend_can_lazy_materialize_internal_tab_from_empty_cache(tmp_p
     assert duck._backend._internal_relation is None  # type: ignore[attr-defined]
 
 
+def test_duckdb_projected_page_view_uses_common_helper_without_internal_all(tmp_path: Path) -> None:
+    source_backend = FakeDuckCompareBackend(
+        [
+            {
+                "Address": "https://example.com/home",
+                "Status Code": 200,
+                "Title 1": "Home",
+                "Meta Description 1": "Desc",
+                "Indexability": "Indexable",
+                "Indexability Status": "Indexable",
+                "Meta Robots 1": None,
+                "X-Robots-Tag 1": None,
+                "Canonical Link Element 1": None,
+            }
+        ]
+    )
+    target = tmp_path / "crawl-projected.duckdb"
+
+    Crawl(source_backend).export_duckdb(str(target), source_label="projected", tables=(), tabs=())
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        source_backend,
+        source_label="projected",
+        available_tabs=("internal_all.csv",),
+    )
+
+    rows = duck.pages().select("Address", "Title 1", "Meta Description 1").collect()
+
+    assert rows == [
+        {
+            "Address": "https://example.com/home",
+            "Title 1": "Home",
+            "Meta Description 1": "Desc",
+        }
+    ]
+    assert duck._backend._internal_relation is None  # type: ignore[attr-defined]
+
+
 def test_duckdb_backend_lazy_materializes_raw_tables_from_source(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl-lazy-raw.duckdb"
@@ -1069,3 +1107,66 @@ def test_duckdb_compare_uses_projected_internal_rows(tmp_path: Path) -> None:
             "HTTP Redirect",
         )
     ]
+
+
+def test_duckdb_compare_works_on_lean_caches_without_internal_all(tmp_path: Path) -> None:
+    old_rows = [
+        {
+            "Address": "https://example.com/home",
+            "Status Code": 200,
+            "Title 1": "Home",
+            "Redirect URL": None,
+            "Redirect Type": None,
+            "Canonical Link Element 1": None,
+            "Indexability": "Indexable",
+            "Indexability Status": "Indexable",
+            "Meta Robots 1": None,
+            "X-Robots-Tag 1": None,
+        }
+    ]
+    new_rows = [
+        {
+            "Address": "https://example.com/home",
+            "Status Code": 301,
+            "Title 1": "Homepage",
+            "Redirect URL": "https://example.com/new-home",
+            "Redirect Type": "HTTP Redirect",
+            "Canonical Link Element 1": None,
+            "Indexability": "Indexable",
+            "Indexability Status": "Indexable",
+            "Meta Robots 1": None,
+            "X-Robots-Tag 1": None,
+        }
+    ]
+
+    old_duckdb = tmp_path / "old-lean.duckdb"
+    new_duckdb = tmp_path / "new-lean.duckdb"
+    old_source = FakeDuckCompareBackend(old_rows)
+    new_source = FakeDuckCompareBackend(new_rows)
+
+    Crawl(old_source).export_duckdb(str(old_duckdb), tables=(), tabs=())
+    Crawl(new_source).export_duckdb(str(new_duckdb), tables=(), tabs=())
+
+    old_crawl = Crawl.from_duckdb(str(old_duckdb))
+    new_crawl = Crawl.from_duckdb(str(new_duckdb))
+    old_crawl._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        old_source,
+        source_label="old-lean",
+        available_tabs=("internal_all.csv",),
+    )
+    new_crawl._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        new_source,
+        source_label="new-lean",
+        available_tabs=("internal_all.csv",),
+    )
+
+    diff = new_crawl.compare(old_crawl)
+
+    assert [(change.url, change.old_status, change.new_status) for change in diff.status_changes] == [
+        ("https://example.com/home", 200, 301)
+    ]
+    assert [(change.url, change.old_title, change.new_title) for change in diff.title_changes] == [
+        ("https://example.com/home", "Home", "Homepage")
+    ]
+    assert new_crawl._backend._internal_relation is None  # type: ignore[attr-defined]
+    assert old_crawl._backend._internal_relation is None  # type: ignore[attr-defined]

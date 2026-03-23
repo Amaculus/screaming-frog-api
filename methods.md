@@ -117,6 +117,7 @@ This file lists the current callable API in `screaming-frog-api`.
 
 ## `PageView` (returned by `crawl.pages()`)
 - `filter(**kwargs) -> PageView`
+- `select(*fields) -> ProjectedPageView`
 - `search(term, fields=None, case_sensitive=False) -> SearchRowView`
 - `count() -> int`
 - `collect() -> list[dict[str, Any]]`
@@ -124,6 +125,16 @@ This file lists the current callable API in `screaming-frog-api`.
 - `to_pandas()`
 - `to_polars()`
 - iterable (`for row in crawl.pages().filter(...): ...`)
+
+## `ProjectedPageView` (returned by `crawl.pages().select(...)`)
+- `filter(**kwargs) -> ProjectedPageView`
+- `search(term, fields=None, case_sensitive=False) -> SearchRowView`
+- `count() -> int`
+- `collect() -> list[dict[str, Any]]`
+- `first() -> dict[str, Any] | None`
+- `to_pandas()`
+- `to_polars()`
+- iterable (`for row in crawl.pages().select(...): ...`)
 
 ## `QueryView` (returned by `crawl.query("APP", "URLS")`)
 - `select(*columns) -> QueryView`

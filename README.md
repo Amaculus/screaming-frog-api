@@ -121,6 +121,7 @@ derby_crawl.export_duckdb("./crawl.duckdb", if_exists="auto")
 fast = Crawl.load("./crawl.duckdb")
 
 pages_404 = fast.pages().filter(status_code=404).collect()
+lightweight = fast.pages().select("Address", "Status Code", "Title 1").collect()
 matching_pages = fast.search("canonical", fields=["Address", "Title 1"]).collect()
 links = fast.links("in").filter(status_code=404).collect()
 rows = (
@@ -137,6 +138,7 @@ Notes:
 - Default DB-backed loads now create a tiny sidecar DuckDB cache first, keep Derby prewarmed as the lazy source backend, and only materialize heavier relations if you actually ask for them.
 - Repeated DB-backed loads in the same Python process now reuse the cached Derby source backend for the same crawl fingerprint, so reopening the same crawl avoids paying Derby startup again.
 - High-level page workflows (`crawl.pages()`, page counts, page iteration) now read from the internal model directly instead of forcing `internal_all` tab materialization on a cold cache.
+- `crawl.pages().select(...)` now projects narrow page field subsets through a shared `internal_common` helper relation or the prewarmed Derby source backend, so lightweight page workflows avoid wide `internal_all` materialization too.
 - Cold-cache graph workflows (`broken_links_report`, `broken_inlinks_report`, `nofollow_inlinks_report`) can execute directly from the prewarmed Derby source, so they return without first exporting wide `all_inlinks` tables into DuckDB.
 - Generic `crawl.tab(...)` / `crawl.tab_columns(...)` calls also fall back to the prewarmed source backend when a tab is not cached yet, so first-use tab access no longer forces a DuckDB export round-trip.
 - When DuckDB does need cached subsets, it now materializes narrow helper relations instead of forcing full `internal_all` / `all_inlinks` exports.
@@ -158,6 +160,7 @@ from screamingfrog import Crawl
 crawl = Crawl.load("./crawl.dbseospider")
 
 matching_pages = crawl.search("blog", fields=["Address", "Title 1"]).collect()
+projected = crawl.pages().select("Address", "Status Code", "Title 1").filter(status_code=404).collect()
 nofollow_links = crawl.links("in").search("nofollow", fields=["Follow"]).collect()
 blog_inlinks = crawl.section("/blog").tab("all_inlinks").collect()
 orphans = crawl.orphan_pages_report(only_indexable=True)

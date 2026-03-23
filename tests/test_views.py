@@ -60,6 +60,32 @@ def test_pages_and_links_views_from_csv(tmp_path: Path) -> None:
     assert outlinks[0]["Destination"] == "https://example.com/destination"
 
 
+def test_page_view_select_projects_requested_fields(tmp_path: Path) -> None:
+    _write_csv(
+        tmp_path / "internal_all.csv",
+        [
+            {
+                "Address": "https://example.com/blog/a",
+                "Status Code": "200",
+                "Title 1": "Blog A",
+                "Meta Description 1": "Desc A",
+            },
+            {
+                "Address": "https://example.com/shop/b",
+                "Status Code": "404",
+                "Title 1": "",
+                "Meta Description 1": "",
+            },
+        ],
+    )
+
+    crawl = Crawl.load(str(tmp_path))
+
+    rows = crawl.pages().select("Address", "Title 1").filter(status_code=404).collect()
+
+    assert rows == [{"Address": "https://example.com/shop/b", "Title 1": ""}]
+
+
 def test_section_scopes_pages_and_links_by_path_prefix(tmp_path: Path) -> None:
     _write_csv(
         tmp_path / "internal_all.csv",

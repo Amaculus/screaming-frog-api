@@ -18,6 +18,63 @@ from screamingfrog.db.duckdb import (
 from screamingfrog.filters.names import make_tab_filename, normalize_name
 from screamingfrog.models import InternalPage, Link
 
+_INTERNAL_COMMON_FIELD_CANDIDATES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Address", ("Address", "ENCODED_URL")),
+    ("Status Code", ("Status Code", "RESPONSE_CODE")),
+    ("Status", ("Status", "RESPONSE_MSG")),
+    ("Title 1", ("Title 1", "TITLE_1")),
+    ("Title", ("Title", "Title 1", "TITLE_1")),
+    ("Meta Description 1", ("Meta Description 1", "META_DESCRIPTION_1")),
+    ("Meta Description", ("Meta Description", "Meta Description 1", "META_DESCRIPTION_1")),
+    ("Meta Keywords 1", ("Meta Keywords 1", "META_KEYWORDS_1")),
+    ("Meta Keywords", ("Meta Keywords", "Meta Keywords 1", "META_KEYWORDS_1")),
+    ("Meta Refresh 1", ("Meta Refresh 1", "META_REFRESH_1", "META_FULL_URL_1")),
+    ("Meta Refresh", ("Meta Refresh", "Meta Refresh 1", "META_REFRESH_1", "META_FULL_URL_1")),
+    (
+        "Canonical Link Element 1",
+        ("Canonical Link Element 1", "Canonical Link Element", "Canonical", "CANONICAL_LINK_1"),
+    ),
+    (
+        "Canonical Link Element",
+        ("Canonical Link Element", "Canonical Link Element 1", "Canonical", "CANONICAL_LINK_1"),
+    ),
+    ("Canonical", ("Canonical", "Canonical Link Element 1", "Canonical Link Element", "CANONICAL_LINK_1")),
+    ("Indexability", ("Indexability", "INDEXABILITY")),
+    ("Indexability Status", ("Indexability Status", "INDEXABILITY_STATUS")),
+    ("Meta Robots 1", ("Meta Robots 1", "Meta Robots", "META_ROBOTS_1")),
+    ("Meta Robots", ("Meta Robots", "Meta Robots 1", "META_ROBOTS_1")),
+    ("X-Robots-Tag 1", ("X-Robots-Tag 1", "X-Robots-Tag", "X_ROBOTS_TAG_1")),
+    ("X-Robots-Tag", ("X-Robots-Tag", "X-Robots-Tag 1", "X_ROBOTS_TAG_1")),
+    ("H1-1", ("H1-1", "H1 1", "H1", "H1_1")),
+    ("H1 1", ("H1 1", "H1-1", "H1", "H1_1")),
+    ("H1", ("H1", "H1-1", "H1 1", "H1_1")),
+    ("H2-1", ("H2-1", "H2 1", "H2", "H2_1")),
+    ("H2 1", ("H2 1", "H2-1", "H2", "H2_1")),
+    ("H2", ("H2", "H2-1", "H2 1", "H2_1")),
+    ("H3-1", ("H3-1", "H3 1", "H3", "H3_1")),
+    ("H3 1", ("H3 1", "H3-1", "H3", "H3_1")),
+    ("H3", ("H3", "H3-1", "H3 1", "H3_1")),
+    ("Word Count", ("Word Count", "WORD_COUNT")),
+    ("Redirect URL", ("Redirect URL", "Redirect URI", "Redirect Destination")),
+    ("Redirect URI", ("Redirect URI", "Redirect URL", "Redirect Destination")),
+    ("Redirect Destination", ("Redirect Destination", "Redirect URL", "Redirect URI")),
+    ("Redirect Type", ("Redirect Type",)),
+    ("HTTP Canonical", ("HTTP Canonical", "HTTP_CANONICAL")),
+    ("HTTP_CANONICAL", ("HTTP_CANONICAL", "HTTP Canonical")),
+    (
+        "HTTP_RESPONSE_HEADER_COLLECTION",
+        ("HTTP_RESPONSE_HEADER_COLLECTION", "http_response_header_collection"),
+    ),
+    ("Response Time", ("Response Time", "RESPONSE_TIME_MS")),
+    ("Last Modified", ("Last Modified", "LAST_MODIFIED_DATE")),
+    ("URL Encoded Address", ("URL Encoded Address", "Encoded URL", "ENCODED_URL")),
+    ("Encoded URL", ("Encoded URL", "URL Encoded Address", "ENCODED_URL")),
+    ("Crawl Timestamp", ("Crawl Timestamp", "TIMESTAMP")),
+)
+_INTERNAL_COMMON_FIELD_NAMES = {
+    field_name for field_name, _ in _INTERNAL_COMMON_FIELD_CANDIDATES
+}
+
 
 class DuckDBBackend(CrawlBackend):
     """Backend that reads exported crawl data from a DuckDB analytics cache."""
@@ -398,6 +455,8 @@ class DuckDBBackend(CrawlBackend):
         normalized = str(helper_name).strip().lower()
         if normalized == "internal_basic":
             return _iter_internal_basic_rows_from_source(source_backend)
+        if normalized == "internal_common":
+            return _iter_internal_common_rows_from_source(source_backend)
         if normalized == "links_core":
             return _iter_links_core_rows_from_source(source_backend)
         return None
@@ -592,6 +651,42 @@ def _iter_internal_basic_rows_from_source(source_backend: Any) -> Iterator[dict[
             "Address": address,
             "Status Code": row.get("RESPONSE_CODE", row.get("Status Code")),
         }
+
+
+def _first_internal_value(data: dict[str, Any], candidates: Sequence[str]) -> Any:
+    for candidate in candidates:
+        if candidate in data:
+            value = data.get(candidate)
+            if value is not None:
+                return value
+        lowered = str(candidate).lower()
+        if lowered in data:
+            value = data.get(lowered)
+            if value is not None:
+                return value
+    return None
+
+
+def _iter_internal_common_rows_from_source(source_backend: Any) -> Iterator[dict[str, Any]]:
+    for page in source_backend.get_internal():
+        data = dict(getattr(page, "data", {}) or {})
+        address = getattr(page, "address", None) or _first_internal_value(
+            data, ("Address", "ENCODED_URL")
+        )
+        if not address:
+            continue
+        row: dict[str, Any] = {"Address": address}
+        status_code = getattr(page, "status_code", None)
+        if status_code is None:
+            status_code = _first_internal_value(data, ("Status Code", "RESPONSE_CODE"))
+        row["Status Code"] = status_code
+        for field_name, candidates in _INTERNAL_COMMON_FIELD_CANDIDATES:
+            if field_name == "Address":
+                continue
+            if field_name == "Status Code":
+                continue
+            row[field_name] = _first_internal_value(data, candidates)
+        yield row
 
 
 def _iter_links_core_rows_from_source(source_backend: Any) -> Iterator[dict[str, Any]]:

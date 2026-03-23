@@ -16,6 +16,7 @@ from screamingfrog.backends import (
     DuckDBBackend,
     HybridBackend,
 )
+from screamingfrog.backends.duckdb_backend import _INTERNAL_COMMON_FIELD_NAMES
 from screamingfrog.backends.hybrid_backend import FallbackConfig
 from screamingfrog.db.derby import find_derby_db_root
 from screamingfrog.db.duckdb import (
@@ -246,9 +247,62 @@ class PageView:
             case_sensitive,
         )
 
+    def select(self, *fields: str) -> "ProjectedPageView":
+        if not fields:
+            raise ValueError("select() requires at least one field")
+        return ProjectedPageView(self.backend, tuple(str(field) for field in fields), self.filters)
+
     def __iter__(self) -> Iterator[dict[str, Any]]:
         for page in self.backend.get_internal(filters=self.filters):
             yield dict(page.data)
+
+    def count(self) -> int:
+        return self.backend.count("internal", filters=self.filters)
+
+    def collect(self) -> list[dict[str, Any]]:
+        return list(self.__iter__())
+
+    def first(self) -> Optional[dict[str, Any]]:
+        return next(iter(self), None)
+
+    def to_pandas(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "pandas")
+
+    def to_polars(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "polars")
+
+
+@dataclass(frozen=True)
+class ProjectedPageView:
+    backend: CrawlBackend
+    fields: tuple[str, ...]
+    filters: dict[str, Any] | None = None
+
+    def filter(self, **kwargs: Any) -> "ProjectedPageView":
+        merged = dict(self.filters or {})
+        merged.update(kwargs)
+        return ProjectedPageView(self.backend, self.fields, merged)
+
+    def search(
+        self,
+        term: str,
+        *,
+        fields: Sequence[str] | None = None,
+        case_sensitive: bool = False,
+    ) -> "SearchRowView":
+        return SearchRowView(
+            self,
+            str(term),
+            tuple(fields) if fields is not None else None,
+            case_sensitive,
+        )
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        yield from _iter_projected_page_rows(
+            self.backend,
+            self.fields,
+            filters=self.filters,
+        )
 
     def count(self) -> int:
         return self.backend.count("internal", filters=self.filters)
@@ -449,7 +503,7 @@ class SearchInternalView:
 
 @dataclass(frozen=True)
 class SearchRowView:
-    base: PageView | TabView | LinkView | ScopedRowView
+    base: PageView | ProjectedPageView | TabView | LinkView | ScopedRowView
     term: str
     fields: tuple[str, ...] | None = None
     case_sensitive: bool = False
@@ -485,7 +539,7 @@ class SearchRowView:
 
 @dataclass(frozen=True)
 class ScopedRowView:
-    base: PageView | TabView | LinkView
+    base: PageView | ProjectedPageView | TabView | LinkView
     prefix: str
     fields: tuple[str, ...]
 
@@ -3092,6 +3146,34 @@ def _duckdb_indexability_audit(crawl: Crawl) -> list[dict[str, Any]] | None:
     if not isinstance(backend, DuckDBBackend):
         return None
 
+    projected = _duckdb_projected_page_rows(
+        backend,
+        (
+            "Address",
+            "Status Code",
+            "Indexability",
+            "Indexability Status",
+            "Canonical Link Element 1",
+            "Meta Robots 1",
+            "X-Robots-Tag 1",
+        ),
+    )
+    if projected is not None:
+        rows = list(projected)
+        return [
+            {
+                "Address": row.get("Address"),
+                "Status Code": _safe_int(row.get("Status Code")),
+                "Indexability": row.get("Indexability"),
+                "Indexability Status": row.get("Indexability Status"),
+                "Canonical": row.get("Canonical Link Element 1"),
+                "Meta Robots": row.get("Meta Robots 1"),
+                "X-Robots-Tag": row.get("X-Robots-Tag 1"),
+            }
+            for row in rows
+            if str(row.get("Indexability") or "").strip().lower() == "non-indexable"
+        ]
+
     internal_relation = getattr(backend, "_internal_relation", None)
     internal_columns = set(getattr(backend, "_internal_columns", []))
     if not internal_relation:
@@ -3159,31 +3241,23 @@ def _duckdb_title_meta_audit(crawl: Crawl) -> list[dict[str, Any]] | None:
     if not isinstance(backend, DuckDBBackend):
         return None
 
-    source_backend = _duckdb_source_backend(backend)
-    if source_backend is not None and hasattr(source_backend, "sql"):
-        try:
-            rows: list[dict[str, Any]] = []
-            for row in source_backend.sql(
-                """
-                SELECT
-                    ENCODED_URL AS address,
-                    TITLE_1 AS title_1,
-                    META_DESCRIPTION_1 AS meta_description_1
-                FROM APP.URLS
-                WHERE IS_INTERNAL = TRUE
-                ORDER BY ENCODED_URL
-                """
-            ):
-                address = row.get("address") or row.get("Address")
-                title = row.get("title_1") or row.get("Title 1")
-                meta_description = row.get("meta_description_1") or row.get("Meta Description 1")
-                if title in (None, ""):
-                    rows.append({"Address": address, "Issue": "Missing Title"})
-                if meta_description in (None, ""):
-                    rows.append({"Address": address, "Issue": "Missing Meta Description"})
-            return rows
-        except Exception:
-            pass
+    projected = _duckdb_projected_page_rows(
+        backend,
+        ("Address", "Title 1", "Meta Description 1"),
+    )
+    if projected is not None:
+        materialized = sorted(
+            list(projected),
+            key=lambda row: str(row.get("Address") or ""),
+        )
+        rows: list[dict[str, Any]] = []
+        for row in materialized:
+            if row.get("Title 1") in (None, ""):
+                rows.append({"Address": row.get("Address"), "Issue": "Missing Title"})
+        for row in materialized:
+            if row.get("Meta Description 1") in (None, ""):
+                rows.append({"Address": row.get("Address"), "Issue": "Missing Meta Description"})
+        return rows
 
     internal_relation = getattr(backend, "_internal_relation", None)
     internal_columns = set(getattr(backend, "_internal_columns", []))
@@ -3305,10 +3379,125 @@ def _duckdb_compare_fields(
     return {field for field in required_fields if field}
 
 
+def _project_page_value(page: InternalPage, field: str) -> Any:
+    if field == "Address":
+        return page.address
+    if field == "Status Code":
+        return page.status_code
+    data = dict(page.data or {})
+    normalized = {str(key).strip().lower(): value for key, value in data.items()}
+    candidates = (
+        field,
+        field.lower(),
+        field.upper().replace(" ", "_").replace("-", "_"),
+    )
+    for candidate in candidates:
+        if candidate in data:
+            return data.get(candidate)
+        lowered = str(candidate).strip().lower()
+        if lowered in normalized:
+            return normalized.get(lowered)
+    return None
+
+
+def _project_page_row(page: InternalPage, fields: Sequence[str]) -> dict[str, Any]:
+    return {field: _project_page_value(page, field) for field in fields}
+
+
+def _normalized_filter_keys(filters: dict[str, Any] | None) -> set[str]:
+    if not filters:
+        return set()
+    return {
+        normalize_name(str(key))
+        for key in filters.keys()
+        if not str(key).startswith("__")
+    }
+
+
+def _duckdb_projected_page_rows(
+    backend: DuckDBBackend,
+    fields: Sequence[str],
+    *,
+    filters: dict[str, Any] | None = None,
+) -> Iterator[dict[str, Any]] | None:
+    requested = tuple(dict.fromkeys(str(field) for field in fields if str(field).strip()))
+    if not requested:
+        return iter(())
+
+    normalized_filters = _normalized_filter_keys(filters)
+    common_fields = {normalize_name(field) for field in _INTERNAL_COMMON_FIELD_NAMES}
+    requested_common = {normalize_name(field) for field in requested}
+
+    if requested_common | normalized_filters <= common_fields:
+        relation = _duckdb_ensure_helper_relation(backend, "internal_common")
+        if relation:
+            return (
+                {field: row.get(field) for field in requested}
+                for row in backend._iter_relation(relation, filters=filters)
+            )
+
+    internal_relation = getattr(backend, "_internal_relation", None)
+    internal_columns = set(getattr(backend, "_internal_columns", []))
+    if internal_relation and requested_common | normalized_filters <= {
+        normalize_name(column) for column in internal_columns
+    }:
+        return (
+            {field: row.get(field) for field in requested}
+            for row in backend._iter_relation(internal_relation, filters=filters)
+        )
+
+    source_backend = _duckdb_source_backend(backend)
+    if source_backend is not None:
+        return (
+            _project_page_row(page, requested)
+            for page in source_backend.get_internal(filters=filters)
+        )
+    return None
+
+
+def _iter_projected_page_rows(
+    backend: CrawlBackend,
+    fields: Sequence[str],
+    *,
+    filters: dict[str, Any] | None = None,
+) -> Iterator[dict[str, Any]]:
+    requested = tuple(dict.fromkeys(str(field) for field in fields if str(field).strip()))
+    if not requested:
+        return iter(())
+    if isinstance(backend, DuckDBBackend):
+        projected = _duckdb_projected_page_rows(backend, requested, filters=filters)
+        if projected is not None:
+            return projected
+    return (
+        _project_page_row(page, requested)
+        for page in backend.get_internal(filters=filters)
+    )
+
+
 def _duckdb_project_internal_pages(
     backend: DuckDBBackend,
     required_fields: set[str],
 ) -> tuple[dict[str, InternalPage], dict[str, InternalPage]] | None:
+    normalized_required = {normalize_name(field) for field in required_fields if field}
+    common_fields = {normalize_name(field) for field in _INTERNAL_COMMON_FIELD_NAMES}
+    if normalized_required <= common_fields:
+        pages: dict[str, InternalPage] = {}
+        pages_norm: dict[str, InternalPage] = {}
+        selected_fields = tuple(
+            dict.fromkeys(["Address", "Status Code", *sorted(required_fields)])
+        )
+        projected = _duckdb_projected_page_rows(backend, selected_fields)
+        if projected is not None:
+            for row in projected:
+                page = InternalPage.from_data(row, copy_data=False)
+                if not page.address:
+                    continue
+                pages[page.address] = page
+                normalized = _normalize_url_for_compare(page.address)
+                if normalized:
+                    pages_norm[normalized] = page
+            return pages, pages_norm
+
     internal_relation = getattr(backend, "_internal_relation", None)
     internal_columns = list(getattr(backend, "_internal_columns", []))
     if not internal_relation or not internal_columns:
