@@ -86,6 +86,7 @@ def export_duckdb_from_backend(
 
     relation_tables = DEFAULT_DUCKDB_TABLES if tables is None else tuple(tables)
     materialized_tabs = _resolve_export_tabs(backend, tabs)
+    explicit_exports = tables is not None or tabs is not None
     target = Path(duckdb_path)
     target.parent.mkdir(parents=True, exist_ok=True)
 
@@ -94,34 +95,57 @@ def export_duckdb_from_backend(
     try:
         _ensure_metadata_tables(conn)
         existing = _get_import_metadata(conn)
+        existing_objects = _get_export_objects(conn)
         label = source_label or getattr(getattr(backend, "db_path", None), "name", None) or "crawl"
         fingerprint = source_fingerprint or _infer_source_fingerprint_from_backend(backend)
 
-        if existing and mode == "skip" and existing.get("source_label") == label:
+        same_source = bool(
+            existing
+            and existing.get("source_label") == label
+            and (fingerprint is None or existing.get("source_fingerprint") == fingerprint)
+        )
+        requested_keys = {
+            ("raw", _normalize_export_name("raw", raw_name)) for raw_name in relation_tables
+        }
+        requested_keys.update(
+            ("tab", _normalize_export_name("tab", tab_name)) for tab_name in materialized_tabs
+        )
+        if existing and mode == "skip":
             return target
-        if existing and mode == "auto":
-            if existing.get("source_label") == label:
-                if fingerprint is None or existing.get("source_fingerprint") == fingerprint:
-                    return target
+        if same_source and mode == "auto":
+            if not explicit_exports:
+                return target
+            available_keys = {(kind, export_name) for export_name, kind, _ in existing_objects}
+            if requested_keys.issubset(available_keys):
+                return target
 
-        if existing and mode in {"replace", "auto"}:
+        if existing and mode in {"replace", "auto"} and not same_source:
             _drop_exported_objects(conn)
+            existing_objects = []
 
         conn.execute("CREATE SCHEMA IF NOT EXISTS app")
 
-        exported_objects: list[tuple[str, str, str]] = []
+        exported_objects: list[tuple[str, str, str]] = list(existing_objects)
+        exported_keys = {(kind, export_name) for export_name, kind, _ in exported_objects}
         for raw_name in relation_tables:
-            relation_name = _raw_relation_name(raw_name)
+            export_name = _normalize_export_name("raw", raw_name)
+            if ("raw", export_name) in exported_keys:
+                continue
+            relation_name = _raw_relation_name(export_name)
             rows = backend.raw(raw_name)
             if _write_relation(conn, relation_name, rows):
-                exported_objects.append((raw_name.upper(), "raw", relation_name))
+                exported_objects.append((export_name, "raw", relation_name))
+                exported_keys.add(("raw", export_name))
 
         for tab_name in materialized_tabs:
-            normalized = _normalize_tab_name(tab_name)
+            normalized = _normalize_export_name("tab", tab_name)
+            if ("tab", normalized) in exported_keys:
+                continue
             relation_name = _tab_relation_name(normalized)
             rows = backend.get_tab(normalized)
             if _write_relation(conn, relation_name, rows):
                 exported_objects.append((normalized, "tab", relation_name))
+                exported_keys.add(("tab", normalized))
 
         _store_export_metadata(
             conn,
@@ -336,6 +360,26 @@ def _get_import_metadata(conn: Any) -> dict[str, Any] | None:
     return {"source_label": row[0], "source_fingerprint": None, "imported_at": row[1]}
 
 
+def _get_export_objects(conn: Any) -> list[tuple[str, str, str]]:
+    cursor = conn.execute("SELECT export_name, kind, relation_name FROM sf_alpha_exports")
+    rows: list[tuple[str, str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for raw_export_name, raw_kind, raw_relation_name in cursor.fetchall():
+        kind = str(raw_kind).strip().lower()
+        if kind not in {"raw", "tab"}:
+            continue
+        export_name = _normalize_export_name(kind, raw_export_name)
+        relation_name = str(raw_relation_name)
+        if not _relation_exists(conn, relation_name):
+            continue
+        key = (kind, export_name)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append((export_name, kind, relation_name))
+    return rows
+
+
 def _drop_exported_objects(conn: Any) -> None:
     cursor = conn.execute("SELECT relation_name FROM sf_alpha_exports")
     relations = [str(row[0]) for row in cursor.fetchall()]
@@ -413,6 +457,12 @@ def _normalize_tab_name(tab_name: str) -> str:
     if not name.lower().endswith(".csv"):
         name = f"{name}.csv"
     return name.lower()
+
+
+def _normalize_export_name(kind: str, export_name: Any) -> str:
+    if str(kind).strip().lower() == "raw":
+        return str(export_name).strip().upper()
+    return _normalize_tab_name(str(export_name))
 
 
 def _tab_relation_name(tab_name: str) -> str:

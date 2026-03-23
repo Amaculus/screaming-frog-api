@@ -556,6 +556,56 @@ def test_export_duckdb_respects_explicit_empty_raw_table_list(tmp_path: Path) ->
         next(duck.raw("APP.URLS"))
 
 
+def test_duckdb_backend_lazy_materializes_raw_tables_from_source(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-lazy-raw.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="fake-crawl",
+        tables=(),
+        tabs=("internal_all",),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        FakeDuckExportBackend(),
+        source_label="fake-crawl",
+        available_tabs=("internal_all.csv", "response_codes_internal_client_error_(4xx).csv"),
+    )
+
+    assert next(duck.raw("APP.URLS"))["ENCODED_URL"] == "https://example.com/ok"
+    assert (
+        duck.query("APP", "URLS")
+        .select("ENCODED_URL", "RESPONSE_CODE")
+        .where("RESPONSE_CODE >= ?", 400)
+        .collect()
+        == [{"ENCODED_URL": "https://example.com/broken", "RESPONSE_CODE": 404}]
+    )
+
+
+def test_duckdb_backend_lazy_materializes_tabs_from_source(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-lazy-tab.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="fake-crawl",
+        tables=(),
+        tabs=("internal_all",),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        FakeDuckExportBackend(),
+        source_label="fake-crawl",
+        available_tabs=("internal_all.csv", "response_codes_internal_client_error_(4xx).csv"),
+    )
+
+    assert "response_codes_internal_client_error_(4xx).csv" in duck.tabs
+    assert duck.tab("response_codes_internal_client_error_(4xx)").collect() == [
+        {"Address": "https://example.com/broken", "Status Code": 404}
+    ]
+
+
 def test_duckdb_backend_supports_links_and_chain_reports(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl.duckdb"

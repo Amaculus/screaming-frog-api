@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
-from typing import Any, Iterator, Optional, Sequence
+from typing import Any, Callable, Iterator, Optional, Sequence
 
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.duckdb import (
+    export_duckdb_from_backend,
     iter_cursor_rows,
     iter_relation_rows,
     list_exported_tabs,
@@ -22,7 +24,11 @@ class DuckDBBackend(CrawlBackend):
         if not self.db_path.exists():
             raise FileNotFoundError(f"DuckDB database not found: {self.db_path}")
         self._duckdb = _import_duckdb()
-        self.conn = self._duckdb.connect(str(self.db_path), read_only=True)
+        self._lazy_source_backend: Any | None = None
+        self._lazy_source_backend_factory: Callable[[], Any] | None = None
+        self._lazy_source_label: str | None = None
+        self._available_tabs: tuple[str, ...] | None = None
+        self._open_connection()
         internal_relation = _resolve_tab_relation(self.conn, "internal_all", None)
         if not internal_relation:
             raise ValueError(
@@ -31,6 +37,20 @@ class DuckDBBackend(CrawlBackend):
         self._internal_relation = internal_relation
         self._internal_columns = self._get_relation_columns(self._internal_relation)
         self._internal_column_map = {col.lower(): col for col in self._internal_columns}
+
+    def configure_lazy_source(
+        self,
+        source_backend: Any | None = None,
+        *,
+        source_backend_factory: Callable[[], Any] | None = None,
+        source_label: str | None = None,
+        available_tabs: Sequence[str] | None = None,
+    ) -> None:
+        self._lazy_source_backend = source_backend
+        self._lazy_source_backend_factory = source_backend_factory
+        self._lazy_source_label = source_label
+        if available_tabs is not None:
+            self._available_tabs = tuple(str(name) for name in available_tabs if str(name).strip())
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         for row in self._iter_relation(self._internal_relation, filters=filters):
@@ -82,7 +102,21 @@ class DuckDBBackend(CrawlBackend):
         return row[0] if row else None
 
     def list_tabs(self) -> list[str]:
-        return list_exported_tabs(self.conn)
+        exported = list_exported_tabs(self.conn)
+        if not self._available_tabs:
+            return exported
+        seen: set[str] = set()
+        ordered: list[str] = []
+        for name in [*exported, *self._available_tabs]:
+            normalized = str(name).strip()
+            if not normalized:
+                continue
+            lowered = normalized.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            ordered.append(normalized)
+        return ordered
 
     def get_tab(
         self, tab_name: str, filters: Optional[dict[str, Any]] = None
@@ -90,6 +124,9 @@ class DuckDBBackend(CrawlBackend):
         filters = dict(filters or {})
         gui_filter = filters.pop("__gui__", None)
         relation = _resolve_tab_relation(self.conn, tab_name, gui_filter)
+        if not relation:
+            self.ensure_tab(tab_name, gui_filter=gui_filter)
+            relation = _resolve_tab_relation(self.conn, tab_name, gui_filter)
         if not relation:
             if gui_filter:
                 raise NotImplementedError(
@@ -101,10 +138,14 @@ class DuckDBBackend(CrawlBackend):
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         relation = resolve_relation_name(self.conn, "raw", table)
         if not relation:
+            self.ensure_raw_tables((table,))
+            relation = resolve_relation_name(self.conn, "raw", table)
+        if not relation:
             raise NotImplementedError(f"Raw table not available in DuckDB cache: {table}")
         return iter_relation_rows(self.conn, relation)
 
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
+        self._ensure_sql_relations(query)
         cursor = self.conn.execute(query, list(params or []))
         columns = [desc[0] for desc in cursor.description or []]
         for row in iter_cursor_rows(cursor):
@@ -113,8 +154,30 @@ class DuckDBBackend(CrawlBackend):
     def tab_columns(self, tab_name: str) -> list[str]:
         relation = _resolve_tab_relation(self.conn, tab_name, None)
         if not relation:
+            self.ensure_tab(tab_name)
+            relation = _resolve_tab_relation(self.conn, tab_name, None)
+        if not relation:
             return []
         return self._get_relation_columns(relation)
+
+    def ensure_raw_tables(self, tables: Sequence[str]) -> bool:
+        requested = tuple(str(table).strip().upper() for table in tables if str(table).strip())
+        if not requested:
+            return True
+        missing = [name for name in requested if not resolve_relation_name(self.conn, "raw", name)]
+        if not missing:
+            return True
+        return self._materialize_exports(tables=missing)
+
+    def ensure_tab(self, tab_name: str, *, gui_filter: Any = None) -> bool:
+        candidates = _tab_export_candidates(tab_name, gui_filter)
+        if any(resolve_relation_name(self.conn, "tab", candidate) for candidate in candidates):
+            return True
+        for candidate in candidates:
+            if self._materialize_exports(tabs=(candidate,)):
+                if resolve_relation_name(self.conn, "tab", candidate):
+                    return True
+        return False
 
     def _iter_relation(
         self,
@@ -132,6 +195,7 @@ class DuckDBBackend(CrawlBackend):
             yield record
 
     def _iter_raw_links(self, direction: str, url: str) -> Iterator[dict[str, Any]]:
+        self.ensure_raw_tables(("APP.URLS", "APP.LINKS", "APP.UNIQUE_URLS"))
         urls_relation = resolve_relation_name(self.conn, "raw", "APP.URLS")
         links_relation = resolve_relation_name(self.conn, "raw", "APP.LINKS")
         unique_urls_relation = resolve_relation_name(self.conn, "raw", "APP.UNIQUE_URLS")
@@ -192,6 +256,62 @@ class DuckDBBackend(CrawlBackend):
             [schema_name, table_name],
         )
         return [str(row[0]) for row in cursor.fetchall()]
+
+    def _materialize_exports(
+        self,
+        *,
+        tables: Sequence[str] = (),
+        tabs: Sequence[str] = (),
+    ) -> bool:
+        if self._lazy_source_backend is None:
+            if self._lazy_source_backend_factory is None:
+                return False
+            self._lazy_source_backend = self._lazy_source_backend_factory()
+        requested_tables = tuple(str(name).strip().upper() for name in tables if str(name).strip())
+        requested_tabs = tuple(str(name).strip() for name in tabs if str(name).strip())
+        if not requested_tables and not requested_tabs:
+            return True
+        self.conn.close()
+        try:
+            for tab_name in requested_tabs or ():
+                try:
+                    export_duckdb_from_backend(
+                        self._lazy_source_backend,
+                        self.db_path,
+                        tables=(),
+                        tabs=(tab_name,),
+                        if_exists="auto",
+                        source_label=self._lazy_source_label,
+                    )
+                except (FileNotFoundError, NotImplementedError, ValueError):
+                    continue
+            if requested_tables:
+                export_duckdb_from_backend(
+                    self._lazy_source_backend,
+                    self.db_path,
+                    tables=requested_tables,
+                    tabs=(),
+                    if_exists="auto",
+                    source_label=self._lazy_source_label,
+                )
+        finally:
+            self._open_connection()
+        return True
+
+    def _open_connection(self) -> None:
+        self.conn = self._duckdb.connect(str(self.db_path), read_only=True)
+
+    def _ensure_sql_relations(self, query: str) -> None:
+        raw_tables: set[str] = set()
+        for schema_name, table_name in re.findall(
+            r"(?is)\b(?:from|join)\s+([A-Za-z_][\w$]*)\s*\.\s*([A-Za-z_][\w$]*)",
+            str(query),
+        ):
+            if str(schema_name).strip().upper() != "APP":
+                continue
+            raw_tables.add(f"APP.{str(table_name).strip().upper()}")
+        if raw_tables:
+            self.ensure_raw_tables(sorted(raw_tables))
 
 
 def _build_relation_query(

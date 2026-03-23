@@ -560,17 +560,31 @@ class Crawl:
             raise ValueError("from_derby backend must be 'duckdb' or 'derby'")
         if mode == "duckdb":
             target = Path(duckdb_path) if duckdb_path else _default_duckdb_cache_path(db_path)
+            load_tables = _duckdb_load_tables(duckdb_tables)
+            load_tabs = _duckdb_load_tabs(duckdb_tabs)
             exported = export_duckdb_from_derby(
                 db_path,
                 target,
-                tables=duckdb_tables,
-                tabs=duckdb_tabs,
+                tables=load_tables,
+                tabs=load_tabs,
                 if_exists=duckdb_if_exists,
                 source_label=str(Path(db_path).resolve()),
                 mapping_path=mapping_path,
                 derby_jar=derby_jar,
             )
-            return cls.from_duckdb(str(exported))
+            crawl = cls.from_duckdb(str(exported))
+            if isinstance(crawl, Crawl):
+                _attach_lazy_duckdb_source(
+                    crawl,
+                    source_label=str(Path(db_path).resolve()),
+                    source_backend_factory=lambda db_path=db_path, mapping_path=mapping_path, derby_jar=derby_jar: DerbyBackend(
+                        db_path,
+                        mapping_path=mapping_path,
+                        derby_jar=derby_jar,
+                    ),
+                    available_tabs=_available_duckdb_source_tabs(mapping_path),
+                )
+            return crawl
 
         derby = DerbyBackend(db_path, mapping_path=mapping_path, derby_jar=derby_jar)
         if not csv_fallback:
@@ -693,17 +707,31 @@ class Crawl:
 
         if mode == "duckdb":
             target = Path(duckdb_path) if duckdb_path else Path(crawl_path).with_suffix(".duckdb")
+            load_tables = _duckdb_load_tables(duckdb_tables)
+            load_tabs = _duckdb_load_tabs(duckdb_tabs)
             exported = export_duckdb_from_derby(
                 str(project_dir),
                 target,
-                tables=duckdb_tables,
-                tabs=duckdb_tabs,
+                tables=load_tables,
+                tabs=load_tabs,
                 if_exists=duckdb_if_exists,
                 source_label=str(Path(crawl_path).resolve()),
                 mapping_path=mapping_path,
                 derby_jar=derby_jar,
             )
-            return cls.from_duckdb(str(exported))
+            crawl = cls.from_duckdb(str(exported))
+            if isinstance(crawl, Crawl):
+                _attach_lazy_duckdb_source(
+                    crawl,
+                    source_label=str(Path(crawl_path).resolve()),
+                    source_backend_factory=lambda project_dir=str(project_dir), mapping_path=mapping_path, derby_jar=derby_jar: DerbyBackend(
+                        project_dir,
+                        mapping_path=mapping_path,
+                        derby_jar=derby_jar,
+                    ),
+                    available_tabs=_available_duckdb_source_tabs(mapping_path),
+                )
+            return crawl
 
         if materialize_dbseospider:
             import warnings
@@ -813,17 +841,31 @@ class Crawl:
             target = Path(duckdb_path) if duckdb_path else find_project_dir(
                 crawl_id, project_root=project_root
             ) / "crawl.duckdb"
+            load_tables = _duckdb_load_tables(duckdb_tables)
+            load_tabs = _duckdb_load_tabs(duckdb_tabs)
             exported = export_duckdb_from_db_id(
                 crawl_id,
                 target,
-                tables=duckdb_tables,
-                tabs=duckdb_tabs,
+                tables=load_tables,
+                tabs=load_tabs,
                 if_exists=duckdb_if_exists,
                 project_root=project_root,
                 mapping_path=mapping_path,
                 derby_jar=derby_jar,
             )
-            return cls.from_duckdb(str(exported))
+            crawl = cls.from_duckdb(str(exported))
+            if isinstance(crawl, Crawl):
+                _attach_lazy_duckdb_source(
+                    crawl,
+                    source_label=crawl_id,
+                    source_backend_factory=lambda crawl_id=crawl_id, project_root=project_root, mapping_path=mapping_path, derby_jar=derby_jar: DerbyBackend(
+                        str(find_project_dir(crawl_id, project_root=project_root)),
+                        mapping_path=mapping_path,
+                        derby_jar=derby_jar,
+                    ),
+                    available_tabs=_available_duckdb_source_tabs(mapping_path),
+                )
+            return crawl
 
         project_dir = find_project_dir(crawl_id, project_root=project_root)
         return cls.from_derby(
@@ -1800,6 +1842,29 @@ def _issue_rows_from_tabs(crawl: Crawl, tab_issues: dict[str, str]) -> list[dict
     return rows
 
 
+def _duckdb_ensure_tab_relation(backend: DuckDBBackend, tab_name: str) -> str | None:
+    relation = resolve_relation_name(backend.conn, "tab", tab_name)
+    if relation:
+        return relation
+    ensure_tab = getattr(backend, "ensure_tab", None)
+    if callable(ensure_tab):
+        ensure_tab(tab_name)
+    return resolve_relation_name(backend.conn, "tab", tab_name)
+
+
+def _duckdb_ensure_raw_relations(
+    backend: DuckDBBackend, *tables: str
+) -> tuple[str | None, ...]:
+    requested = tuple(str(table).strip().upper() for table in tables if str(table).strip())
+    missing = [
+        table_name for table_name in requested if not resolve_relation_name(backend.conn, "raw", table_name)
+    ]
+    ensure_raw = getattr(backend, "ensure_raw_tables", None)
+    if missing and callable(ensure_raw):
+        ensure_raw(missing)
+    return tuple(resolve_relation_name(backend.conn, "raw", table_name) for table_name in requested)
+
+
 def _duckdb_issue_rows_from_tabs(
     crawl: Crawl, tab_issues: dict[str, str]
 ) -> list[dict[str, Any]] | None:
@@ -1809,7 +1874,7 @@ def _duckdb_issue_rows_from_tabs(
 
     rows: list[dict[str, Any]] = []
     for tab_name, issue in tab_issues.items():
-        relation = resolve_relation_name(backend.conn, "tab", tab_name)
+        relation = _duckdb_ensure_tab_relation(backend, tab_name)
         if not relation:
             continue
         try:
@@ -1827,9 +1892,12 @@ def _duckdb_chain_rows(crawl: Crawl, tab_name: str) -> list[dict[str, Any]] | No
     if not isinstance(backend, DuckDBBackend):
         return None
 
-    urls_relation = resolve_relation_name(backend.conn, "raw", "APP.URLS")
-    links_relation = resolve_relation_name(backend.conn, "raw", "APP.LINKS")
-    unique_urls_relation = resolve_relation_name(backend.conn, "raw", "APP.UNIQUE_URLS")
+    urls_relation, links_relation, unique_urls_relation = _duckdb_ensure_raw_relations(
+        backend,
+        "APP.URLS",
+        "APP.LINKS",
+        "APP.UNIQUE_URLS",
+    )
     internal_relation = getattr(backend, "_internal_relation", None)
     if not urls_relation or not links_relation or not unique_urls_relation or not internal_relation:
         return None
@@ -2308,9 +2376,12 @@ def _duckdb_broken_links_report(
         return None
 
     internal_relation = getattr(backend, "_internal_relation", None)
-    urls_relation = resolve_relation_name(backend.conn, "raw", "APP.URLS")
-    links_relation = resolve_relation_name(backend.conn, "raw", "APP.LINKS")
-    unique_urls_relation = resolve_relation_name(backend.conn, "raw", "APP.UNIQUE_URLS")
+    urls_relation, links_relation, unique_urls_relation = _duckdb_ensure_raw_relations(
+        backend,
+        "APP.URLS",
+        "APP.LINKS",
+        "APP.UNIQUE_URLS",
+    )
     if not internal_relation or not urls_relation or not links_relation or not unique_urls_relation:
         return None
 
@@ -2381,9 +2452,12 @@ def _duckdb_summary(crawl: Crawl) -> dict[str, Any] | None:
         return None
 
     internal_relation = getattr(backend, "_internal_relation", None)
-    links_relation = resolve_relation_name(backend.conn, "raw", "APP.LINKS")
-    urls_relation = resolve_relation_name(backend.conn, "raw", "APP.URLS")
-    unique_urls_relation = resolve_relation_name(backend.conn, "raw", "APP.UNIQUE_URLS")
+    urls_relation, links_relation, unique_urls_relation = _duckdb_ensure_raw_relations(
+        backend,
+        "APP.URLS",
+        "APP.LINKS",
+        "APP.UNIQUE_URLS",
+    )
     if not internal_relation:
         return None
 
@@ -2468,7 +2542,7 @@ def _duckdb_scalar_count(
 
 
 def _duckdb_count_exported_tab_rows(backend: DuckDBBackend, tab_name: str) -> int:
-    relation = resolve_relation_name(backend.conn, "tab", tab_name)
+    relation = _duckdb_ensure_tab_relation(backend, tab_name)
     if not relation:
         return 0
     return _duckdb_scalar_count(backend, f"SELECT COUNT(*) AS count FROM {relation}")
@@ -3076,6 +3150,18 @@ def _default_csv_cache_dir(source: str) -> Path:
         return Path.cwd() / f"{source}_exports_cache"
 
 
+def _duckdb_load_tables(tables: Sequence[str] | None) -> Sequence[str]:
+    if tables is None:
+        return ()
+    return tables
+
+
+def _duckdb_load_tabs(tabs: Sequence[str] | str | None) -> Sequence[str] | str:
+    if tabs is None:
+        return ("internal_all",)
+    return tabs
+
+
 def _default_duckdb_cache_path(source: str) -> Path:
     path_obj = Path(source)
     if path_obj.exists():
@@ -3087,6 +3173,39 @@ def _default_duckdb_cache_path(source: str) -> Path:
         return project_dir / "crawl.duckdb"
     except Exception:
         return Path.cwd() / f"{Path(source).stem or source}.duckdb"
+
+
+def _available_duckdb_source_tabs(mapping_path: str | None = None) -> tuple[str, ...] | None:
+    try:
+        if mapping_path:
+            mapping_file = Path(mapping_path)
+        else:
+            mapping_file = Path(__file__).resolve().parent / "resources" / "mapping.json"
+        import json
+
+        data = json.loads(mapping_file.read_text(encoding="utf-8"))
+        return tuple(str(name) for name in data.keys())
+    except Exception:
+        return None
+
+
+def _attach_lazy_duckdb_source(
+    crawl: Crawl,
+    *,
+    source_label: str,
+    source_backend: Any | None = None,
+    source_backend_factory: Any | None = None,
+    available_tabs: Sequence[str] | None = None,
+) -> None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return
+    backend.configure_lazy_source(
+        source_backend,
+        source_backend_factory=source_backend_factory,
+        source_label=source_label,
+        available_tabs=available_tabs,
+    )
 
 
 def _iter_broken_pages(

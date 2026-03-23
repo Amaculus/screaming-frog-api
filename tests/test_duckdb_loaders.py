@@ -32,6 +32,8 @@ def test_from_derby_defaults_to_export_and_load_duckdb(tmp_path: Path, monkeypat
     assert calls["path"] == str(source)
     assert calls["duckdb_path"] == target
     assert calls["loaded"] == str(target)
+    assert calls["kwargs"]["tables"] == ()
+    assert calls["kwargs"]["tabs"] == ("internal_all",)
     assert calls["kwargs"]["if_exists"] == "auto"
 
 
