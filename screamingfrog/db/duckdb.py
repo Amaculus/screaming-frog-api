@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
 
 from screamingfrog.db.packaging import find_project_dir
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_DUCKDB_TABLES: tuple[str, ...] = ("APP.URLS", "APP.LINKS", "APP.UNIQUE_URLS")
@@ -119,9 +122,12 @@ def export_duckdb_from_backend(
         for tab_name in materialized_tabs:
             normalized = _normalize_tab_name(tab_name)
             relation_name = _tab_relation_name(normalized)
-            rows = backend.get_tab(normalized)
-            if _write_relation(conn, relation_name, rows):
-                exported_objects.append((normalized, "tab", relation_name))
+            try:
+                rows = backend.get_tab(normalized)
+                if _write_relation(conn, relation_name, rows):
+                    exported_objects.append((normalized, "tab", relation_name))
+            except Exception as e:
+                logger.debug("Skipping tab %s during DuckDB export: %s", normalized, e)
 
         _store_export_metadata(
             conn,
