@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.0a2 (2026-03-23)
 - Implemented Derby-backed `Hreflang > Unlinked hreflang URLs` GUI filter support using `APP.LINKS` + `APP.INLINK_COUNTS`.
 - Fixed Derby optional-table handling so missing crawl-analysis tables like `APP.PAGE_SPEED_API`, `APP.URL_INSPECTION`, and `APP.AXE_CORE_RESULTS` now resolve to empty/`NULL` results instead of crashing `crawl.internal`, generic tab access, filters, or DuckDB export.
 - Improved the DuckDB backend to resolve GUI-filtered tabs and `_all` base tabs like the Derby/CSV backends, and open `.duckdb` caches read-only.

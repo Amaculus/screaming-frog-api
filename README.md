@@ -509,7 +509,7 @@ write_seospider_config(
 Recommended public-alpha install from GitHub:
 
 ```bash
-python -m pip install "git+https://github.com/Amaculus/screaming-frog-api.git@v0.2.0a1"
+python -m pip install "git+https://github.com/Amaculus/screaming-frog-api.git@v0.2.0a2"
 ```
 
 If you want the latest unreleased `main` branch instead:
