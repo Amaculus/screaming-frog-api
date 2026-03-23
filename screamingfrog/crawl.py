@@ -22,6 +22,7 @@ from screamingfrog.db.duckdb import (
     export_duckdb_from_backend,
     export_duckdb_from_db_id,
     export_duckdb_from_derby,
+    iter_relation_rows,
     resolve_relation_name,
 )
 from screamingfrog.db.packaging import find_project_dir, load_seospider_db_project, pack_dbseospider
@@ -1276,18 +1277,30 @@ class Crawl:
 
     def security_issues_report(self) -> list[dict[str, Any]]:
         """Return flat rows from available security issue tabs."""
+        duckdb_rows = _duckdb_issue_rows_from_tabs(self, _SECURITY_ISSUE_TABS)
+        if duckdb_rows is not None:
+            return duckdb_rows
         return _issue_rows_from_tabs(self, _SECURITY_ISSUE_TABS)
 
     def canonical_issues_report(self) -> list[dict[str, Any]]:
         """Return flat rows from available canonical issue tabs."""
+        duckdb_rows = _duckdb_issue_rows_from_tabs(self, _CANONICAL_ISSUE_TABS)
+        if duckdb_rows is not None:
+            return duckdb_rows
         return _issue_rows_from_tabs(self, _CANONICAL_ISSUE_TABS)
 
     def hreflang_issues_report(self) -> list[dict[str, Any]]:
         """Return flat rows from available hreflang issue tabs."""
+        duckdb_rows = _duckdb_issue_rows_from_tabs(self, _HREFLANG_ISSUE_TABS)
+        if duckdb_rows is not None:
+            return duckdb_rows
         return _issue_rows_from_tabs(self, _HREFLANG_ISSUE_TABS)
 
     def redirect_issues_report(self) -> list[dict[str, Any]]:
         """Return flat rows from available redirect issue tabs."""
+        duckdb_rows = _duckdb_issue_rows_from_tabs(self, _REDIRECT_ISSUE_TABS)
+        if duckdb_rows is not None:
+            return duckdb_rows
         return _issue_rows_from_tabs(self, _REDIRECT_ISSUE_TABS)
 
     def redirect_chain_report(
@@ -1770,6 +1783,28 @@ def _issue_rows_from_tabs(crawl: Crawl, tab_issues: dict[str, str]) -> list[dict
             continue
         try:
             for row in crawl.tab(tab_name):
+                issue_row = dict(row)
+                issue_row.setdefault("Issue", issue)
+                rows.append(issue_row)
+        except Exception:
+            continue
+    return rows
+
+
+def _duckdb_issue_rows_from_tabs(
+    crawl: Crawl, tab_issues: dict[str, str]
+) -> list[dict[str, Any]] | None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return None
+
+    rows: list[dict[str, Any]] = []
+    for tab_name, issue in tab_issues.items():
+        relation = resolve_relation_name(backend.conn, "tab", tab_name)
+        if not relation:
+            continue
+        try:
+            for row in iter_relation_rows(backend.conn, relation):
                 issue_row = dict(row)
                 issue_row.setdefault("Issue", issue)
                 rows.append(issue_row)

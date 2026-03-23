@@ -8,6 +8,8 @@
 - Added DuckDB-first execution for `broken_links_report()` and `summary()`, so lean DuckDB caches can still produce broken-page sampling and crawl-level rollups directly from raw relations plus `internal_all`.
 - Added a DuckDB-first `compare()` path that projects only the internal fields required for diffing instead of loading full `internal_all` rows on both sides.
 - Added a DuckDB-first `title_meta_audit()` path against `internal_all`, so missing title/meta checks no longer rely on materialized issue tabs in DuckDB caches.
+- Made DuckDB `inlinks(url)` / `outlinks(url)` fall back to raw `APP.LINKS` / `APP.UNIQUE_URLS` / `APP.URLS` when `all_inlinks` / `all_outlinks` are not materialized.
+- Moved issue-family helpers (`security_issues_report`, `canonical_issues_report`, `hreflang_issues_report`, `redirect_issues_report`) onto direct DuckDB issue-tab relation reads when a DuckDB cache is loaded.
 
 ## 0.2.0a1 (2026-03-21)
 - Added DuckDB analytics-cache support:

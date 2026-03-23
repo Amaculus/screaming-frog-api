@@ -316,6 +316,71 @@ class FakeDuckCompareBackend(CrawlBackend):
         raise NotImplementedError
 
 
+class IssueDuckBackend(CrawlBackend):
+    def __init__(self) -> None:
+        self._tabs = {
+            "internal_all.csv": [
+                {
+                    "Address": "https://example.com/home",
+                    "Status Code": 200,
+                    "Title 1": "Home",
+                }
+            ],
+            "security_missing_hsts_header.csv": [
+                {"Address": "https://example.com/home", "Status Code": 200}
+            ],
+            "canonicals_missing.csv": [
+                {"Address": "https://example.com/canonical", "Status Code": 200}
+            ],
+            "hreflang_missing_return_links.csv": [
+                {"Address": "https://example.com/hreflang", "Status Code": 200}
+            ],
+            "response_codes_internal_redirect_chain.csv": [
+                {"Address": "https://example.com/redirect", "Status Code": 301}
+            ],
+        }
+        self._raw = {
+            "APP.URLS": [
+                {"ENCODED_URL": "https://example.com/home", "RESPONSE_CODE": 200, "RESPONSE_MSG": "OK"}
+            ],
+            "APP.UNIQUE_URLS": [{"ID": 1, "ENCODED_URL": "https://example.com/home"}],
+            "APP.LINKS": [],
+        }
+
+    def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
+        for row in self._tabs["internal_all.csv"]:
+            yield InternalPage.from_data(row)
+
+    def get_inlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def get_outlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
+        return len(self._tabs["internal_all.csv"])
+
+    def aggregate(self, table: str, column: str, func: str) -> Any:  # pragma: no cover
+        return None
+
+    def list_tabs(self) -> list[str]:
+        return sorted(self._tabs.keys())
+
+    def get_tab(
+        self, tab_name: str, filters: Optional[dict[str, Any]] = None
+    ) -> Iterator[dict[str, Any]]:
+        name = tab_name if str(tab_name).endswith(".csv") else f"{tab_name}.csv"
+        for row in self._tabs.get(name, []):
+            yield dict(row)
+
+    def raw(self, table: str) -> Iterator[dict[str, Any]]:
+        for row in self._raw.get(str(table).upper(), []):
+            yield dict(row)
+
+    def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
+        raise NotImplementedError
+
+
 def test_export_and_load_duckdb_cache(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl.duckdb"
@@ -438,6 +503,8 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
 
     broken = duck.broken_inlinks_report()
     broken_pages = duck.broken_links_report()
+    inlinks = list(duck.inlinks("https://example.com/broken-page"))
+    outlinks = list(duck.outlinks("https://example.com/nav"))
     title_meta = duck.title_meta_audit()
     non_indexable = duck.indexability_audit()
     nofollow = duck.nofollow_inlinks_report()
@@ -533,6 +600,15 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
             "Inlink Anchors": ["Broken internal"],
         }
     ]
+    assert [(link.source, link.destination, link.anchor_text) for link in inlinks] == [
+        ("https://example.com/nav", "https://example.com/broken-page", "Broken internal")
+    ]
+    assert [(link.source, link.destination, link.anchor_text) for link in outlinks] == [
+        ("https://example.com/nav", "https://example.com/broken-page", "Broken internal"),
+        ("https://example.com/nav", "https://example.com/broken-target", "Broken"),
+        ("https://example.com/nav", "https://example.com/home", "Home"),
+        ("https://example.com/nav", "https://example.com/sponsored", "Sponsored"),
+    ]
     assert title_meta == [
         {"Address": "https://example.com/noindex-orphan", "Issue": "Missing Title"},
         {"Address": "https://example.com/noindex-orphan", "Issue": "Missing Meta Description"},
@@ -568,6 +644,43 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
         "hreflang_issues": 0,
         "redirect_issues": 0,
     }
+
+
+def test_duckdb_issue_helpers_read_issue_tabs_directly(tmp_path: Path) -> None:
+    crawl = Crawl(IssueDuckBackend())
+    target = tmp_path / "crawl-issues.duckdb"
+
+    crawl.export_duckdb(str(target), source_label="issues", tabs="all")
+    duck = Crawl.from_duckdb(str(target))
+
+    assert duck.security_issues_report() == [
+        {
+            "Address": "https://example.com/home",
+            "Status Code": 200,
+            "Issue": "Missing HSTS Header",
+        }
+    ]
+    assert duck.canonical_issues_report() == [
+        {
+            "Address": "https://example.com/canonical",
+            "Status Code": 200,
+            "Issue": "Missing Canonical",
+        }
+    ]
+    assert duck.hreflang_issues_report() == [
+        {
+            "Address": "https://example.com/hreflang",
+            "Status Code": 200,
+            "Issue": "Missing Return Links",
+        }
+    ]
+    assert duck.redirect_issues_report() == [
+        {
+            "Address": "https://example.com/redirect",
+            "Status Code": 301,
+            "Issue": "Redirect Chain",
+        }
+    ]
 
 
 def test_duckdb_compare_uses_projected_internal_rows(tmp_path: Path) -> None:
