@@ -373,6 +373,163 @@ class DerbyBackend(CrawlBackend):
         sql = _LINKS_BASE_SELECT + " WHERE l.SRC_ID = ?"
         return self._iter_links(sql, [url_id])
 
+    def iter_internal_projection(
+        self,
+        fields: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> Iterator[dict[str, Any]]:
+        requested = tuple(dict.fromkeys(str(field) for field in fields if str(field).strip()))
+        if not requested:
+            return
+
+        projected_fields = list(requested)
+        for key in dict(filters or {}):
+            if str(key).startswith("__"):
+                continue
+            if str(key) not in projected_fields:
+                projected_fields.append(str(key))
+
+        internal_db_lookup = {
+            _normalize_key(str(column)): str(column)
+            for column in getattr(self, "_internal_columns", [])
+            if str(column).strip()
+        }
+        alias_lookup = {
+            _normalize_key(str(csv_col)): str(db_col)
+            for csv_col, db_col in dict(getattr(self, "_internal_alias_map", {}) or {}).items()
+            if str(csv_col).strip() and str(db_col).strip()
+        }
+        expr_lookup = {
+            _normalize_key(str(csv_col)): str(expr)
+            for _alias, csv_col, expr in list(getattr(self, "_internal_expr_selects", []) or [])
+            if str(csv_col).strip() and str(expr).strip()
+        }
+        unavailable_exprs = set(getattr(self, "_internal_unavailable_expr_keys", set()) or set())
+        header_lookup = {
+            _normalize_key(str(csv_col)): dict(extract)
+            for csv_col, extract in dict(getattr(self, "_internal_header_extract_map", {}) or {}).items()
+            if str(csv_col).strip()
+        }
+
+        table_alias = "sf_proj"
+        select_parts: list[str] = []
+        direct_aliases: dict[str, str] = {}
+        output_specs: list[tuple[str, str, str | None, dict[str, Any] | None]] = []
+
+        def ensure_direct(column_name: str) -> str:
+            actual = str(column_name)
+            alias = direct_aliases.get(actual)
+            if alias:
+                return alias
+            alias = f"SF_PROJ_{len(direct_aliases)}"
+            select_parts.append(f'{table_alias}.{actual} AS {alias}')
+            direct_aliases[actual] = alias
+            return alias
+
+        for field in projected_fields:
+            norm_field = _normalize_key(field)
+            selected_alias: str | None = None
+            selected_extract: dict[str, Any] | None = None
+            selected_mode = "null"
+
+            direct_column = alias_lookup.get(norm_field) or internal_db_lookup.get(norm_field)
+            if direct_column:
+                selected_alias = ensure_direct(direct_column)
+                selected_mode = "direct"
+            elif norm_field in expr_lookup and norm_field not in unavailable_exprs:
+                selected_alias = f"SF_EXPR_{len(output_specs)}"
+                select_parts.append(
+                    f"{self._rewrite_internal_expression(expr_lookup[norm_field], table_alias)} AS {selected_alias}"
+                )
+                selected_mode = "expr"
+            elif norm_field in header_lookup:
+                blob_col = _header_extract_column(header_lookup[norm_field])
+                actual_blob_col = _resolve_column_name(self._internal_columns, blob_col)
+                if actual_blob_col:
+                    selected_alias = ensure_direct(actual_blob_col)
+                    selected_extract = header_lookup[norm_field]
+                    selected_mode = "header"
+
+            output_specs.append((field, selected_mode, selected_alias, selected_extract))
+
+        where_parts: list[str] = []
+        params: list[Any] = []
+        internal_clause = self._internal_only_clause()
+        if internal_clause:
+            where_parts.append(internal_clause)
+        post_filters: dict[str, Any] = {}
+        if filters:
+            where, filter_params, post_filters = _compile_internal_filters(
+                filters,
+                getattr(self, "_internal_alias_map", None) or getattr(self, "_column_map", {}),
+                getattr(self, "_internal_expr_selects", []),
+                getattr(self, "_internal_header_extract_map", {}),
+                getattr(self, "_internal_unavailable_expr_keys", set()),
+            )
+            if where:
+                where_parts.append(where)
+            params.extend(filter_params)
+        where_sql = f" WHERE {' AND '.join(where_parts)}" if where_parts else ""
+
+        if not select_parts:
+            return
+
+        sql = (
+            f"SELECT {', '.join(select_parts)} "
+            f"FROM {self._table} {table_alias}{where_sql}"
+        )
+        cursor = self._conn.cursor()
+        cursor.execute(sql, params)
+        columns = [desc[0] for desc in cursor.description or []]
+        norm_post_filters = _normalize_filters(post_filters)
+
+        for row in _iter_cursor_rows(cursor):
+            data = {col: val for col, val in zip(columns, row)}
+            parsed_headers: dict[str, dict[str, list[str]]] = {}
+            parsed_links: dict[str, list[dict[str, Any]]] = {}
+            projected: dict[str, Any] = {}
+            for field, mode, alias, extract in output_specs:
+                value: Any = None
+                if mode in {"direct", "expr"} and alias:
+                    value = data.get(alias)
+                elif mode == "header" and alias and extract:
+                    if alias not in parsed_headers:
+                        parsed_headers[alias] = _headers_from_blob(data.get(alias))
+                        parsed_links[alias] = (
+                            _parse_link_headers(parsed_headers[alias].get("link", []))
+                            if parsed_headers[alias]
+                            else []
+                        )
+                    value = _extract_header_value(
+                        extract,
+                        parsed_headers.get(alias, {}),
+                        parsed_links.get(alias, []),
+                    )
+                projected[field] = value
+            if norm_post_filters and not _row_matches_filters(projected, norm_post_filters):
+                continue
+            yield {field: projected.get(field) for field in requested}
+
+    def iter_link_projection(
+        self,
+        direction: str,
+        fields: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> Iterator[dict[str, Any]]:
+        requested = tuple(dict.fromkeys(str(field) for field in fields if str(field).strip()))
+        if not requested:
+            return
+        sql = _LINKS_BASE_SELECT
+        cursor = self._conn.cursor()
+        cursor.execute(sql)
+        norm_filters = _normalize_filters(filters or {})
+        for row in _iter_cursor_rows(cursor):
+            data = _link_row_to_dict(row)
+            data.setdefault("Address", data.get("Destination"))
+            if norm_filters and not _row_matches_filters(data, norm_filters):
+                continue
+            yield {field: data.get(field) for field in requested}
+
     def _internal_row_key_column(self) -> str | None:
         return _resolve_column_name(self._internal_columns, "ID") or _resolve_column_name(
             self._internal_columns, "ENCODED_URL"

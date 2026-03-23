@@ -9,7 +9,12 @@ import pytest
 
 from screamingfrog import Crawl
 from screamingfrog.backends.base import CrawlBackend
-from screamingfrog.db.duckdb import ensure_duckdb_cache, resolve_relation_name
+from screamingfrog.db.duckdb import (
+    _helper_relation_name,
+    _relation_exists,
+    ensure_duckdb_cache,
+    resolve_relation_name,
+)
 from screamingfrog.models import InternalPage
 
 
@@ -237,6 +242,29 @@ class MinimalDuckReportBackend(CrawlBackend):
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         for row in self._tabs["internal_all.csv"]:
             yield InternalPage.from_data(row)
+
+    def iter_link_projection(
+        self,
+        direction: str,
+        fields: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> Iterator[dict[str, Any]]:
+        id_to_url = {row["ID"]: row["ENCODED_URL"] for row in self._raw["APP.UNIQUE_URLS"]}
+        url_to_status = {
+            row["ENCODED_URL"]: row["RESPONSE_CODE"]
+            for row in self._raw["APP.URLS"]
+        }
+        for row in self._raw["APP.LINKS"]:
+            shaped = {
+                "Source": id_to_url[row["SRC_ID"]],
+                "Address": id_to_url[row["DST_ID"]],
+                "Destination": id_to_url[row["DST_ID"]],
+                "Anchor": row["LINK_TEXT"],
+                "Status Code": url_to_status.get(id_to_url[row["DST_ID"]]),
+            }
+            if filters and filters.get("status_code") not in (None, shaped["Status Code"]):
+                continue
+            yield {field: shaped.get(field) for field in fields}
 
     def get_inlinks(self, url: str):  # pragma: no cover - not used directly
         return iter(())
@@ -700,6 +728,7 @@ def test_duckdb_projected_page_view_prefers_projected_source_path(tmp_path: Path
         }
     ]
     assert duck._backend._internal_relation is None  # type: ignore[attr-defined]
+    assert not _relation_exists(duck._backend.conn, _helper_relation_name("internal_common"))  # type: ignore[attr-defined]
 
 
 def test_duckdb_backend_lazy_materializes_raw_tables_from_source(tmp_path: Path) -> None:
@@ -805,6 +834,7 @@ def test_duckdb_projected_link_view_uses_links_core_without_link_tabs(tmp_path: 
     ]
     assert resolve_relation_name(duck._backend.conn, "tab", "all_inlinks") is None  # type: ignore[attr-defined]
     assert resolve_relation_name(duck._backend.conn, "tab", "all_outlinks") is None  # type: ignore[attr-defined]
+    assert not _relation_exists(duck._backend.conn, _helper_relation_name("links_core"))  # type: ignore[attr-defined]
 
 
 def test_duckdb_backend_supports_links_and_chain_reports(tmp_path: Path) -> None:

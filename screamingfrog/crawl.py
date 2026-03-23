@@ -20,6 +20,8 @@ from screamingfrog.backends.duckdb_backend import _INTERNAL_COMMON_FIELD_NAMES
 from screamingfrog.backends.hybrid_backend import FallbackConfig
 from screamingfrog.db.derby import find_derby_db_root
 from screamingfrog.db.duckdb import (
+    _helper_relation_name,
+    _relation_exists,
     _source_fingerprint,
     ensure_duckdb_cache,
     export_duckdb_from_backend,
@@ -3514,12 +3516,17 @@ def _duckdb_projected_page_rows(
     requested_common = {normalize_name(field) for field in requested}
 
     if requested_common | normalized_filters <= common_fields:
-        relation = _duckdb_ensure_helper_relation(backend, "internal_common")
-        if relation:
+        helper_relation = _helper_relation_name("internal_common")
+        if _relation_exists(backend.conn, helper_relation):
             return (
                 {field: row.get(field) for field in requested}
-                for row in backend._iter_relation(relation, filters=filters)
+                for row in backend._iter_relation(helper_relation, filters=filters)
             )
+        source_backend = _duckdb_source_backend(backend)
+        if source_backend is not None:
+            projected_internal = getattr(source_backend, "iter_internal_projection", None)
+            if callable(projected_internal):
+                return projected_internal(requested, filters=filters)
 
     internal_relation = getattr(backend, "_internal_relation", None)
     internal_columns = set(getattr(backend, "_internal_columns", []))
@@ -3577,12 +3584,17 @@ def _duckdb_projected_link_rows(
     normalized_filters = _normalized_filter_keys(filters)
     requested_common = {normalize_name(field) for field in requested}
     if requested_common | normalized_filters <= _LINK_CORE_FIELD_NAMES:
-        relation = _duckdb_ensure_helper_relation(backend, "links_core")
-        if relation:
+        helper_relation = _helper_relation_name("links_core")
+        if _relation_exists(backend.conn, helper_relation):
             return (
                 {field: row.get(field) for field in requested}
-                for row in backend._iter_relation(relation, filters=filters)
+                for row in backend._iter_relation(helper_relation, filters=filters)
             )
+        source_backend = _duckdb_source_backend(backend)
+        if source_backend is not None:
+            projected_links = getattr(source_backend, "iter_link_projection", None)
+            if callable(projected_links):
+                return projected_links(direction, requested, filters=filters)
 
     tab_name = "all_inlinks" if _normalize_link_direction(direction) == "in" else "all_outlinks"
     relation = _duckdb_ensure_tab_relation(backend, tab_name)
