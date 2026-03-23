@@ -101,6 +101,7 @@ This file lists the current callable API in `screaming-frog-api`.
 
 ## `LinkView` (returned by `crawl.links(...)`)
 - `filter(**kwargs) -> LinkView`
+- `select(*fields) -> ProjectedLinkView`
 - `search(term, fields=None, case_sensitive=False) -> SearchRowView`
 - `count() -> int`
 - `collect() -> list[dict[str, Any]]`
@@ -108,6 +109,16 @@ This file lists the current callable API in `screaming-frog-api`.
 - `to_pandas()`
 - `to_polars()`
 - iterable (`for row in crawl.links("in").filter(...): ...`)
+
+## `ProjectedLinkView` (returned by `crawl.links(...).select(...)`)
+- `filter(**kwargs) -> ProjectedLinkView`
+- `search(term, fields=None, case_sensitive=False) -> SearchRowView`
+- `count() -> int`
+- `collect() -> list[dict[str, Any]]`
+- `first() -> dict[str, Any] | None`
+- `to_pandas()`
+- `to_polars()`
+- iterable (`for row in crawl.links("in").select(...): ...`)
 
 ## `CrawlSection` (returned by `crawl.section("...")`)
 - `pages() -> ScopedRowView`

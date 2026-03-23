@@ -342,6 +342,11 @@ class LinkView:
             case_sensitive,
         )
 
+    def select(self, *fields: str) -> "ProjectedLinkView":
+        if not fields:
+            raise ValueError("select() requires at least one field")
+        return ProjectedLinkView(self.base.backend, self.direction, tuple(str(field) for field in fields), self.base.filters)
+
     def __iter__(self) -> Iterator[dict[str, Any]]:
         return iter(self.base)
 
@@ -359,6 +364,56 @@ class LinkView:
 
     def to_polars(self) -> Any:
         return self.base.to_polars()
+
+
+@dataclass(frozen=True)
+class ProjectedLinkView:
+    backend: CrawlBackend
+    direction: str
+    fields: tuple[str, ...]
+    filters: dict[str, Any] | None = None
+
+    def filter(self, **kwargs: Any) -> "ProjectedLinkView":
+        merged = dict(self.filters or {})
+        merged.update(kwargs)
+        return ProjectedLinkView(self.backend, self.direction, self.fields, merged)
+
+    def search(
+        self,
+        term: str,
+        *,
+        fields: Sequence[str] | None = None,
+        case_sensitive: bool = False,
+    ) -> "SearchRowView":
+        return SearchRowView(
+            self,
+            str(term),
+            tuple(fields) if fields is not None else None,
+            case_sensitive,
+        )
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        yield from _iter_projected_link_rows(
+            self.backend,
+            self.direction,
+            self.fields,
+            filters=self.filters,
+        )
+
+    def count(self) -> int:
+        return sum(1 for _ in self.__iter__())
+
+    def collect(self) -> list[dict[str, Any]]:
+        return list(self.__iter__())
+
+    def first(self) -> Optional[dict[str, Any]]:
+        return next(iter(self), None)
+
+    def to_pandas(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "pandas")
+
+    def to_polars(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "polars")
 
 
 @dataclass(frozen=True)
@@ -503,7 +558,7 @@ class SearchInternalView:
 
 @dataclass(frozen=True)
 class SearchRowView:
-    base: PageView | ProjectedPageView | TabView | LinkView | ScopedRowView
+    base: PageView | ProjectedPageView | TabView | LinkView | ProjectedLinkView | ScopedRowView
     term: str
     fields: tuple[str, ...] | None = None
     case_sensitive: bool = False
@@ -3414,6 +3469,36 @@ def _normalized_filter_keys(filters: dict[str, Any] | None) -> set[str]:
     }
 
 
+_LINK_CORE_FIELD_NAMES = {
+    normalize_name(field)
+    for field in (
+        "Type",
+        "Source",
+        "Address",
+        "Destination",
+        "Alt Text",
+        "Anchor",
+        "Status Code",
+        "Status",
+        "Follow",
+        "Target",
+        "Rel",
+        "Path Type",
+        "Link Path",
+        "Link Position",
+        "hreflang",
+        "Link Type",
+        "Scope",
+        "Origin",
+        "NoFollow",
+        "UGC",
+        "Sponsored",
+        "Noopener",
+        "Noreferrer",
+    )
+}
+
+
 def _duckdb_projected_page_rows(
     backend: DuckDBBackend,
     fields: Sequence[str],
@@ -3472,6 +3557,73 @@ def _iter_projected_page_rows(
         _project_page_row(page, requested)
         for page in backend.get_internal(filters=filters)
     )
+
+
+def _project_link_row(row: dict[str, Any], fields: Sequence[str]) -> dict[str, Any]:
+    return {field: row.get(field) for field in fields}
+
+
+def _duckdb_projected_link_rows(
+    backend: DuckDBBackend,
+    direction: str,
+    fields: Sequence[str],
+    *,
+    filters: dict[str, Any] | None = None,
+) -> Iterator[dict[str, Any]] | None:
+    requested = tuple(dict.fromkeys(str(field) for field in fields if str(field).strip()))
+    if not requested:
+        return iter(())
+
+    normalized_filters = _normalized_filter_keys(filters)
+    requested_common = {normalize_name(field) for field in requested}
+    if requested_common | normalized_filters <= _LINK_CORE_FIELD_NAMES:
+        relation = _duckdb_ensure_helper_relation(backend, "links_core")
+        if relation:
+            return (
+                {field: row.get(field) for field in requested}
+                for row in backend._iter_relation(relation, filters=filters)
+            )
+
+    tab_name = "all_inlinks" if _normalize_link_direction(direction) == "in" else "all_outlinks"
+    relation = _duckdb_ensure_tab_relation(backend, tab_name)
+    if relation:
+        relation_columns = set(backend._get_relation_columns(relation))
+        if requested_common | normalized_filters <= {
+            normalize_name(column) for column in relation_columns
+        }:
+            return (
+                {field: row.get(field) for field in requested}
+                for row in backend._iter_relation(relation, filters=filters)
+            )
+
+    return None
+
+
+def _iter_projected_link_rows(
+    backend: CrawlBackend,
+    direction: str,
+    fields: Sequence[str],
+    *,
+    filters: dict[str, Any] | None = None,
+) -> Iterator[dict[str, Any]]:
+    requested = tuple(dict.fromkeys(str(field) for field in fields if str(field).strip()))
+    if not requested:
+        return iter(())
+    normalized_direction = _normalize_link_direction(direction)
+    if isinstance(backend, DuckDBBackend):
+        projected = _duckdb_projected_link_rows(
+            backend,
+            normalized_direction,
+            requested,
+            filters=filters,
+        )
+        if projected is not None:
+            return projected
+    base = LinkView(
+        TabView(backend, "all_inlinks" if normalized_direction == "in" else "all_outlinks", filters),
+        normalized_direction,
+    )
+    return (_project_link_row(row, requested) for row in base)
 
 
 def _duckdb_project_internal_pages(

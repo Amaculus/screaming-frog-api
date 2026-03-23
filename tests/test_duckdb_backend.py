@@ -9,7 +9,7 @@ import pytest
 
 from screamingfrog import Crawl
 from screamingfrog.backends.base import CrawlBackend
-from screamingfrog.db.duckdb import ensure_duckdb_cache
+from screamingfrog.db.duckdb import ensure_duckdb_cache, resolve_relation_name
 from screamingfrog.models import InternalPage
 
 
@@ -327,6 +327,54 @@ class FakeDuckCompareBackend(CrawlBackend):
         raise NotImplementedError
 
 
+class ProjectedOnlyInternalBackend(CrawlBackend):
+    def __init__(self) -> None:
+        self._rows = [
+            {
+                "Address": "https://example.com/home",
+                "Status Code": 200,
+                "Title 1": "Home",
+                "Meta Description 1": "Desc",
+            }
+        ]
+
+    def iter_internal_projection(
+        self, fields: Sequence[str], filters: Optional[dict[str, Any]] = None
+    ) -> Iterator[dict[str, Any]]:
+        wanted = tuple(str(field) for field in fields)
+        for row in self._rows:
+            yield {field: row.get(field) for field in wanted}
+
+    def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
+        raise AssertionError("projected path should avoid get_internal()")
+
+    def get_inlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def get_outlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
+        return len(self._rows)
+
+    def aggregate(self, table: str, column: str, func: str) -> Any:  # pragma: no cover
+        return None
+
+    def list_tabs(self) -> list[str]:
+        return ["internal_all.csv"]
+
+    def get_tab(
+        self, tab_name: str, filters: Optional[dict[str, Any]] = None
+    ) -> Iterator[dict[str, Any]]:
+        return iter(())
+
+    def raw(self, table: str) -> Iterator[dict[str, Any]]:
+        return iter(())
+
+    def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
+        return iter(())
+
+
 class IssueDuckBackend(CrawlBackend):
     def __init__(self) -> None:
         self._tabs = {
@@ -630,6 +678,30 @@ def test_duckdb_projected_page_view_uses_common_helper_without_internal_all(tmp_
     assert duck._backend._internal_relation is None  # type: ignore[attr-defined]
 
 
+def test_duckdb_projected_page_view_prefers_projected_source_path(tmp_path: Path) -> None:
+    source_backend = ProjectedOnlyInternalBackend()
+    target = tmp_path / "crawl-projected-only.duckdb"
+
+    Crawl(source_backend).export_duckdb(str(target), source_label="projected-only", tables=(), tabs=())
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        source_backend,
+        source_label="projected-only",
+        available_tabs=("internal_all.csv",),
+    )
+
+    rows = duck.pages().select("Address", "Title 1", "Meta Description 1").collect()
+
+    assert rows == [
+        {
+            "Address": "https://example.com/home",
+            "Title 1": "Home",
+            "Meta Description 1": "Desc",
+        }
+    ]
+    assert duck._backend._internal_relation is None  # type: ignore[attr-defined]
+
+
 def test_duckdb_backend_lazy_materializes_raw_tables_from_source(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl-lazy-raw.duckdb"
@@ -696,6 +768,43 @@ def test_duckdb_backend_lazy_materializes_tabs_from_source(tmp_path: Path) -> No
     assert duck.tab("response_codes_internal_client_error_(4xx)").collect() == [
         {"Address": "https://example.com/broken", "Status Code": 404}
     ]
+
+
+def test_duckdb_projected_link_view_uses_links_core_without_link_tabs(tmp_path: Path) -> None:
+    crawl = Crawl(MinimalDuckReportBackend())
+    target = tmp_path / "crawl-links-projected.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="minimal-links",
+        tables=(),
+        tabs=("internal_all",),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        MinimalDuckReportBackend(),
+        source_label="minimal-links",
+        available_tabs=("internal_all.csv", "all_inlinks.csv", "all_outlinks.csv"),
+    )
+
+    rows = duck.links("in").select("Source", "Address", "Status Code", "Anchor").filter(status_code=404).collect()
+
+    assert rows == [
+        {
+            "Source": "https://example.com/nav",
+            "Address": "https://example.com/broken-target",
+            "Status Code": 404,
+            "Anchor": "Broken",
+        },
+        {
+            "Source": "https://example.com/nav",
+            "Address": "https://example.com/broken-page",
+            "Status Code": 404,
+            "Anchor": "Broken internal",
+        },
+    ]
+    assert resolve_relation_name(duck._backend.conn, "tab", "all_inlinks") is None  # type: ignore[attr-defined]
+    assert resolve_relation_name(duck._backend.conn, "tab", "all_outlinks") is None  # type: ignore[attr-defined]
 
 
 def test_duckdb_backend_supports_links_and_chain_reports(tmp_path: Path) -> None:

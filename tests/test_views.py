@@ -86,6 +86,41 @@ def test_page_view_select_projects_requested_fields(tmp_path: Path) -> None:
     assert rows == [{"Address": "https://example.com/shop/b", "Title 1": ""}]
 
 
+def test_link_view_select_projects_requested_fields(tmp_path: Path) -> None:
+    _write_csv(
+        tmp_path / "internal_all.csv",
+        [{"Address": "https://example.com/", "Status Code": "200"}],
+    )
+    _write_csv(
+        tmp_path / "all_inlinks.csv",
+        [
+            {
+                "Address": "https://example.com/blog/a",
+                "Source": "https://example.com/source",
+                "Anchor": "Blog A",
+                "Status Code": "200",
+            },
+            {
+                "Address": "https://example.com/shop/b",
+                "Source": "https://example.com/source",
+                "Anchor": "Shop B",
+                "Status Code": "404",
+            },
+        ],
+    )
+
+    crawl = Crawl.load(str(tmp_path))
+
+    rows = crawl.links("in").select("Source", "Address").filter(status_code=404).collect()
+
+    assert rows == [
+        {
+            "Source": "https://example.com/source",
+            "Address": "https://example.com/shop/b",
+        }
+    ]
+
+
 def test_section_scopes_pages_and_links_by_path_prefix(tmp_path: Path) -> None:
     _write_csv(
         tmp_path / "internal_all.csv",

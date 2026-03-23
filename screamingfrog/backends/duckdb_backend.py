@@ -668,6 +668,28 @@ def _first_internal_value(data: dict[str, Any], candidates: Sequence[str]) -> An
 
 
 def _iter_internal_common_rows_from_source(source_backend: Any) -> Iterator[dict[str, Any]]:
+    projected_internal = getattr(source_backend, "iter_internal_projection", None)
+    if callable(projected_internal):
+        try:
+            yield from projected_internal(
+                [field_name for field_name, _candidates in _INTERNAL_COMMON_FIELD_CANDIDATES]
+            )
+            return
+        except Exception:
+            pass
+
+    if (
+        hasattr(source_backend, "_conn")
+        and hasattr(source_backend, "_table")
+        and hasattr(source_backend, "_internal_alias_map")
+        and hasattr(source_backend, "_internal_expr_selects")
+    ):
+        try:
+            yield from _iter_internal_common_rows_from_derby_source(source_backend)
+            return
+        except Exception:
+            pass
+
     for page in source_backend.get_internal():
         data = dict(getattr(page, "data", {}) or {})
         address = getattr(page, "address", None) or _first_internal_value(
@@ -687,6 +709,127 @@ def _iter_internal_common_rows_from_source(source_backend: Any) -> Iterator[dict
                 continue
             row[field_name] = _first_internal_value(data, candidates)
         yield row
+
+
+def _iter_internal_common_rows_from_derby_source(source_backend: Any) -> Iterator[dict[str, Any]]:
+    from screamingfrog.backends.derby_backend import (
+        _extract_header_value,
+        _header_extract_column,
+        _headers_from_blob,
+        _parse_link_headers,
+        _resolve_column_name,
+    )
+
+    table_alias = "sf_internal_common"
+    internal_columns = list(getattr(source_backend, "_internal_columns", []) or [])
+    internal_db_lookup = {
+        normalize_name(str(column)): str(column) for column in internal_columns if str(column).strip()
+    }
+    alias_lookup = {
+        normalize_name(str(csv_col)): str(db_col)
+        for csv_col, db_col in dict(getattr(source_backend, "_internal_alias_map", {}) or {}).items()
+        if str(csv_col).strip() and str(db_col).strip()
+    }
+    expr_lookup = {
+        normalize_name(str(csv_col)): str(expr)
+        for _alias, csv_col, expr in list(getattr(source_backend, "_internal_expr_selects", []) or [])
+        if str(csv_col).strip() and str(expr).strip()
+    }
+    unavailable_exprs = set(getattr(source_backend, "_internal_unavailable_expr_keys", set()) or set())
+    header_lookup = {
+        normalize_name(str(csv_col)): dict(extract)
+        for csv_col, extract in dict(getattr(source_backend, "_internal_header_extract_map", {}) or {}).items()
+        if str(csv_col).strip()
+    }
+
+    select_parts: list[str] = []
+    output_specs: list[tuple[str, str, str | None, dict[str, Any] | None]] = []
+    direct_aliases: dict[str, str] = {}
+
+    def ensure_direct(column_name: str) -> str:
+        actual = str(column_name)
+        alias = direct_aliases.get(actual)
+        if alias:
+            return alias
+        alias = f"SF_DIRECT_{len(direct_aliases)}"
+        select_parts.append(f'{table_alias}."{actual}" AS {alias}')
+        direct_aliases[actual] = alias
+        return alias
+
+    for field_name, candidates in _INTERNAL_COMMON_FIELD_CANDIDATES:
+        selected_alias: str | None = None
+        selected_extract: dict[str, Any] | None = None
+        selected_mode = "null"
+
+        for candidate in candidates:
+            candidate_key = normalize_name(candidate)
+            direct_column = alias_lookup.get(candidate_key) or internal_db_lookup.get(candidate_key)
+            if direct_column:
+                selected_alias = ensure_direct(direct_column)
+                selected_mode = "direct"
+                break
+            if candidate_key in expr_lookup and candidate_key not in unavailable_exprs:
+                selected_alias = f"SF_EXPR_{len(output_specs)}"
+                select_parts.append(
+                    f"{source_backend._rewrite_internal_expression(expr_lookup[candidate_key], table_alias)} AS {selected_alias}"
+                )
+                selected_mode = "expr"
+                break
+            extract = header_lookup.get(candidate_key)
+            if extract:
+                blob_col = _header_extract_column(extract)
+                actual_blob_col = _resolve_column_name(internal_columns, blob_col)
+                if not actual_blob_col:
+                    continue
+                selected_alias = ensure_direct(actual_blob_col)
+                selected_extract = extract
+                selected_mode = "header"
+                break
+
+        output_specs.append((field_name, selected_mode, selected_alias, selected_extract))
+
+    if not select_parts:
+        return
+
+    where_sql = ""
+    internal_clause = getattr(source_backend, "_internal_only_clause", lambda: None)()
+    if internal_clause:
+        where_sql = f" WHERE {internal_clause}"
+    sql = (
+        f"SELECT {', '.join(select_parts)} "
+        f"FROM {source_backend._table} {table_alias}{where_sql} "
+        f"ORDER BY {table_alias}.ENCODED_URL"
+    )
+    cursor = source_backend._conn.cursor()
+    cursor.execute(sql)
+    columns = [desc[0] for desc in cursor.description or []]
+
+    for row in _iter_cursor_rows(cursor):
+        data = {col: val for col, val in zip(columns, row)}
+        parsed_headers: dict[str, dict[str, list[str]]] = {}
+        parsed_links: dict[str, list[dict[str, Any]]] = {}
+        projected: dict[str, Any] = {}
+        for field_name, mode, alias, extract in output_specs:
+            if mode in {"direct", "expr"} and alias:
+                projected[field_name] = data.get(alias)
+                continue
+            if mode == "header" and alias and extract:
+                if alias not in parsed_headers:
+                    parsed_headers[alias] = _headers_from_blob(data.get(alias))
+                    parsed_links[alias] = (
+                        _parse_link_headers(parsed_headers[alias].get("link", []))
+                        if parsed_headers[alias]
+                        else []
+                    )
+                projected[field_name] = _extract_header_value(
+                    extract,
+                    parsed_headers.get(alias, {}),
+                    parsed_links.get(alias, []),
+                )
+                continue
+            projected[field_name] = None
+        if projected.get("Address"):
+            yield projected
 
 
 def _iter_links_core_rows_from_source(source_backend: Any) -> Iterator[dict[str, Any]]:
