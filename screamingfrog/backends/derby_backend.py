@@ -1285,9 +1285,12 @@ class DerbyBackend(CrawlBackend):
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         address_values = _filter_values(norm_filters, "address", "url", "source_page")
+        known_cols = getattr(self, "_known_table_columns", {})
+        psi_cols = known_cols.get("APP.PAGE_SPEED_API", frozenset())
+        viewport_expr = "p.VIEWPORT" if (not psi_cols or "VIEWPORT" in psi_cols) else "NULL"
         cursor = self._conn.cursor()
         sql = (
-            "SELECT p.ENCODED_URL, p.SF_REQUEST_ERROR_KEY, p.VIEWPORT, "
+            f"SELECT p.ENCODED_URL, p.SF_REQUEST_ERROR_KEY, {viewport_expr}, "
             "p.TARGET_SIZE, p.CONTENT_WIDTH, p.FONT_DISPLAY_SIZE, u.ORIGINAL_CONTENT "
             "FROM APP.PAGE_SPEED_API p "
             "LEFT JOIN APP.URLS u ON u.ENCODED_URL = p.ENCODED_URL"
@@ -4292,6 +4295,15 @@ def _measure_text_pixels_tk(text: str, *, family: str, size: int, weight: str) -
     global _TK_ROOT
     if not text:
         return 0
+    # macOS AppKit prohibits creating NSWindow/Tk roots off main thread.
+    # Crawl audit runs this code from worker threads, so fall back to avg-width
+    # estimation in that case instead of crashing the Python process.
+    try:
+        import threading
+        if threading.current_thread() is not threading.main_thread():
+            return None
+    except Exception:
+        return None
     try:
         import tkinter as tk
         import tkinter.font as tkfont
