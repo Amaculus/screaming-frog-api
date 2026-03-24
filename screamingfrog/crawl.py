@@ -3642,6 +3642,29 @@ def _duckdb_project_internal_pages(
     backend: DuckDBBackend,
     required_fields: set[str],
 ) -> tuple[dict[str, InternalPage], dict[str, InternalPage]] | None:
+    source_backend = _duckdb_source_backend(backend)
+    projected_internal = (
+        getattr(source_backend, "iter_internal_projection", None)
+        if source_backend is not None
+        else None
+    )
+    if callable(projected_internal):
+        pages: dict[str, InternalPage] = {}
+        pages_norm: dict[str, InternalPage] = {}
+        selected_fields = tuple(dict.fromkeys(["Address", "Status Code", *sorted(required_fields)]))
+        try:
+            for row in projected_internal(selected_fields):
+                page = InternalPage.from_data(row, copy_data=False)
+                if not page.address:
+                    continue
+                pages[page.address] = page
+                normalized = _normalize_url_for_compare(page.address)
+                if normalized:
+                    pages_norm[normalized] = page
+            return pages, pages_norm
+        except Exception:
+            pass
+
     normalized_required = {normalize_name(field) for field in required_fields if field}
     common_fields = {normalize_name(field) for field in _INTERNAL_COMMON_FIELD_NAMES}
     if normalized_required <= common_fields:

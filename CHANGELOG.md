@@ -2,6 +2,7 @@
 
 ## Unreleased
 - Changed projected page/link views on lean DuckDB caches to prefer one-shot source-backed projections before writing helper relations, which cuts the first-use penalty for lightweight reads.
+- Changed cold-cache `compare()` to use source-backed projected internal rows for its wider diff field set too, which avoids falling back to full `crawl.internal` scans.
 - Added `crawl.links().select(...)` / `ProjectedLinkView` for narrow sitewide link projections, with DuckDB-first `links_core` helper caching so lightweight link queries avoid materializing `all_inlinks` / `all_outlinks`.
 - Added `crawl.pages().select(...)` / `ProjectedPageView` for narrow page projections, with DuckDB-first `internal_common` helper caching and source-backed fallback so lightweight page workflows do not force `internal_all` materialization.
 - Moved DuckDB-first `title_meta_audit()`, `indexability_audit()`, and the DuckDB diff projection path onto the new projected-page flow, so they can stay lean on cold caches too.

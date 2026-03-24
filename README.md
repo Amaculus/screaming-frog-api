@@ -142,6 +142,7 @@ Notes:
 - `crawl.pages().select(...)` now projects narrow page field subsets through a shared `internal_common` helper relation or the prewarmed Derby source backend, so lightweight page workflows avoid wide `internal_all` materialization too.
 - `crawl.links(...).select(...)` now does the same against the shared `links_core` helper relation, so lightweight sitewide link queries avoid materializing `all_inlinks` / `all_outlinks` tabs on cold caches.
 - Cold-cache projected page/link reads now prefer one-shot source-backed projections before writing helper relations into DuckDB, so first-use lightweight workflows stay closer to direct-query cost instead of paying a cache-write penalty up front.
+- `compare()` now uses the same source-backed projection path for its wider internal field set, so cold-cache crawl diffs no longer fall back to full `crawl.internal` scans.
 - Cold-cache graph workflows (`broken_links_report`, `broken_inlinks_report`, `nofollow_inlinks_report`) can execute directly from the prewarmed Derby source, so they return without first exporting wide `all_inlinks` tables into DuckDB.
 - Generic `crawl.tab(...)` / `crawl.tab_columns(...)` calls also fall back to the prewarmed source backend when a tab is not cached yet, so first-use tab access no longer forces a DuckDB export round-trip.
 - When DuckDB does need cached subsets, it now materializes narrow helper relations instead of forcing full `internal_all` / `all_inlinks` exports.

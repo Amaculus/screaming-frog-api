@@ -321,6 +321,13 @@ class FakeDuckCompareBackend(CrawlBackend):
             "APP.LINKS": [],
         }
 
+    def iter_internal_projection(
+        self, fields: Sequence[str], filters: Optional[dict[str, Any]] = None
+    ) -> Iterator[dict[str, Any]]:
+        wanted = tuple(str(field) for field in fields)
+        for row in self._tabs["internal_all.csv"]:
+            yield {field: row.get(field) for field in wanted}
+
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         for row in self._tabs["internal_all.csv"]:
             yield InternalPage.from_data(row)
@@ -353,6 +360,11 @@ class FakeDuckCompareBackend(CrawlBackend):
 
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
         raise NotImplementedError
+
+
+class ProjectedOnlyCompareBackend(FakeDuckCompareBackend):
+    def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
+        raise AssertionError("compare() should use iter_internal_projection() on lean caches")
 
 
 class ProjectedOnlyInternalBackend(CrawlBackend):
@@ -1280,8 +1292,8 @@ def test_duckdb_compare_works_on_lean_caches_without_internal_all(tmp_path: Path
 
     old_duckdb = tmp_path / "old-lean.duckdb"
     new_duckdb = tmp_path / "new-lean.duckdb"
-    old_source = FakeDuckCompareBackend(old_rows)
-    new_source = FakeDuckCompareBackend(new_rows)
+    old_source = ProjectedOnlyCompareBackend(old_rows)
+    new_source = ProjectedOnlyCompareBackend(new_rows)
 
     Crawl(old_source).export_duckdb(str(old_duckdb), tables=(), tabs=())
     Crawl(new_source).export_duckdb(str(new_duckdb), tables=(), tabs=())
