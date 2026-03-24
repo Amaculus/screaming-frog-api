@@ -767,8 +767,8 @@ class DerbyBackend(CrawlBackend):
                 continue
 
             expr = entry.get("db_expression")
+            known_cols = getattr(self, "_known_table_columns", {})
             if expr:
-                known_cols = getattr(self, "_known_table_columns", {})
                 if _is_null_expression(expr) or _expression_references_absent_table(
                     expr, existing_tables
                 ) or _expression_references_absent_column(expr, known_cols):
@@ -777,7 +777,18 @@ class DerbyBackend(CrawlBackend):
                     continue
                 select_items.append(_normalize_select_expression(expr))
             else:
-                select_items.append(entry["db_column"])
+                db_col = entry.get("db_column", "")
+                db_tbl = _normalize_table_reference(entry.get("db_table", ""))
+                # Guard: skip bare db_column when it's absent from its declared table.
+                # Handles columns like VIEWPORT in APP.PAGE_SPEED_API which may not exist
+                # in older Screaming Frog crawl databases.
+                if db_col and db_tbl and known_cols:
+                    tbl_cols = known_cols.get(db_tbl)
+                    if tbl_cols is not None and db_col.upper() not in tbl_cols:
+                        entry_indexes.append(None)
+                        csv_columns.append(entry["csv_column"])
+                        continue
+                select_items.append(db_col)
             entry_indexes.append(len(select_items) - 1)
             csv_columns.append(entry["csv_column"])
 
@@ -843,6 +854,13 @@ class DerbyBackend(CrawlBackend):
                 for source_col in _derived_extract_columns(entry):
                     db_columns.append(str(source_col))
             db_columns = sorted(set(col for col in db_columns if col))
+            # Filter to columns that are actually present in this table's schema.
+            # Prevents SQL errors for optional columns (e.g. VIEWPORT in APP.PAGE_SPEED_API)
+            # that exist in the mapping but were added in a newer Screaming Frog version.
+            _known = getattr(self, "_known_table_columns", {})
+            _tbl_cols = _known.get(table_name.upper())
+            if _tbl_cols is not None:
+                db_columns = [c for c in db_columns if c.upper() in _tbl_cols]
             if not db_columns:
                 supplementary_cache[cache_key] = {}
                 return {}
@@ -1286,8 +1304,10 @@ class DerbyBackend(CrawlBackend):
         norm_filters = _normalize_filters(filters)
         address_values = _filter_values(norm_filters, "address", "url", "source_page")
         known_cols = getattr(self, "_known_table_columns", {})
-        psi_cols = known_cols.get("APP.PAGE_SPEED_API", frozenset())
-        viewport_expr = "p.VIEWPORT" if (not psi_cols or "VIEWPORT" in psi_cols) else "NULL"
+        # Use None-sentinel: frozenset() means introspection ran but found no cols (failure);
+        # None means key was never stored (shouldn't happen since we guard on _existing_tables).
+        psi_cols = known_cols.get("APP.PAGE_SPEED_API")
+        viewport_expr = "p.VIEWPORT" if (psi_cols is None or "VIEWPORT" in psi_cols) else "NULL"
         cursor = self._conn.cursor()
         sql = (
             f"SELECT p.ENCODED_URL, p.SF_REQUEST_ERROR_KEY, {viewport_expr}, "
@@ -3115,14 +3135,21 @@ _ALIAS_COL_RE = re.compile(r"\b(\w+)\.(\w+)\b")
 
 
 def _fetch_table_column_sets(conn, tables: frozenset[str]) -> dict[str, frozenset[str]]:
-    """Return {TABLE: frozenset(UPPER_COLUMN)} for each table that can be introspected."""
+    """Return {TABLE: frozenset(UPPER_COLUMN)} for each table that can be introspected.
+
+    On introspection failure, stores an empty frozenset rather than omitting the table.
+    This allows column guards (e.g. for VIEWPORT in APP.PAGE_SPEED_API) to correctly
+    detect that a column is absent even when SELECT * fails on that table.
+    """
     result: dict[str, frozenset[str]] = {}
     for table in tables:
         try:
             cols = _fetch_column_names(conn, table)
             result[table.upper()] = frozenset(c.upper() for c in cols)
         except Exception:
-            pass
+            # Table exists but column introspection failed — record as empty set so
+            # downstream guards treat any column reference as potentially absent.
+            result[table.upper()] = frozenset()
     return result
 
 
@@ -3143,6 +3170,14 @@ def _expression_references_absent_column(
             table = alias_to_table[alias]
             cols = known_columns.get(table)
             if cols is not None and col not in cols:
+                return True
+        else:
+            # Alias not found in expression's own FROM/JOIN (e.g. bare "p.VIEWPORT" entry).
+            # Block only when the column is absent from every table we know about — this
+            # safely catches missing optional columns (e.g. VIEWPORT in PAGE_SPEED_API)
+            # without false-positives on columns that exist in at least one table.
+            known_sets = [c for c in known_columns.values() if c is not None]
+            if known_sets and not any(col in c for c in known_sets):
                 return True
     return False
 
