@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.1 (2026-03-24)
 - Added multi-crawl DuckDB namespaces:
   - `crawl.export_duckdb(..., namespace="client-a")`
   - `Crawl.from_duckdb(..., namespace="client-a")`
