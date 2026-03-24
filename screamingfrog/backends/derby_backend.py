@@ -193,10 +193,14 @@ class DerbyBackend(CrawlBackend):
             self._mapping, self._table
         )
         self._existing_tables: frozenset[str] = _fetch_existing_tables(self._conn)
+        self._known_table_columns: dict[str, frozenset[str]] = _fetch_table_column_sets(
+            self._conn, self._existing_tables
+        )
         self._internal_missing_expr_names = {
             csv_col
             for _alias, csv_col, expr in all_internal_expr_selects
             if _expression_references_absent_table(expr, self._existing_tables)
+            or _expression_references_absent_column(expr, self._known_table_columns)
         }
         self._internal_unavailable_expr_keys = {
             _normalize_key(csv_col) for csv_col in self._internal_missing_expr_names
@@ -764,9 +768,10 @@ class DerbyBackend(CrawlBackend):
 
             expr = entry.get("db_expression")
             if expr:
+                known_cols = getattr(self, "_known_table_columns", {})
                 if _is_null_expression(expr) or _expression_references_absent_table(
                     expr, existing_tables
-                ):
+                ) or _expression_references_absent_column(expr, known_cols):
                     entry_indexes.append(None)
                     csv_columns.append(entry["csv_column"])
                     continue
@@ -2799,9 +2804,10 @@ def _build_where_from_entries(
             continue
         expr = entry.get("db_expression")
         if expr:
+            known_cols = getattr(self, "_known_table_columns", {})
             if _is_null_expression(expr) or _expression_references_absent_table(
                 expr, existing_tables or frozenset()
-            ):
+            ) or _expression_references_absent_column(expr, known_cols):
                 field_map[csv_key] = ("post", None)
                 continue
             field_map[csv_key] = ("expr", _normalize_select_expression(expr))
@@ -3098,6 +3104,43 @@ def _expression_references_absent_table(expr: str, existing: frozenset[str]) -> 
     for match in _TABLE_REFERENCE_RE.finditer(str(expr)):
         if _table_references_absent(match.group(1), existing):
             return True
+    return False
+
+
+_FROM_ALIAS_RE = re.compile(r"\b(?:FROM|JOIN)\s+(\S+)\s+(\w+)\b", re.IGNORECASE)
+_ALIAS_COL_RE = re.compile(r"\b(\w+)\.(\w+)\b")
+
+
+def _fetch_table_column_sets(conn, tables: frozenset[str]) -> dict[str, frozenset[str]]:
+    """Return {TABLE: frozenset(UPPER_COLUMN)} for each table that can be introspected."""
+    result: dict[str, frozenset[str]] = {}
+    for table in tables:
+        try:
+            cols = _fetch_column_names(conn, table)
+            result[table.upper()] = frozenset(c.upper() for c in cols)
+        except Exception:
+            pass
+    return result
+
+
+def _expression_references_absent_column(
+    expr: str, known_columns: dict[str, frozenset[str]]
+) -> bool:
+    """Return True when the expression references a column missing from its table."""
+    if not known_columns:
+        return False
+    alias_to_table: dict[str, str] = {}
+    for m in _FROM_ALIAS_RE.finditer(expr):
+        table_norm = _normalize_table_reference(m.group(1))
+        alias_to_table[m.group(2).upper()] = table_norm
+    for m in _ALIAS_COL_RE.finditer(expr):
+        alias = m.group(1).upper()
+        col = m.group(2).upper()
+        if alias in alias_to_table:
+            table = alias_to_table[alias]
+            cols = known_columns.get(table)
+            if cols is not None and col not in cols:
+                return True
     return False
 
 

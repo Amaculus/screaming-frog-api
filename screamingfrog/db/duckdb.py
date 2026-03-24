@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
+
+_log = logging.getLogger(__name__)
 
 from screamingfrog.db.packaging import find_project_dir
 
@@ -221,9 +224,12 @@ def export_duckdb_from_backend(
                 continue
             relation_name = _tab_relation_name(normalized, namespace=normalized_namespace)
             rows = backend.get_tab(normalized)
-            if _write_relation(conn, relation_name, rows):
-                exported_objects.append((normalized, "tab", relation_name))
-                exported_keys.add(("tab", normalized))
+            try:
+                if _write_relation(conn, relation_name, rows):
+                    exported_objects.append((normalized, "tab", relation_name))
+                    exported_keys.add(("tab", normalized))
+            except Exception as exc:
+                _log.warning("Skipping tab %r - export failed: %s", tab_name, exc)
 
         _store_export_metadata(
             conn,
