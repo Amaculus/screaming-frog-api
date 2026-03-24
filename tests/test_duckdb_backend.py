@@ -652,6 +652,70 @@ def test_export_duckdb_respects_explicit_empty_raw_table_list(tmp_path: Path) ->
         next(duck.raw("APP.URLS"))
 
 
+def test_single_crawl_duckdb_defaults_to_empty_namespace(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "single.duckdb"
+
+    crawl.export_duckdb(str(target), source_label="single", tables=(), tabs=("internal_all",))
+
+    assert Crawl.duckdb_namespaces(str(target)) == [""]
+    duck = Crawl.from_duckdb(str(target))
+    assert duck.pages().first() == {
+        "Address": "https://example.com/ok",
+        "Status Code": 200,
+        "Title 1": "OK",
+    }
+
+
+def test_duckdb_can_store_multiple_crawls_by_namespace(tmp_path: Path) -> None:
+    first = Crawl(
+        FakeDuckCompareBackend(
+            [{"Address": "https://example.com/a", "Status Code": 200, "Title 1": "A"}]
+        )
+    )
+    second = Crawl(
+        FakeDuckCompareBackend(
+            [{"Address": "https://example.com/b", "Status Code": 404, "Title 1": "B"}]
+        )
+    )
+    target = tmp_path / "multi.duckdb"
+
+    first.export_duckdb(str(target), tables=(), tabs=("internal_all",), namespace="client-a")
+    second.export_duckdb(str(target), tables=(), tabs=("internal_all",), namespace="client-b")
+
+    assert Crawl.duckdb_namespaces(str(target)) == ["client-a", "client-b"]
+
+    client_a = Crawl.from_duckdb(str(target), namespace="client-a")
+    client_b = Crawl.from_duckdb(str(target), namespace="client-b")
+
+    assert client_a.pages().collect() == [
+        {"Address": "https://example.com/a", "Status Code": 200, "Title 1": "A"}
+    ]
+    assert client_b.pages().collect() == [
+        {"Address": "https://example.com/b", "Status Code": 404, "Title 1": "B"}
+    ]
+
+
+def test_from_duckdb_requires_namespace_when_file_contains_multiple_crawls(tmp_path: Path) -> None:
+    first = Crawl(
+        FakeDuckCompareBackend(
+            [{"Address": "https://example.com/a", "Status Code": 200, "Title 1": "A"}]
+        )
+    )
+    second = Crawl(
+        FakeDuckCompareBackend(
+            [{"Address": "https://example.com/b", "Status Code": 404, "Title 1": "B"}]
+        )
+    )
+    target = tmp_path / "multi.duckdb"
+
+    first.export_duckdb(str(target), tables=(), tabs=("internal_all",), namespace="client-a")
+    second.export_duckdb(str(target), tables=(), tabs=("internal_all",), namespace="client-b")
+
+    with pytest.raises(ValueError, match="multiple crawl namespaces"):
+        Crawl.from_duckdb(str(target))
+
+
 def test_duckdb_backend_can_lazy_materialize_internal_tab_from_empty_cache(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl-empty.duckdb"

@@ -9,10 +9,11 @@ This file lists the current callable API in `screaming-frog-api`.
 - `Crawl.load(path, ..., source_type="auto", ...) -> Crawl`
 - `Crawl.from_exports(export_dir) -> Crawl`
 - `Crawl.from_database(db_path) -> Crawl`
-- `Crawl.from_duckdb(db_path) -> Crawl`
-- `Crawl.from_derby(db_path, ..., backend="duckdb" | "derby", duckdb_path=None, duckdb_tables=None, duckdb_tabs=None | "all", duckdb_if_exists="auto", csv_fallback=True, ...) -> Crawl`
-- `Crawl.from_seospider(crawl_path, ..., backend="duckdb" | "derby" | "csv", duckdb_path=None, duckdb_tables=None, duckdb_tabs=None | "all", duckdb_if_exists="auto", ...) -> Crawl`
-- `Crawl.from_db_id(crawl_id, ..., backend="duckdb" | "derby" | "csv", duckdb_path=None, duckdb_tables=None, duckdb_tabs=None | "all", duckdb_if_exists="auto", ...) -> Crawl`
+- `Crawl.from_duckdb(db_path, namespace=None) -> Crawl`
+- `Crawl.duckdb_namespaces(db_path) -> list[str]`
+- `Crawl.from_derby(db_path, ..., backend="duckdb" | "derby", duckdb_path=None, duckdb_namespace=None, duckdb_tables=None, duckdb_tabs=None | "all", duckdb_if_exists="auto", csv_fallback=True, ...) -> Crawl`
+- `Crawl.from_seospider(crawl_path, ..., backend="duckdb" | "derby" | "csv", duckdb_path=None, duckdb_namespace=None, duckdb_tables=None, duckdb_tabs=None | "all", duckdb_if_exists="auto", ...) -> Crawl`
+- `Crawl.from_db_id(crawl_id, ..., backend="duckdb" | "derby" | "csv", duckdb_path=None, duckdb_namespace=None, duckdb_tables=None, duckdb_tabs=None | "all", duckdb_if_exists="auto", ...) -> Crawl`
 
 - `crawl.internal` (property-like view object: `InternalView`)
 - `crawl.tab(name) -> TabView`
@@ -47,7 +48,7 @@ This file lists the current callable API in `screaming-frog-api`.
 - `crawl.query(schema, table) -> QueryView`
 - `crawl.raw(table) -> Iterator[dict[str, Any]]`
 - `crawl.sql(query, params=None) -> Iterator[dict[str, Any]]`
-- `crawl.export_duckdb(path, tables=None, tabs=None | "all", if_exists="replace", source_label=None) -> Path`
+- `crawl.export_duckdb(path, tables=None, tabs=None | "all", if_exists="replace", source_label=None, namespace=None) -> Path`
 - `crawl.compare(other, ..., title_fields=None, redirect_fields=None, redirect_type_fields=None, field_groups=None) -> CrawlDiff`
 
 - `export_duckdb_from_derby(db_path, duckdb_path, ..., tables=None, tabs=None, if_exists="auto") -> Path`

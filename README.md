@@ -120,6 +120,13 @@ derby_crawl.export_duckdb("./crawl.duckdb", if_exists="auto")
 
 fast = Crawl.load("./crawl.duckdb")
 
+# one DuckDB file can also hold multiple crawls under separate namespaces
+derby_crawl.export_duckdb("./portfolio.duckdb", namespace="client-a", if_exists="auto")
+other_crawl.export_duckdb("./portfolio.duckdb", namespace="client-b", if_exists="auto")
+
+namespaces = Crawl.duckdb_namespaces("./portfolio.duckdb")
+client_a = Crawl.from_duckdb("./portfolio.duckdb", namespace="client-a")
+
 pages_404 = fast.pages().filter(status_code=404).collect()
 lightweight = fast.pages().select("Address", "Status Code", "Title 1").collect()
 broken_inlinks = fast.links("in").select("Source", "Address", "Status Code").filter(status_code=404).collect()
@@ -137,6 +144,7 @@ Notes:
 - Derby remains the source-of-truth crawl store.
 - DuckDB is the default analysis engine for DB-backed workflows.
 - Default DB-backed loads now create a tiny sidecar DuckDB cache first, keep Derby prewarmed as the lazy source backend, and only materialize heavier relations if you actually ask for them.
+- DuckDB caches can now store multiple crawls in one `.duckdb` file via namespaces; pass `namespace=...` on export and `Crawl.from_duckdb(..., namespace=...)` on load.
 - Repeated DB-backed loads in the same Python process now reuse the cached Derby source backend for the same crawl fingerprint, so reopening the same crawl avoids paying Derby startup again.
 - High-level page workflows (`crawl.pages()`, page counts, page iteration) now read from the internal model directly instead of forcing `internal_all` tab materialization on a cold cache.
 - `crawl.pages().select(...)` now projects narrow page field subsets through a shared `internal_common` helper relation or the prewarmed Derby source backend, so lightweight page workflows avoid wide `internal_all` materialization too.

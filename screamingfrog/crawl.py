@@ -28,6 +28,7 @@ from screamingfrog.db.duckdb import (
     export_duckdb_from_db_id,
     export_duckdb_from_derby,
     iter_relation_rows,
+    list_duckdb_namespaces,
     resolve_relation_name,
 )
 from screamingfrog.db.packaging import find_project_dir, load_seospider_db_project, pack_dbseospider
@@ -689,8 +690,12 @@ class Crawl:
         return cls(DatabaseBackend(db_path))
 
     @classmethod
-    def from_duckdb(cls, db_path: str) -> "Crawl":
-        return cls(DuckDBBackend(db_path))
+    def from_duckdb(cls, db_path: str, *, namespace: str | None = None) -> "Crawl":
+        return cls(DuckDBBackend(db_path, namespace=namespace))
+
+    @staticmethod
+    def duckdb_namespaces(db_path: str) -> list[str]:
+        return list_duckdb_namespaces(db_path)
 
     @classmethod
     def from_derby(
@@ -701,6 +706,7 @@ class Crawl:
         *,
         backend: str = "duckdb",
         duckdb_path: str | None = None,
+        duckdb_namespace: str | None = None,
         duckdb_tables: Sequence[str] | None = None,
         duckdb_tabs: Sequence[str] | str | None = None,
         duckdb_if_exists: str = "auto",
@@ -726,6 +732,7 @@ class Crawl:
                     target,
                     source_label=source_label,
                     source_fingerprint=_source_fingerprint(Path(db_path)),
+                    namespace=duckdb_namespace,
                     if_exists=duckdb_if_exists,
                 )
             else:
@@ -736,10 +743,11 @@ class Crawl:
                     tabs=load_tabs,
                     if_exists=duckdb_if_exists,
                     source_label=source_label,
+                    namespace=duckdb_namespace,
                     mapping_path=mapping_path,
                     derby_jar=derby_jar,
                 )
-            crawl = cls.from_duckdb(str(exported))
+            crawl = cls.from_duckdb(str(exported), namespace=duckdb_namespace)
             if isinstance(crawl, Crawl):
                 source_backend = _get_cached_derby_source_backend(
                     db_path,
@@ -788,6 +796,7 @@ class Crawl:
         ensure_db_mode: bool = True,
         spider_config_path: str | None = None,
         duckdb_path: str | None = None,
+        duckdb_namespace: str | None = None,
         duckdb_tables: Sequence[str] | None = None,
         duckdb_tabs: Sequence[str] | str | None = None,
         duckdb_if_exists: str = "auto",
@@ -844,6 +853,7 @@ class Crawl:
                     derby_jar=derby_jar,
                     backend=mode,
                     duckdb_path=duckdb_path,
+                    duckdb_namespace=duckdb_namespace,
                     duckdb_tables=duckdb_tables,
                     duckdb_tabs=duckdb_tabs,
                     duckdb_if_exists=duckdb_if_exists,
@@ -883,6 +893,7 @@ class Crawl:
                     target,
                     source_label=source_label,
                     source_fingerprint=_source_fingerprint(Path(project_dir)),
+                    namespace=duckdb_namespace,
                     if_exists=duckdb_if_exists,
                 )
             else:
@@ -893,10 +904,11 @@ class Crawl:
                     tabs=load_tabs,
                     if_exists=duckdb_if_exists,
                     source_label=source_label,
+                    namespace=duckdb_namespace,
                     mapping_path=mapping_path,
                     derby_jar=derby_jar,
                 )
-            crawl = cls.from_duckdb(str(exported))
+            crawl = cls.from_duckdb(str(exported), namespace=duckdb_namespace)
             if isinstance(crawl, Crawl):
                 source_backend = _get_cached_derby_source_backend(
                     str(project_dir),
@@ -937,6 +949,7 @@ class Crawl:
                 derby_jar=derby_jar,
                 backend=mode,
                 duckdb_path=duckdb_path,
+                duckdb_namespace=duckdb_namespace,
                 duckdb_tables=duckdb_tables,
                 duckdb_tabs=duckdb_tabs,
                 duckdb_if_exists=duckdb_if_exists,
@@ -978,6 +991,7 @@ class Crawl:
         backend: str = "duckdb",
         project_root: str | None = None,
         duckdb_path: str | None = None,
+        duckdb_namespace: str | None = None,
         duckdb_tables: Sequence[str] | None = None,
         duckdb_tabs: Sequence[str] | str | None = None,
         duckdb_if_exists: str = "auto",
@@ -1025,6 +1039,7 @@ class Crawl:
                     target,
                     source_label=crawl_id,
                     source_fingerprint=_source_fingerprint(Path(project_dir)),
+                    namespace=duckdb_namespace,
                     if_exists=duckdb_if_exists,
                 )
             else:
@@ -1035,10 +1050,11 @@ class Crawl:
                     tabs=load_tabs,
                     if_exists=duckdb_if_exists,
                     project_root=project_root,
+                    namespace=duckdb_namespace,
                     mapping_path=mapping_path,
                     derby_jar=derby_jar,
                 )
-            crawl = cls.from_duckdb(str(exported))
+            crawl = cls.from_duckdb(str(exported), namespace=duckdb_namespace)
             if isinstance(crawl, Crawl):
                 source_backend = _get_cached_derby_source_backend(
                     str(project_dir),
@@ -1101,6 +1117,7 @@ class Crawl:
         ensure_db_mode: bool = True,
         spider_config_path: str | None = None,
         duckdb_path: str | None = None,
+        duckdb_namespace: str | None = None,
         duckdb_tables: Sequence[str] | None = None,
         duckdb_tabs: Sequence[str] | str | None = None,
         duckdb_if_exists: str = "auto",
@@ -1135,6 +1152,7 @@ class Crawl:
                 ensure_db_mode=ensure_db_mode,
                 spider_config_path=spider_config_path,
                 duckdb_path=duckdb_path,
+                duckdb_namespace=duckdb_namespace,
                 duckdb_tables=duckdb_tables,
                 duckdb_tabs=duckdb_tabs,
                 duckdb_if_exists=duckdb_if_exists,
@@ -1155,6 +1173,7 @@ class Crawl:
                     derby_jar=derby_jar,
                     backend=dbseospider_backend,
                     duckdb_path=duckdb_path,
+                    duckdb_namespace=duckdb_namespace,
                     duckdb_tables=duckdb_tables,
                     duckdb_tabs=duckdb_tabs,
                     duckdb_if_exists=duckdb_if_exists,
@@ -1172,7 +1191,7 @@ class Crawl:
             if suffix in {".sqlite", ".db"}:
                 return cls.from_database(str(path_obj))
             if suffix == ".duckdb":
-                return cls.from_duckdb(str(path_obj))
+                return cls.from_duckdb(str(path_obj), namespace=duckdb_namespace)
             if suffix == ".dbseospider":
                 if _looks_like_sqlite(path_obj):
                     return cls.from_database(str(path_obj))
@@ -1182,6 +1201,7 @@ class Crawl:
                     derby_jar=derby_jar,
                     backend=dbseospider_backend,
                     duckdb_path=duckdb_path,
+                    duckdb_namespace=duckdb_namespace,
                     duckdb_tables=duckdb_tables,
                     duckdb_tabs=duckdb_tabs,
                     duckdb_if_exists=duckdb_if_exists,
@@ -1206,6 +1226,7 @@ class Crawl:
                     ensure_db_mode=ensure_db_mode,
                     spider_config_path=spider_config_path,
                     duckdb_path=duckdb_path,
+                    duckdb_namespace=duckdb_namespace,
                     duckdb_tables=duckdb_tables,
                     duckdb_tabs=duckdb_tabs,
                     duckdb_if_exists=duckdb_if_exists,
@@ -1233,6 +1254,7 @@ class Crawl:
                 backend=db_id_backend,
                 project_root=project_root,
                 duckdb_path=duckdb_path,
+                duckdb_namespace=duckdb_namespace,
                 duckdb_tables=duckdb_tables,
                 duckdb_tabs=duckdb_tabs,
                 duckdb_if_exists=duckdb_if_exists,
@@ -1314,6 +1336,7 @@ class Crawl:
         tabs: Sequence[str] | str | None = None,
         if_exists: str = "replace",
         source_label: str | None = None,
+        namespace: str | None = None,
     ) -> Path:
         """Export the current crawl into a DuckDB analytics cache."""
         return export_duckdb_from_backend(
@@ -1323,6 +1346,7 @@ class Crawl:
             tabs=tabs,
             if_exists=if_exists,
             source_label=source_label,
+            namespace=namespace,
         )
 
     def inlinks(self, url: str) -> Iterator["Link"]:
@@ -1729,7 +1753,9 @@ class Crawl:
 
         backend = getattr(self, "_backend", None)
         rows: Iterator[dict[str, Any]] | list[dict[str, Any]]
-        if isinstance(backend, DuckDBBackend) and not resolve_relation_name(backend.conn, "tab", tab_name):
+        if isinstance(backend, DuckDBBackend) and not resolve_relation_name(
+            backend.conn, "tab", tab_name, namespace=backend.namespace
+        ):
             duckdb_rows = _duckdb_chain_rows(self, tab_name)
             rows = duckdb_rows if duckdb_rows is not None else self.tab(tab_name)
         else:
@@ -1792,6 +1818,7 @@ class Crawl:
         ensure_db_mode: bool,
         spider_config_path: str | None,
         duckdb_path: str | None,
+        duckdb_namespace: str | None,
         duckdb_tables: Sequence[str] | None,
         duckdb_tabs: Sequence[str] | str | None,
         duckdb_if_exists: str,
@@ -1804,7 +1831,7 @@ class Crawl:
         if normalized in {"exports", "csv"}:
             return cls.from_exports(path)
         if normalized in {"duckdb"}:
-            return cls.from_duckdb(path)
+            return cls.from_duckdb(path, namespace=duckdb_namespace)
         if normalized in {"sqlite", "db"}:
             return cls.from_database(path)
         if normalized in {"derby", "dbseospider"}:
@@ -1814,6 +1841,7 @@ class Crawl:
                 derby_jar=derby_jar,
                 backend=dbseospider_backend,
                 duckdb_path=duckdb_path,
+                duckdb_namespace=duckdb_namespace,
                 duckdb_tables=duckdb_tables,
                 duckdb_tabs=duckdb_tabs,
                 duckdb_if_exists=duckdb_if_exists,
@@ -1838,6 +1866,7 @@ class Crawl:
                 ensure_db_mode=ensure_db_mode,
                 spider_config_path=spider_config_path,
                 duckdb_path=duckdb_path,
+                duckdb_namespace=duckdb_namespace,
                 duckdb_tables=duckdb_tables,
                 duckdb_tabs=duckdb_tabs,
                 duckdb_if_exists=duckdb_if_exists,
@@ -1864,6 +1893,7 @@ class Crawl:
                 backend=db_id_backend,
                 project_root=project_root,
                 duckdb_path=duckdb_path,
+                duckdb_namespace=duckdb_namespace,
                 duckdb_tables=duckdb_tables,
                 duckdb_tabs=duckdb_tabs,
                 duckdb_if_exists=duckdb_if_exists,
@@ -2029,13 +2059,13 @@ def _issue_rows_from_tabs(crawl: Crawl, tab_issues: dict[str, str]) -> list[dict
 
 
 def _duckdb_ensure_tab_relation(backend: DuckDBBackend, tab_name: str) -> str | None:
-    relation = resolve_relation_name(backend.conn, "tab", tab_name)
+    relation = resolve_relation_name(backend.conn, "tab", tab_name, namespace=backend.namespace)
     if relation:
         return relation
     ensure_tab = getattr(backend, "ensure_tab", None)
     if callable(ensure_tab):
         ensure_tab(tab_name)
-    return resolve_relation_name(backend.conn, "tab", tab_name)
+    return resolve_relation_name(backend.conn, "tab", tab_name, namespace=backend.namespace)
 
 
 def _duckdb_ensure_helper_relation(backend: DuckDBBackend, helper_name: str) -> str | None:
@@ -2057,12 +2087,17 @@ def _duckdb_ensure_raw_relations(
 ) -> tuple[str | None, ...]:
     requested = tuple(str(table).strip().upper() for table in tables if str(table).strip())
     missing = [
-        table_name for table_name in requested if not resolve_relation_name(backend.conn, "raw", table_name)
+        table_name
+        for table_name in requested
+        if not resolve_relation_name(backend.conn, "raw", table_name, namespace=backend.namespace)
     ]
     ensure_raw = getattr(backend, "ensure_raw_tables", None)
     if missing and callable(ensure_raw):
         ensure_raw(missing)
-    return tuple(resolve_relation_name(backend.conn, "raw", table_name) for table_name in requested)
+    return tuple(
+        resolve_relation_name(backend.conn, "raw", table_name, namespace=backend.namespace)
+        for table_name in requested
+    )
 
 
 def _duckdb_issue_rows_from_tabs(
@@ -3165,7 +3200,7 @@ def _duckdb_issue_tab_count(backend: DuckDBBackend, issue_tabs: dict[str, str]) 
 
 
 def _duckdb_materialized_tab_count_or_none(backend: DuckDBBackend, tab_name: str) -> int | None:
-    relation = resolve_relation_name(backend.conn, "tab", tab_name)
+    relation = resolve_relation_name(backend.conn, "tab", tab_name, namespace=backend.namespace)
     if not relation:
         return None
     return _duckdb_scalar_count(backend, f"SELECT COUNT(*) AS count FROM {relation}")
@@ -3176,7 +3211,7 @@ def _duckdb_issue_tab_count_or_none(
     issue_tabs: dict[str, str],
 ) -> int | None:
     relations = [
-        resolve_relation_name(backend.conn, "tab", tab_name)
+        resolve_relation_name(backend.conn, "tab", tab_name, namespace=backend.namespace)
         for tab_name in issue_tabs
     ]
     if not any(relations):
@@ -3516,7 +3551,7 @@ def _duckdb_projected_page_rows(
     requested_common = {normalize_name(field) for field in requested}
 
     if requested_common | normalized_filters <= common_fields:
-        helper_relation = _helper_relation_name("internal_common")
+        helper_relation = _helper_relation_name("internal_common", namespace=backend.namespace)
         if _relation_exists(backend.conn, helper_relation):
             return (
                 {field: row.get(field) for field in requested}
@@ -3584,7 +3619,7 @@ def _duckdb_projected_link_rows(
     normalized_filters = _normalized_filter_keys(filters)
     requested_common = {normalize_name(field) for field in requested}
     if requested_common | normalized_filters <= _LINK_CORE_FIELD_NAMES:
-        helper_relation = _helper_relation_name("links_core")
+        helper_relation = _helper_relation_name("links_core", namespace=backend.namespace)
         if _relation_exists(backend.conn, helper_relation):
             return (
                 {field: row.get(field) for field in requested}

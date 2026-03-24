@@ -18,8 +18,9 @@ def test_from_derby_defaults_to_initialize_and_load_duckdb(tmp_path: Path, monke
         calls["kwargs"] = kwargs
         return duckdb_path
 
-    def fake_from_duckdb(cls, path: str):  # type: ignore[no-untyped-def]
+    def fake_from_duckdb(cls, path: str, *, namespace: str | None = None):  # type: ignore[no-untyped-def]
         calls["loaded"] = path
+        calls["namespace"] = namespace
         return sentinel
 
     monkeypatch.setattr(crawl_module, "ensure_duckdb_cache", fake_init)
@@ -30,6 +31,7 @@ def test_from_derby_defaults_to_initialize_and_load_duckdb(tmp_path: Path, monke
     assert result is sentinel
     assert calls["duckdb_path"] == target
     assert calls["loaded"] == str(target)
+    assert calls["namespace"] is None
     assert calls["kwargs"]["if_exists"] == "auto"
     assert calls["kwargs"]["source_label"] == str(source.resolve())
     assert calls["kwargs"]["source_fingerprint"].startswith("file:")
@@ -47,8 +49,9 @@ def test_from_db_id_can_export_and_load_duckdb(tmp_path: Path, monkeypatch) -> N
         calls["kwargs"] = kwargs
         return path
 
-    def fake_from_duckdb(cls, path: str):  # type: ignore[no-untyped-def]
+    def fake_from_duckdb(cls, path: str, *, namespace: str | None = None):  # type: ignore[no-untyped-def]
         calls["loaded"] = path
+        calls["namespace"] = namespace
         return sentinel
 
     monkeypatch.setattr(crawl_module, "export_duckdb_from_db_id", fake_export)
@@ -63,6 +66,7 @@ def test_from_db_id_can_export_and_load_duckdb(tmp_path: Path, monkeypatch) -> N
         duckdb_tables=("APP.URLS",),
         duckdb_tabs=("internal_all",),
         duckdb_if_exists="skip",
+        duckdb_namespace="client-a",
         mapping_path="mapping.json",
         derby_jar="derby.jar",
     )
@@ -71,11 +75,13 @@ def test_from_db_id_can_export_and_load_duckdb(tmp_path: Path, monkeypatch) -> N
     assert calls["crawl_id"] == "crawl-123"
     assert calls["path"] == target
     assert calls["loaded"] == str(target)
+    assert calls["namespace"] == "client-a"
     assert calls["kwargs"] == {
         "tables": ("APP.URLS",),
         "tabs": ("internal_all",),
         "if_exists": "skip",
         "project_root": str(tmp_path / "projects"),
+        "namespace": "client-a",
         "mapping_path": "mapping.json",
         "derby_jar": "derby.jar",
     }
@@ -98,8 +104,9 @@ def test_from_seospider_can_export_and_load_duckdb(tmp_path: Path, monkeypatch) 
         calls["kwargs"] = kwargs
         return path
 
-    def fake_from_duckdb(cls, path: str):  # type: ignore[no-untyped-def]
+    def fake_from_duckdb(cls, path: str, *, namespace: str | None = None):  # type: ignore[no-untyped-def]
         calls["loaded"] = path
+        calls["namespace"] = namespace
         return sentinel
 
     monkeypatch.setattr(crawl_module, "load_seospider_db_project", fake_load_project)
@@ -113,6 +120,7 @@ def test_from_seospider_can_export_and_load_duckdb(tmp_path: Path, monkeypatch) 
         duckdb_tables=("APP.URLS",),
         duckdb_tabs="all",
         duckdb_if_exists="replace",
+        duckdb_namespace="client-a",
         mapping_path="mapping.json",
         derby_jar="derby.jar",
     )
@@ -121,11 +129,13 @@ def test_from_seospider_can_export_and_load_duckdb(tmp_path: Path, monkeypatch) 
     assert calls["project_path"] == str(project_dir)
     assert calls["path"] == target
     assert calls["loaded"] == str(target)
+    assert calls["namespace"] == "client-a"
     assert calls["kwargs"] == {
         "tables": ("APP.URLS",),
         "tabs": "all",
         "if_exists": "replace",
         "source_label": str((tmp_path / "crawl.seospider").resolve()),
+        "namespace": "client-a",
         "mapping_path": "mapping.json",
         "derby_jar": "derby.jar",
     }
@@ -147,6 +157,7 @@ def test_load_routes_db_id_duckdb_kwargs(tmp_path: Path, monkeypatch) -> None:
         source_type="db_id",
         db_id_backend="duckdb",
         duckdb_path=str(tmp_path / "dbid.duckdb"),
+        duckdb_namespace="client-a",
         duckdb_tabs="all",
         duckdb_if_exists="skip",
     )
@@ -155,6 +166,7 @@ def test_load_routes_db_id_duckdb_kwargs(tmp_path: Path, monkeypatch) -> None:
     assert calls["crawl_id"] == "crawl-xyz"
     assert calls["kwargs"]["backend"] == "duckdb"
     assert calls["kwargs"]["duckdb_path"] == str(tmp_path / "dbid.duckdb")
+    assert calls["kwargs"]["duckdb_namespace"] == "client-a"
     assert calls["kwargs"]["duckdb_tabs"] == "all"
     assert calls["kwargs"]["duckdb_if_exists"] == "skip"
 
@@ -177,6 +189,7 @@ def test_load_routes_seospider_duckdb_kwargs(tmp_path: Path, monkeypatch) -> Non
         source_type="seospider",
         seospider_backend="duckdb",
         duckdb_path=str(tmp_path / "seospider.duckdb"),
+        duckdb_namespace="client-a",
         duckdb_tables=("APP.URLS", "APP.LINKS"),
         duckdb_if_exists="skip",
     )
@@ -185,6 +198,7 @@ def test_load_routes_seospider_duckdb_kwargs(tmp_path: Path, monkeypatch) -> Non
     assert calls["path"] == str(crawl_path)
     assert calls["kwargs"]["backend"] == "duckdb"
     assert calls["kwargs"]["duckdb_path"] == str(tmp_path / "seospider.duckdb")
+    assert calls["kwargs"]["duckdb_namespace"] == "client-a"
     assert calls["kwargs"]["duckdb_tables"] == ("APP.URLS", "APP.LINKS")
     assert calls["kwargs"]["duckdb_if_exists"] == "skip"
 
@@ -210,3 +224,23 @@ def test_load_dbseospider_defaults_to_duckdb_backend(tmp_path: Path, monkeypatch
     assert calls["path"] == str(crawl_path)
     assert calls["kwargs"]["backend"] == "duckdb"
     assert calls["kwargs"]["duckdb_if_exists"] == "auto"
+
+
+def test_load_duckdb_routes_namespace(tmp_path: Path, monkeypatch) -> None:
+    calls: dict[str, object] = {}
+    sentinel = object()
+    duckdb_path = tmp_path / "crawl.duckdb"
+    duckdb_path.write_text("stub", encoding="utf-8")
+
+    def fake_from_duckdb(cls, path: str, *, namespace: str | None = None):  # type: ignore[no-untyped-def]
+        calls["path"] = path
+        calls["namespace"] = namespace
+        return sentinel
+
+    monkeypatch.setattr(Crawl, "from_duckdb", classmethod(fake_from_duckdb))
+
+    result = Crawl.load(str(duckdb_path), source_type="duckdb", duckdb_namespace="client-a")
+
+    assert result is sentinel
+    assert calls["path"] == str(duckdb_path)
+    assert calls["namespace"] == "client-a"

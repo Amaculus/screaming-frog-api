@@ -12,7 +12,8 @@ from screamingfrog.db.duckdb import (
     export_duckdb_from_backend,
     iter_cursor_rows,
     iter_relation_rows,
-    list_exported_tabs,
+    list_duckdb_namespaces,
+    list_exported_tabs_for_namespace,
     resolve_relation_name,
 )
 from screamingfrog.filters.names import make_tab_filename, normalize_name
@@ -79,17 +80,18 @@ _INTERNAL_COMMON_FIELD_NAMES = {
 class DuckDBBackend(CrawlBackend):
     """Backend that reads exported crawl data from a DuckDB analytics cache."""
 
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, namespace: str | None = None):
         self.db_path = Path(db_path)
         if not self.db_path.exists():
             raise FileNotFoundError(f"DuckDB database not found: {self.db_path}")
         self._duckdb = _import_duckdb()
+        self.namespace = self._resolve_namespace(namespace)
         self._lazy_source_backend: Any | None = None
         self._lazy_source_backend_factory: Callable[[], Any] | None = None
         self._lazy_source_label: str | None = None
         self._available_tabs: tuple[str, ...] | None = None
         self._open_connection()
-        internal_relation = _resolve_tab_relation(self.conn, "internal_all", None)
+        internal_relation = _resolve_tab_relation(self.conn, "internal_all", None, namespace=self.namespace)
         self._internal_relation = internal_relation
         self._internal_columns = self._get_relation_columns(self._internal_relation) if internal_relation else []
         self._internal_column_map = {col.lower(): col for col in self._internal_columns}
@@ -131,9 +133,9 @@ class DuckDBBackend(CrawlBackend):
         if source_backend is not None:
             yield from source_backend.get_inlinks(url)
             return
-        relation = resolve_relation_name(self.conn, "tab", "all_inlinks")
+        relation = resolve_relation_name(self.conn, "tab", "all_inlinks", namespace=self.namespace)
         if not relation and self.ensure_tab("all_inlinks"):
-            relation = resolve_relation_name(self.conn, "tab", "all_inlinks")
+            relation = resolve_relation_name(self.conn, "tab", "all_inlinks", namespace=self.namespace)
         if relation:
             for row in self._iter_relation(relation, filters={"Address": url}):
                 data = dict(row)
@@ -153,9 +155,9 @@ class DuckDBBackend(CrawlBackend):
         if source_backend is not None:
             yield from source_backend.get_outlinks(url)
             return
-        relation = resolve_relation_name(self.conn, "tab", "all_outlinks")
+        relation = resolve_relation_name(self.conn, "tab", "all_outlinks", namespace=self.namespace)
         if not relation and self.ensure_tab("all_outlinks"):
-            relation = resolve_relation_name(self.conn, "tab", "all_outlinks")
+            relation = resolve_relation_name(self.conn, "tab", "all_outlinks", namespace=self.namespace)
         if relation:
             for row in self._iter_relation(relation, filters={"Source": url}):
                 yield Link.from_row(row)
@@ -227,7 +229,7 @@ class DuckDBBackend(CrawlBackend):
         return row[0] if row else None
 
     def list_tabs(self) -> list[str]:
-        exported = list_exported_tabs(self.conn)
+        exported = list_exported_tabs_for_namespace(self.conn, namespace=self.namespace)
         if not self._available_tabs:
             return exported
         seen: set[str] = set()
@@ -248,7 +250,7 @@ class DuckDBBackend(CrawlBackend):
     ) -> Iterator[dict[str, Any]]:
         filters = dict(filters or {})
         gui_filter = filters.pop("__gui__", None)
-        relation = _resolve_tab_relation(self.conn, tab_name, gui_filter)
+        relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
         if not relation:
             source_backend = self.get_lazy_source_backend()
             if source_backend is not None:
@@ -260,7 +262,7 @@ class DuckDBBackend(CrawlBackend):
                 except (AttributeError, NotImplementedError, ValueError):
                     pass
             self.ensure_tab(tab_name, gui_filter=gui_filter)
-            relation = _resolve_tab_relation(self.conn, tab_name, gui_filter)
+            relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
         if not relation:
             if gui_filter:
                 raise NotImplementedError(
@@ -270,10 +272,10 @@ class DuckDBBackend(CrawlBackend):
         return self._iter_relation(relation, filters=filters)
 
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
-        relation = resolve_relation_name(self.conn, "raw", table)
+        relation = resolve_relation_name(self.conn, "raw", table, namespace=self.namespace)
         if not relation:
             self.ensure_raw_tables((table,))
-            relation = resolve_relation_name(self.conn, "raw", table)
+            relation = resolve_relation_name(self.conn, "raw", table, namespace=self.namespace)
         if not relation:
             raise NotImplementedError(f"Raw table not available in DuckDB cache: {table}")
         return iter_relation_rows(self.conn, relation)
@@ -286,7 +288,7 @@ class DuckDBBackend(CrawlBackend):
             yield {col: val for col, val in zip(columns, row)}
 
     def tab_columns(self, tab_name: str) -> list[str]:
-        relation = _resolve_tab_relation(self.conn, tab_name, None)
+        relation = _resolve_tab_relation(self.conn, tab_name, None, namespace=self.namespace)
         if not relation:
             source_backend = self.get_lazy_source_backend()
             if source_backend is not None and hasattr(source_backend, "tab_columns"):
@@ -295,7 +297,7 @@ class DuckDBBackend(CrawlBackend):
                 except (AttributeError, NotImplementedError, ValueError):
                     pass
             self.ensure_tab(tab_name)
-            relation = _resolve_tab_relation(self.conn, tab_name, None)
+            relation = _resolve_tab_relation(self.conn, tab_name, None, namespace=self.namespace)
         if not relation:
             return []
         return self._get_relation_columns(relation)
@@ -305,7 +307,7 @@ class DuckDBBackend(CrawlBackend):
             return True
         if not self.ensure_tab("internal_all"):
             return False
-        relation = _resolve_tab_relation(self.conn, "internal_all", None)
+        relation = _resolve_tab_relation(self.conn, "internal_all", None, namespace=self.namespace)
         if not relation:
             return False
         self._internal_relation = relation
@@ -314,7 +316,7 @@ class DuckDBBackend(CrawlBackend):
         return True
 
     def ensure_helper_relation(self, helper_name: str) -> str | None:
-        relation = _helper_relation_name(helper_name)
+        relation = _helper_relation_name(helper_name, namespace=self.namespace)
         if _relation_exists(self.conn, relation):
             return relation
         rows = self._helper_rows(helper_name)
@@ -336,18 +338,22 @@ class DuckDBBackend(CrawlBackend):
         requested = tuple(str(table).strip().upper() for table in tables if str(table).strip())
         if not requested:
             return True
-        missing = [name for name in requested if not resolve_relation_name(self.conn, "raw", name)]
+        missing = [
+            name
+            for name in requested
+            if not resolve_relation_name(self.conn, "raw", name, namespace=self.namespace)
+        ]
         if not missing:
             return True
         return self._materialize_exports(tables=missing)
 
     def ensure_tab(self, tab_name: str, *, gui_filter: Any = None) -> bool:
         candidates = _tab_export_candidates(tab_name, gui_filter)
-        if any(resolve_relation_name(self.conn, "tab", candidate) for candidate in candidates):
+        if any(resolve_relation_name(self.conn, "tab", candidate, namespace=self.namespace) for candidate in candidates):
             return True
         for candidate in candidates:
             if self._materialize_exports(tabs=(candidate,)):
-                if resolve_relation_name(self.conn, "tab", candidate):
+                if resolve_relation_name(self.conn, "tab", candidate, namespace=self.namespace):
                     return True
         return False
 
@@ -368,9 +374,9 @@ class DuckDBBackend(CrawlBackend):
 
     def _iter_raw_links(self, direction: str, url: str) -> Iterator[dict[str, Any]]:
         self.ensure_raw_tables(("APP.URLS", "APP.LINKS", "APP.UNIQUE_URLS"))
-        urls_relation = resolve_relation_name(self.conn, "raw", "APP.URLS")
-        links_relation = resolve_relation_name(self.conn, "raw", "APP.LINKS")
-        unique_urls_relation = resolve_relation_name(self.conn, "raw", "APP.UNIQUE_URLS")
+        urls_relation = resolve_relation_name(self.conn, "raw", "APP.URLS", namespace=self.namespace)
+        links_relation = resolve_relation_name(self.conn, "raw", "APP.LINKS", namespace=self.namespace)
+        unique_urls_relation = resolve_relation_name(self.conn, "raw", "APP.UNIQUE_URLS", namespace=self.namespace)
         if not urls_relation or not links_relation or not unique_urls_relation:
             raise NotImplementedError("DuckDB cache does not include the raw link relations.")
 
@@ -485,6 +491,7 @@ class DuckDBBackend(CrawlBackend):
                         tabs=(tab_name,),
                         if_exists="auto",
                         source_label=self._lazy_source_label,
+                        namespace=self.namespace,
                     )
                 except (FileNotFoundError, NotImplementedError, ValueError):
                     continue
@@ -496,6 +503,7 @@ class DuckDBBackend(CrawlBackend):
                     tabs=(),
                     if_exists="auto",
                     source_label=self._lazy_source_label,
+                    namespace=self.namespace,
                 )
         finally:
             self._open_connection()
@@ -511,6 +519,22 @@ class DuckDBBackend(CrawlBackend):
 
     def _open_connection(self) -> None:
         self.conn = self._duckdb.connect(str(self.db_path), read_only=True)
+
+    def _resolve_namespace(self, namespace: str | None) -> str:
+        requested = str(namespace or "").strip().lower()
+        namespaces = list_duckdb_namespaces(self.db_path)
+        if requested:
+            if namespaces and requested not in namespaces:
+                raise ValueError(
+                    f"DuckDB namespace not found: {requested}. Available namespaces: {', '.join(namespaces)}"
+                )
+            return requested
+        if len(namespaces) <= 1:
+            return namespaces[0] if namespaces else ""
+        available = ", ".join(namespace or "<default>" for namespace in namespaces)
+        raise ValueError(
+            f"DuckDB file contains multiple crawl namespaces ({available}). Pass namespace=... to select one."
+        )
 
     def _ensure_sql_relations(self, query: str) -> None:
         raw_tables: set[str] = set()
@@ -974,10 +998,12 @@ def _normalize_key(value: str) -> str:
     return str(value).strip().lower().replace(" ", "_")
 
 
-def _resolve_tab_relation(conn: Any, tab_name: str, gui_filter: Any) -> str | None:
+def _resolve_tab_relation(
+    conn: Any, tab_name: str, gui_filter: Any, *, namespace: str | None = None
+) -> str | None:
     candidates = _tab_export_candidates(tab_name, gui_filter)
     for candidate in candidates:
-        relation = resolve_relation_name(conn, "tab", candidate)
+        relation = resolve_relation_name(conn, "tab", candidate, namespace=namespace)
         if relation:
             return relation
     return None

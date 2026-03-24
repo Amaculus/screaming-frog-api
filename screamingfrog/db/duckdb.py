@@ -28,6 +28,7 @@ def export_duckdb_from_derby(
     tabs: Sequence[str] | str | None = None,
     if_exists: str = "auto",
     source_label: str | None = None,
+    namespace: str | None = None,
     mapping_path: str | None = None,
     derby_jar: str | None = None,
 ) -> Path:
@@ -43,6 +44,7 @@ def export_duckdb_from_derby(
         if_exists=if_exists,
         source_label=label,
         source_fingerprint=_source_fingerprint(Path(db_path)),
+        namespace=namespace,
     )
 
 
@@ -54,6 +56,7 @@ def export_duckdb_from_db_id(
     tabs: Sequence[str] | str | None = None,
     if_exists: str = "auto",
     project_root: str | Path | None = None,
+    namespace: str | None = None,
     mapping_path: str | None = None,
     derby_jar: str | None = None,
 ) -> Path:
@@ -65,6 +68,7 @@ def export_duckdb_from_db_id(
         tabs=tabs,
         if_exists=if_exists,
         source_label=db_id,
+        namespace=namespace,
         mapping_path=mapping_path,
         derby_jar=derby_jar,
     )
@@ -75,6 +79,7 @@ def ensure_duckdb_cache(
     *,
     source_label: str,
     source_fingerprint: str | None,
+    namespace: str | None = None,
     if_exists: str = "auto",
 ) -> Path:
     mode = str(if_exists).strip().lower()
@@ -83,6 +88,7 @@ def ensure_duckdb_cache(
 
     target = Path(duckdb_path)
     target.parent.mkdir(parents=True, exist_ok=True)
+    normalized_namespace = _normalize_namespace(namespace)
 
     duckdb = _import_duckdb()
     if target.exists():
@@ -92,7 +98,7 @@ def ensure_duckdb_cache(
             read_only_conn = None
         else:
             try:
-                existing = _get_import_metadata(read_only_conn)
+                existing = _get_import_metadata(read_only_conn, namespace=normalized_namespace)
                 same_source = bool(
                     existing
                     and existing.get("source_label") == source_label
@@ -113,7 +119,7 @@ def ensure_duckdb_cache(
     conn = duckdb.connect(str(target))
     try:
         _ensure_metadata_tables(conn)
-        existing = _get_import_metadata(conn)
+        existing = _get_import_metadata(conn, namespace=normalized_namespace)
         same_source = bool(
             existing
             and existing.get("source_label") == source_label
@@ -127,12 +133,13 @@ def ensure_duckdb_cache(
         if same_source and mode == "auto":
             return target
         if existing and (mode == "replace" or not same_source):
-            _drop_exported_objects(conn)
+            _drop_exported_objects(conn, namespace=normalized_namespace)
         _store_export_metadata(
             conn,
             source_label=source_label,
             source_fingerprint=source_fingerprint,
             objects=[],
+            namespace=normalized_namespace,
         )
         return target
     finally:
@@ -148,6 +155,7 @@ def export_duckdb_from_backend(
     if_exists: str = "replace",
     source_label: str | None = None,
     source_fingerprint: str | None = None,
+    namespace: str | None = None,
 ) -> Path:
     mode = str(if_exists).strip().lower()
     if mode not in {"replace", "skip", "auto"}:
@@ -158,13 +166,14 @@ def export_duckdb_from_backend(
     explicit_exports = tables is not None or tabs is not None
     target = Path(duckdb_path)
     target.parent.mkdir(parents=True, exist_ok=True)
+    normalized_namespace = _normalize_namespace(namespace)
 
     duckdb = _import_duckdb()
     conn = duckdb.connect(str(target))
     try:
         _ensure_metadata_tables(conn)
-        existing = _get_import_metadata(conn)
-        existing_objects = _get_export_objects(conn)
+        existing = _get_import_metadata(conn, namespace=normalized_namespace)
+        existing_objects = _get_export_objects(conn, namespace=normalized_namespace)
         label = source_label or getattr(getattr(backend, "db_path", None), "name", None) or "crawl"
         fingerprint = source_fingerprint or _infer_source_fingerprint_from_backend(backend)
 
@@ -189,7 +198,7 @@ def export_duckdb_from_backend(
                 return target
 
         if existing and mode in {"replace", "auto"} and not same_source:
-            _drop_exported_objects(conn)
+            _drop_exported_objects(conn, namespace=normalized_namespace)
             existing_objects = []
 
         conn.execute("CREATE SCHEMA IF NOT EXISTS app")
@@ -200,7 +209,7 @@ def export_duckdb_from_backend(
             export_name = _normalize_export_name("raw", raw_name)
             if ("raw", export_name) in exported_keys:
                 continue
-            relation_name = _raw_relation_name(export_name)
+            relation_name = _raw_relation_name(export_name, namespace=normalized_namespace)
             rows = backend.raw(raw_name)
             if _write_relation(conn, relation_name, rows):
                 exported_objects.append((export_name, "raw", relation_name))
@@ -210,7 +219,7 @@ def export_duckdb_from_backend(
             normalized = _normalize_export_name("tab", tab_name)
             if ("tab", normalized) in exported_keys:
                 continue
-            relation_name = _tab_relation_name(normalized)
+            relation_name = _tab_relation_name(normalized, namespace=normalized_namespace)
             rows = backend.get_tab(normalized)
             if _write_relation(conn, relation_name, rows):
                 exported_objects.append((normalized, "tab", relation_name))
@@ -221,6 +230,7 @@ def export_duckdb_from_backend(
             source_label=str(label),
             source_fingerprint=fingerprint,
             objects=exported_objects,
+            namespace=normalized_namespace,
         )
         return target
     finally:
@@ -235,25 +245,68 @@ def iter_relation_rows(conn: Any, relation_name: str) -> Iterator[dict[str, Any]
 
 
 def list_exported_tabs(conn: Any) -> list[str]:
-    cursor = conn.execute(
-        "SELECT export_name FROM sf_alpha_exports WHERE kind = 'tab' ORDER BY export_name"
-    )
+    return list_exported_tabs_for_namespace(conn, namespace="")
+
+
+def list_exported_tabs_for_namespace(conn: Any, namespace: str | None = None) -> list[str]:
+    normalized_namespace = _normalize_namespace(namespace)
+    if _table_has_column(conn, "main", "sf_alpha_exports", "namespace"):
+        cursor = conn.execute(
+            """
+            SELECT export_name
+            FROM sf_alpha_exports
+            WHERE kind = 'tab' AND COALESCE(namespace, '') = ?
+            ORDER BY export_name
+            """,
+            [normalized_namespace],
+        )
+    else:
+        if normalized_namespace:
+            return []
+        cursor = conn.execute(
+            "SELECT export_name FROM sf_alpha_exports WHERE kind = 'tab' ORDER BY export_name"
+        )
     return [str(row[0]) for row in cursor.fetchall()]
 
 
-def resolve_relation_name(conn: Any, kind: str, export_name: str) -> str | None:
+def list_duckdb_namespaces(path: str | Path) -> list[str]:
+    duckdb = _import_duckdb()
+    conn = duckdb.connect(str(path), read_only=True)
+    try:
+        return _list_namespaces(conn)
+    finally:
+        conn.close()
+
+
+def resolve_relation_name(
+    conn: Any, kind: str, export_name: str, *, namespace: str | None = None
+) -> str | None:
+    normalized_namespace = _normalize_namespace(namespace)
     normalized = export_name if kind == "raw" else _normalize_tab_name(export_name)
-    cursor = conn.execute(
-        "SELECT relation_name FROM sf_alpha_exports WHERE kind = ? AND export_name = ? LIMIT 1",
-        [kind, normalized.upper() if kind == "raw" else normalized],
-    )
+    if _table_has_column(conn, "main", "sf_alpha_exports", "namespace"):
+        cursor = conn.execute(
+            """
+            SELECT relation_name
+            FROM sf_alpha_exports
+            WHERE kind = ? AND export_name = ? AND COALESCE(namespace, '') = ?
+            LIMIT 1
+            """,
+            [kind, normalized.upper() if kind == "raw" else normalized, normalized_namespace],
+        )
+    else:
+        if normalized_namespace:
+            return None
+        cursor = conn.execute(
+            "SELECT relation_name FROM sf_alpha_exports WHERE kind = ? AND export_name = ? LIMIT 1",
+            [kind, normalized.upper() if kind == "raw" else normalized],
+        )
     row = cursor.fetchone()
     if row:
         return str(row[0])
     if kind == "raw":
-        candidate = _raw_relation_name(export_name)
+        candidate = _raw_relation_name(export_name, namespace=normalized_namespace)
         return candidate if _relation_exists(conn, candidate) else None
-    candidate = _tab_relation_name(normalized)
+    candidate = _tab_relation_name(normalized, namespace=normalized_namespace)
     return candidate if _relation_exists(conn, candidate) else None
 
 
@@ -392,6 +445,7 @@ def _ensure_metadata_tables(conn: Any) -> None:
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS sf_alpha_imports (
+            namespace VARCHAR,
             source_label VARCHAR,
             source_fingerprint VARCHAR,
             imported_at TIMESTAMP
@@ -401,6 +455,7 @@ def _ensure_metadata_tables(conn: Any) -> None:
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS sf_alpha_exports (
+            namespace VARCHAR,
             export_name VARCHAR,
             kind VARCHAR,
             relation_name VARCHAR
@@ -408,29 +463,81 @@ def _ensure_metadata_tables(conn: Any) -> None:
         """
     )
     columns = _table_columns(conn, "main", "sf_alpha_imports")
+    if "namespace" not in {column.lower() for column in columns}:
+        conn.execute("ALTER TABLE sf_alpha_imports ADD COLUMN namespace VARCHAR")
     if "source_fingerprint" not in {column.lower() for column in columns}:
         conn.execute("ALTER TABLE sf_alpha_imports ADD COLUMN source_fingerprint VARCHAR")
+    export_columns = _table_columns(conn, "main", "sf_alpha_exports")
+    if "namespace" not in {column.lower() for column in export_columns}:
+        conn.execute("ALTER TABLE sf_alpha_exports ADD COLUMN namespace VARCHAR")
+    conn.execute("UPDATE sf_alpha_imports SET namespace = '' WHERE namespace IS NULL")
+    conn.execute("UPDATE sf_alpha_exports SET namespace = '' WHERE namespace IS NULL")
 
 
-def _get_import_metadata(conn: Any) -> dict[str, Any] | None:
+def _get_import_metadata(conn: Any, *, namespace: str | None = None) -> dict[str, Any] | None:
+    normalized_namespace = _normalize_namespace(namespace)
     columns = _table_columns(conn, "main", "sf_alpha_imports")
+    has_namespace = "namespace" in {column.lower() for column in columns}
     has_fingerprint = "source_fingerprint" in {column.lower() for column in columns}
-    select_sql = (
-        "SELECT source_label, source_fingerprint, imported_at FROM sf_alpha_imports LIMIT 1"
-        if has_fingerprint
-        else "SELECT source_label, imported_at FROM sf_alpha_imports LIMIT 1"
-    )
-    cursor = conn.execute(select_sql)
+    if has_namespace:
+        select_sql = (
+            """
+            SELECT source_label, source_fingerprint, imported_at
+            FROM sf_alpha_imports
+            WHERE COALESCE(namespace, '') = ?
+            LIMIT 1
+            """
+            if has_fingerprint
+            else """
+            SELECT source_label, imported_at
+            FROM sf_alpha_imports
+            WHERE COALESCE(namespace, '') = ?
+            LIMIT 1
+            """
+        )
+        cursor = conn.execute(select_sql, [normalized_namespace])
+    else:
+        if normalized_namespace:
+            return None
+        select_sql = (
+            "SELECT source_label, source_fingerprint, imported_at FROM sf_alpha_imports LIMIT 1"
+            if has_fingerprint
+            else "SELECT source_label, imported_at FROM sf_alpha_imports LIMIT 1"
+        )
+        cursor = conn.execute(select_sql)
     row = cursor.fetchone()
     if not row:
         return None
     if has_fingerprint:
-        return {"source_label": row[0], "source_fingerprint": row[1], "imported_at": row[2]}
-    return {"source_label": row[0], "source_fingerprint": None, "imported_at": row[1]}
+        return {
+            "namespace": normalized_namespace,
+            "source_label": row[0],
+            "source_fingerprint": row[1],
+            "imported_at": row[2],
+        }
+    return {
+        "namespace": normalized_namespace,
+        "source_label": row[0],
+        "source_fingerprint": None,
+        "imported_at": row[1],
+    }
 
 
-def _get_export_objects(conn: Any) -> list[tuple[str, str, str]]:
-    cursor = conn.execute("SELECT export_name, kind, relation_name FROM sf_alpha_exports")
+def _get_export_objects(conn: Any, *, namespace: str | None = None) -> list[tuple[str, str, str]]:
+    normalized_namespace = _normalize_namespace(namespace)
+    if _table_has_column(conn, "main", "sf_alpha_exports", "namespace"):
+        cursor = conn.execute(
+            """
+            SELECT export_name, kind, relation_name
+            FROM sf_alpha_exports
+            WHERE COALESCE(namespace, '') = ?
+            """,
+            [normalized_namespace],
+        )
+    else:
+        if normalized_namespace:
+            return []
+        cursor = conn.execute("SELECT export_name, kind, relation_name FROM sf_alpha_exports")
     rows: list[tuple[str, str, str]] = []
     seen: set[tuple[str, str]] = set()
     for raw_export_name, raw_kind, raw_relation_name in cursor.fetchall():
@@ -449,18 +556,31 @@ def _get_export_objects(conn: Any) -> list[tuple[str, str, str]]:
     return rows
 
 
-def _drop_exported_objects(conn: Any) -> None:
-    cursor = conn.execute("SELECT relation_name FROM sf_alpha_exports")
+def _drop_exported_objects(conn: Any, *, namespace: str | None = None) -> None:
+    normalized_namespace = _normalize_namespace(namespace)
+    if _table_has_column(conn, "main", "sf_alpha_exports", "namespace"):
+        cursor = conn.execute(
+            "SELECT relation_name FROM sf_alpha_exports WHERE COALESCE(namespace, '') = ?",
+            [normalized_namespace],
+        )
+    else:
+        if normalized_namespace:
+            return
+        cursor = conn.execute("SELECT relation_name FROM sf_alpha_exports")
     relations = [str(row[0]) for row in cursor.fetchall()]
-    relations.extend(_list_helper_relations(conn))
+    relations.extend(_list_helper_relations(conn, namespace=normalized_namespace))
     seen: set[str] = set()
     for relation in relations:
         if relation in seen:
             continue
         seen.add(relation)
         _drop_relation(conn, relation)
-    conn.execute("DELETE FROM sf_alpha_exports")
-    conn.execute("DELETE FROM sf_alpha_imports")
+    if _table_has_column(conn, "main", "sf_alpha_exports", "namespace"):
+        conn.execute("DELETE FROM sf_alpha_exports WHERE COALESCE(namespace, '') = ?", [normalized_namespace])
+        conn.execute("DELETE FROM sf_alpha_imports WHERE COALESCE(namespace, '') = ?", [normalized_namespace])
+    else:
+        conn.execute("DELETE FROM sf_alpha_exports")
+        conn.execute("DELETE FROM sf_alpha_imports")
 
 
 def _store_export_metadata(
@@ -469,19 +589,33 @@ def _store_export_metadata(
     source_label: str,
     source_fingerprint: str | None,
     objects: Sequence[tuple[str, str, str]],
+    namespace: str | None = None,
 ) -> None:
-    conn.execute("DELETE FROM sf_alpha_exports")
-    conn.execute("DELETE FROM sf_alpha_imports")
+    normalized_namespace = _normalize_namespace(namespace)
     conn.execute(
-        "INSERT INTO sf_alpha_imports (source_label, source_fingerprint, imported_at) VALUES (?, ?, ?)",
-        [source_label, source_fingerprint, datetime.now(timezone.utc)],
+        "DELETE FROM sf_alpha_exports WHERE COALESCE(namespace, '') = ?",
+        [normalized_namespace],
+    )
+    conn.execute(
+        "DELETE FROM sf_alpha_imports WHERE COALESCE(namespace, '') = ?",
+        [normalized_namespace],
+    )
+    conn.execute(
+        """
+        INSERT INTO sf_alpha_imports (namespace, source_label, source_fingerprint, imported_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        [normalized_namespace, source_label, source_fingerprint, datetime.now(timezone.utc)],
     )
     rows = list(objects)
     if not rows:
         return
     conn.executemany(
-        "INSERT INTO sf_alpha_exports (export_name, kind, relation_name) VALUES (?, ?, ?)",
-        rows,
+        """
+        INSERT INTO sf_alpha_exports (namespace, export_name, kind, relation_name)
+        VALUES (?, ?, ?, ?)
+        """,
+        [(normalized_namespace, export_name, kind, relation_name) for export_name, kind, relation_name in rows],
     )
 
 
@@ -520,24 +654,32 @@ def _table_columns(conn: Any, schema_name: str, table_name: str) -> list[str]:
     return [str(row[0]) for row in cursor.fetchall()]
 
 
-def _list_helper_relations(conn: Any) -> list[str]:
+def _list_helper_relations(conn: Any, *, namespace: str | None = None) -> list[str]:
+    normalized_namespace = _normalize_namespace(namespace)
+    helper_prefix = _helper_relation_prefix(normalized_namespace)
     cursor = conn.execute(
         """
         SELECT table_schema, table_name
         FROM information_schema.tables
         WHERE lower(table_schema) = 'main'
-          AND lower(table_name) LIKE 'sf_helper_%'
-        """
+          AND lower(table_name) LIKE ?
+        """,
+        [helper_prefix.lower().replace(".", "") + "%"],
     )
     return [f"{row[0]}.{row[1]}" for row in cursor.fetchall()]
 
 
-def _raw_relation_name(raw_name: str) -> str:
+def _raw_relation_name(raw_name: str, *, namespace: str | None = None) -> str:
+    normalized_namespace = _normalize_namespace(namespace)
     upper = str(raw_name).strip().upper()
     if "." in upper:
         schema_name, table_name = upper.split(".", 1)
     else:
         schema_name, table_name = "APP", upper
+    if normalized_namespace:
+        safe_namespace = _safe_namespace_component(normalized_namespace)
+        safe_table = f"{schema_name.lower()}_{table_name.lower()}"
+        return f"main.sf_{safe_namespace}_raw_{safe_table}"
     return f"{schema_name.lower()}.{table_name.lower()}"
 
 
@@ -554,15 +696,52 @@ def _normalize_export_name(kind: str, export_name: Any) -> str:
     return _normalize_tab_name(str(export_name))
 
 
-def _tab_relation_name(tab_name: str) -> str:
+def _tab_relation_name(tab_name: str, *, namespace: str | None = None) -> str:
     stem = Path(tab_name).stem
     safe = "".join(ch if ch.isalnum() else "_" for ch in stem)
+    normalized_namespace = _normalize_namespace(namespace)
+    if normalized_namespace:
+        return f"main.sf_{_safe_namespace_component(normalized_namespace)}_tab_{safe}"
     return f"main.sf_tab_{safe}"
 
 
-def _helper_relation_name(helper_name: str) -> str:
+def _helper_relation_name(helper_name: str, *, namespace: str | None = None) -> str:
     safe = "".join(ch if ch.isalnum() else "_" for ch in str(helper_name).strip().lower())
+    normalized_namespace = _normalize_namespace(namespace)
+    if normalized_namespace:
+        return f"main.sf_{_safe_namespace_component(normalized_namespace)}_helper_{safe}"
     return f"main.sf_helper_{safe}"
+
+
+def _helper_relation_prefix(namespace: str | None) -> str:
+    normalized_namespace = _normalize_namespace(namespace)
+    if normalized_namespace:
+        return f"sf_{_safe_namespace_component(normalized_namespace)}_helper_"
+    return "sf_helper_"
+
+
+def _safe_namespace_component(namespace: str) -> str:
+    safe = "".join(ch if ch.isalnum() else "_" for ch in str(namespace).strip().lower())
+    return safe or "default"
+
+
+def _normalize_namespace(namespace: str | None) -> str:
+    return str(namespace or "").strip().lower()
+
+
+def _table_has_column(conn: Any, schema_name: str, table_name: str, column_name: str) -> bool:
+    return str(column_name).lower() in {column.lower() for column in _table_columns(conn, schema_name, table_name)}
+
+
+def _list_namespaces(conn: Any) -> list[str]:
+    if not _relation_exists(conn, "main.sf_alpha_imports"):
+        return [""]
+    if not _table_has_column(conn, "main", "sf_alpha_imports", "namespace"):
+        return [""]
+    cursor = conn.execute(
+        "SELECT DISTINCT COALESCE(namespace, '') FROM sf_alpha_imports ORDER BY COALESCE(namespace, '')"
+    )
+    return [str(row[0] or "") for row in cursor.fetchall()]
 
 
 def iter_cursor_rows(cursor: Any, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:
