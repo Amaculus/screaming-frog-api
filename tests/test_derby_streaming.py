@@ -2152,6 +2152,83 @@ def test_get_mobile_all_tab_derives_mobile_alternate_link() -> None:
     ]
 
 
+def test_get_mobile_all_tab_handles_missing_pagespeed_columns() -> None:
+    cursor = _FakeCursor(
+        [
+            "ENCODED_URL",
+            "SF_REQUEST_ERROR_KEY",
+            "VIEWPORT",
+            "TARGET_SIZE",
+            "CONTENT_WIDTH",
+            "FONT_DISPLAY_SIZE",
+            "ORIGINAL_CONTENT",
+        ],
+        [
+            (
+                "https://example.com/article",
+                None,
+                None,
+                None,
+                320,
+                None,
+                _FakeClob("<html><head></head><body>No mobile</body></html>"),
+            )
+        ],
+        types=["VARCHAR", "VARCHAR", "VARCHAR", "INTEGER", "INTEGER", "INTEGER", "CLOB"],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _FakeConnection(cursor)
+    backend._existing_tables = frozenset({"APP.PAGE_SPEED_API", "APP.URLS"})
+    backend._known_table_columns = {
+        "APP.PAGE_SPEED_API": frozenset({"ENCODED_URL", "CONTENT_WIDTH"}),
+        "APP.URLS": frozenset({"ENCODED_URL", "ORIGINAL_CONTENT"}),
+    }
+    backend._mapping = {
+        "mobile_all.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.PAGE_SPEED_API"},
+            {"csv_column": "PSI Request Status", "db_expression": "NULL", "db_table": "APP.PAGE_SPEED_API"},
+            {"csv_column": "Viewport", "db_column": "VIEWPORT", "db_table": "APP.PAGE_SPEED_API"},
+            {"csv_column": "Target Size", "db_column": "TARGET_SIZE", "db_table": "APP.PAGE_SPEED_API"},
+            {"csv_column": "Content Width", "db_column": "CONTENT_WIDTH", "db_table": "APP.PAGE_SPEED_API"},
+            {"csv_column": "Font Display Size", "db_column": "FONT_DISPLAY_SIZE", "db_table": "APP.PAGE_SPEED_API"},
+        ]
+    }
+
+    rows = list(backend.get_tab("mobile_all"))
+
+    assert "CAST(NULL AS VARCHAR(1))" in str(cursor.executed_sql)
+    assert "CAST(NULL AS INTEGER)" in str(cursor.executed_sql)
+    assert rows == [
+        {
+            "Address": "https://example.com/article",
+            "PSI Request Status": "Success",
+            "Viewport": None,
+            "Target Size": None,
+            "Content Width": 320,
+            "Font Display Size": None,
+        }
+    ]
+
+
+def test_measure_text_pixels_tk_returns_none_off_main_thread(monkeypatch: Any) -> None:
+    import threading
+
+    worker = object()
+    main = object()
+    monkeypatch.setattr(threading, "current_thread", lambda: worker)
+    monkeypatch.setattr(threading, "main_thread", lambda: main)
+
+    assert (
+        derby_backend._measure_text_pixels_tk(
+            "Example",
+            family="Arial",
+            size=12,
+            weight="normal",
+        )
+        is None
+    )
+
+
 def test_get_tab_returns_empty_when_base_table_is_absent() -> None:
     cursor = _FakeCursor(["ENCODED_URL"], [("https://example.com/",)])
     backend = DerbyBackend.__new__(DerbyBackend)

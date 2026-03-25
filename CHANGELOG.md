@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed Derby optional-column handling for older crawl schemas so missing `APP.PAGE_SPEED_API` columns now resolve to `NULL`/post-filters instead of crashing generic tabs, filters, or `mobile_all`, and added an off-main-thread Tk fallback for macOS pixel-width measurement.
 
 ## 0.2.1 (2026-03-24)
 - Added multi-crawl DuckDB namespaces:

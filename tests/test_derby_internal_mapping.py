@@ -4,6 +4,7 @@ from screamingfrog.backends.derby_backend import (
     _build_supplementary_map,
     _build_where_from_entries,
     _compile_internal_filters,
+    _expression_references_absent_column,
     _expression_references_absent_table,
     _extract_header_value,
     _fetch_existing_tables,
@@ -376,6 +377,37 @@ def test_expression_references_absent_table_detects_joined_optional_tables() -> 
     ) is False
 
 
+def test_expression_references_absent_column_detects_missing_joined_columns() -> None:
+    expr = (
+        "SELECT p.SF_REQUEST_ERROR_KEY "
+        "FROM APP.URLS u JOIN APP.PAGE_SPEED_API p ON p.ENCODED_URL = u.ENCODED_URL"
+    )
+    known_columns = {
+        "APP.URLS": frozenset({"ENCODED_URL"}),
+        "APP.PAGE_SPEED_API": frozenset({"ENCODED_URL"}),
+    }
+
+    assert _expression_references_absent_column(expr, known_columns) is True
+
+
+def test_expression_references_absent_column_detects_missing_default_table_columns() -> None:
+    expr = (
+        "CASE WHEN SF_REQUEST_ERROR_KEY IS NOT NULL AND SF_REQUEST_ERROR_KEY <> '' "
+        "THEN SF_REQUEST_ERROR_KEY ELSE 'Success' END"
+    )
+
+    assert _expression_references_absent_column(
+        expr,
+        {"APP.PAGE_SPEED_API": frozenset({"ENCODED_URL"})},
+        default_table="APP.PAGE_SPEED_API",
+    ) is True
+    assert _expression_references_absent_column(
+        expr,
+        {"APP.PAGE_SPEED_API": frozenset({"ENCODED_URL", "SF_REQUEST_ERROR_KEY"})},
+        default_table="APP.PAGE_SPEED_API",
+    ) is False
+
+
 def test_compile_internal_filters_treats_unavailable_expression_fields_as_post_filters() -> None:
     where, params, post_filters = _compile_internal_filters(
         {
@@ -417,3 +449,54 @@ def test_build_where_from_entries_treats_absent_table_expressions_as_post_filter
     assert where == "ENCODED_URL = ?"
     assert params == ["https://example.com/source"]
     assert post_filters == {"PSI Request Status": None}
+
+
+def test_build_where_from_entries_treats_absent_column_expressions_as_post_filters() -> None:
+    where, params, post_filters = _build_where_from_entries(
+        {"PSI Request Status": "Success", "Address": "https://example.com/source"},
+        [
+            {
+                "csv_column": "Address",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.PAGE_SPEED_API",
+            },
+            {
+                "csv_column": "PSI Request Status",
+                "db_expression": (
+                    "CASE WHEN SF_REQUEST_ERROR_KEY IS NOT NULL "
+                    "THEN SF_REQUEST_ERROR_KEY ELSE 'Success' END"
+                ),
+                "db_table": "APP.PAGE_SPEED_API",
+            },
+        ],
+        existing_tables=frozenset({"APP.PAGE_SPEED_API"}),
+        known_columns={"APP.PAGE_SPEED_API": frozenset({"ENCODED_URL"})},
+    )
+
+    assert where == "ENCODED_URL = ?"
+    assert params == ["https://example.com/source"]
+    assert post_filters == {"PSI Request Status": "Success"}
+
+
+def test_build_where_from_entries_treats_absent_direct_columns_as_post_filters() -> None:
+    where, params, post_filters = _build_where_from_entries(
+        {"Viewport": "mobile", "Address": "https://example.com/source"},
+        [
+            {
+                "csv_column": "Address",
+                "db_column": "ENCODED_URL",
+                "db_table": "APP.PAGE_SPEED_API",
+            },
+            {
+                "csv_column": "Viewport",
+                "db_column": "VIEWPORT",
+                "db_table": "APP.PAGE_SPEED_API",
+            },
+        ],
+        existing_tables=frozenset({"APP.PAGE_SPEED_API"}),
+        known_columns={"APP.PAGE_SPEED_API": frozenset({"ENCODED_URL"})},
+    )
+
+    assert where == "ENCODED_URL = ?"
+    assert params == ["https://example.com/source"]
+    assert post_filters == {"Viewport": "mobile"}

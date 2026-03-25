@@ -193,10 +193,18 @@ class DerbyBackend(CrawlBackend):
             self._mapping, self._table
         )
         self._existing_tables: frozenset[str] = _fetch_existing_tables(self._conn)
+        self._known_table_columns: dict[str, frozenset[str]] = _fetch_table_column_sets(
+            self._conn, self._existing_tables
+        )
         self._internal_missing_expr_names = {
             csv_col
             for _alias, csv_col, expr in all_internal_expr_selects
             if _expression_references_absent_table(expr, self._existing_tables)
+            or _expression_references_absent_column(
+                expr,
+                getattr(self, "_known_table_columns", {}),
+                default_table=self._table,
+            )
         }
         self._internal_unavailable_expr_keys = {
             _normalize_key(csv_col) for csv_col in self._internal_missing_expr_names
@@ -717,14 +725,20 @@ class DerbyBackend(CrawlBackend):
         encoded_url_index: int | None = None
         blob_checks = _resolve_blob_checks(gui_defs)
         blob_indexes: dict[str, int] = {}
+        known_columns = getattr(self, "_known_table_columns", {})
 
         if supplementary and _table_supports_encoded_url(table):
             select_items.append("ENCODED_URL")
             encoded_url_index = len(select_items) - 1
 
         for entry in entries:
+            entry_table = entry.get("db_table") or table
             if entry.get("header_extract"):
                 blob_col = _header_extract_column(entry["header_extract"])
+                if _column_references_absent(entry_table, blob_col, known_columns):
+                    entry_indexes.append(None)
+                    csv_columns.append(entry["csv_column"])
+                    continue
                 if blob_col not in header_indexes:
                     select_items.append(blob_col)
                     header_indexes[blob_col] = len(select_items) - 1
@@ -733,6 +747,10 @@ class DerbyBackend(CrawlBackend):
                 continue
             if entry.get("blob_extract"):
                 blob_col = str(entry.get("db_column") or "")
+                if _column_references_absent(entry_table, blob_col, known_columns):
+                    entry_indexes.append(None)
+                    csv_columns.append(entry["csv_column"])
+                    continue
                 if blob_col and blob_col not in blob_extract_indexes:
                     select_items.append(blob_col)
                     blob_extract_indexes[blob_col] = len(select_items) - 1
@@ -740,7 +758,16 @@ class DerbyBackend(CrawlBackend):
                 csv_columns.append(entry["csv_column"])
                 continue
             if entry.get("derived_extract"):
-                for source_col in _derived_extract_columns(entry):
+                source_cols = _filter_known_columns(
+                    _derived_extract_columns(entry),
+                    entry_table,
+                    known_columns,
+                )
+                if not source_cols:
+                    entry_indexes.append(None)
+                    csv_columns.append(entry["csv_column"])
+                    continue
+                for source_col in source_cols:
                     if source_col not in derived_extract_indexes:
                         try:
                             derived_extract_indexes[source_col] = select_items.index(source_col)
@@ -751,7 +778,16 @@ class DerbyBackend(CrawlBackend):
                 csv_columns.append(entry["csv_column"])
                 continue
             if entry.get("multi_row_extract"):
-                for source_col in _multi_row_extract_columns(entry):
+                source_cols = _filter_known_columns(
+                    _multi_row_extract_columns(entry),
+                    entry_table,
+                    known_columns,
+                )
+                if not source_cols:
+                    entry_indexes.append(None)
+                    csv_columns.append(entry["csv_column"])
+                    continue
+                for source_col in source_cols:
                     if source_col not in multi_row_extract_indexes:
                         try:
                             multi_row_extract_indexes[source_col] = select_items.index(source_col)
@@ -766,17 +802,29 @@ class DerbyBackend(CrawlBackend):
             if expr:
                 if _is_null_expression(expr) or _expression_references_absent_table(
                     expr, existing_tables
+                ) or _expression_references_absent_column(
+                    expr,
+                    known_columns,
+                    default_table=entry_table,
                 ):
                     entry_indexes.append(None)
                     csv_columns.append(entry["csv_column"])
                     continue
                 select_items.append(_normalize_select_expression(expr))
             else:
-                select_items.append(entry["db_column"])
+                db_column = str(entry.get("db_column") or "")
+                if _column_references_absent(entry_table, db_column, known_columns):
+                    entry_indexes.append(None)
+                    csv_columns.append(entry["csv_column"])
+                    continue
+                select_items.append(db_column)
             entry_indexes.append(len(select_items) - 1)
             csv_columns.append(entry["csv_column"])
 
         for blob_column, _ in blob_checks:
+            if _column_references_absent(table, blob_column, known_columns):
+                blob_indexes[blob_column] = -1
+                continue
             if blob_column in blob_indexes:
                 continue
             try:
@@ -804,7 +852,11 @@ class DerbyBackend(CrawlBackend):
         post_filters: dict[str, Any] = {}
         if filters:
             where, params, post_filters = _build_where_from_entries(
-                filters, entries, supplementary, existing_tables
+                filters,
+                entries,
+                supplementary,
+                existing_tables,
+                known_columns,
             )
             if where:
                 where_parts.append(where)
@@ -837,7 +889,9 @@ class DerbyBackend(CrawlBackend):
                     db_columns.append(db_col)
                 for source_col in _derived_extract_columns(entry):
                     db_columns.append(str(source_col))
-            db_columns = sorted(set(col for col in db_columns if col))
+            db_columns = sorted(
+                set(_filter_known_columns(db_columns, table_name, known_columns))
+            )
             if not db_columns:
                 supplementary_cache[cache_key] = {}
                 return {}
@@ -1280,10 +1334,22 @@ class DerbyBackend(CrawlBackend):
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         address_values = _filter_values(norm_filters, "address", "url", "source_page")
+        known_columns = getattr(self, "_known_table_columns", {})
+
+        def _select_col(column: str, null_expr: str) -> str:
+            if _column_references_absent("APP.PAGE_SPEED_API", column, known_columns):
+                return null_expr
+            return f"p.{column}"
+
         cursor = self._conn.cursor()
         sql = (
-            "SELECT p.ENCODED_URL, p.SF_REQUEST_ERROR_KEY, p.VIEWPORT, "
-            "p.TARGET_SIZE, p.CONTENT_WIDTH, p.FONT_DISPLAY_SIZE, u.ORIGINAL_CONTENT "
+            "SELECT p.ENCODED_URL, "
+            f"{_select_col('SF_REQUEST_ERROR_KEY', 'CAST(NULL AS VARCHAR(1))')}, "
+            f"{_select_col('VIEWPORT', 'CAST(NULL AS VARCHAR(1))')}, "
+            f"{_select_col('TARGET_SIZE', 'CAST(NULL AS INTEGER)')}, "
+            f"{_select_col('CONTENT_WIDTH', 'CAST(NULL AS INTEGER)')}, "
+            f"{_select_col('FONT_DISPLAY_SIZE', 'CAST(NULL AS INTEGER)')}, "
+            "u.ORIGINAL_CONTENT "
             "FROM APP.PAGE_SPEED_API p "
             "LEFT JOIN APP.URLS u ON u.ENCODED_URL = p.ENCODED_URL"
         )
@@ -2778,6 +2844,7 @@ def _build_where_from_entries(
     entries: list[dict[str, Any]],
     supplementary: Optional[list[dict[str, Any]]] = None,
     existing_tables: Optional[frozenset[str]] = None,
+    known_columns: Optional[dict[str, frozenset[str]]] = None,
 ) -> tuple[str, list[Any], dict[str, Any]]:
     clauses: list[str] = []
     params: list[Any] = []
@@ -2801,6 +2868,10 @@ def _build_where_from_entries(
         if expr:
             if _is_null_expression(expr) or _expression_references_absent_table(
                 expr, existing_tables or frozenset()
+            ) or _expression_references_absent_column(
+                expr,
+                known_columns or {},
+                default_table=entry.get("db_table"),
             ):
                 field_map[csv_key] = ("post", None)
                 continue
@@ -2808,6 +2879,9 @@ def _build_where_from_entries(
             continue
         column = entry.get("db_column")
         if column:
+            if _column_references_absent(entry.get("db_table"), column, known_columns or {}):
+                field_map[csv_key] = ("post", None)
+                continue
             field_map[csv_key] = ("column", str(column))
 
     for entry in supplementary or []:
@@ -3073,6 +3147,85 @@ def _fetch_existing_tables(conn) -> frozenset[str]:
 _TABLE_REFERENCE_RE = re.compile(
     r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)\b", re.IGNORECASE
 )
+_TABLE_ALIAS_RE = re.compile(
+    r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)(?:\s+(?:AS\s+)?([A-Za-z_][A-Za-z0-9_]*))?\b",
+    re.IGNORECASE,
+)
+_DOTTED_COLUMN_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.(\w+)\b")
+_IDENTIFIER_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\b")
+_STRING_LITERAL_RE = re.compile(r"'(?:''|[^'])*'")
+_SQL_IDENTIFIERS_TO_IGNORE = {
+    "ABS",
+    "ALL",
+    "AND",
+    "ASC",
+    "AS",
+    "AVG",
+    "BIGINT",
+    "BETWEEN",
+    "BOOLEAN",
+    "CASE",
+    "CAST",
+    "CHAR",
+    "COUNT",
+    "CURRENT",
+    "CURRENT_DATE",
+    "CURRENT_TIMESTAMP",
+    "COALESCE",
+    "DATE",
+    "DECIMAL",
+    "DESC",
+    "DISTINCT",
+    "DOUBLE",
+    "ELSE",
+    "END",
+    "EXISTS",
+    "FETCH",
+    "FIRST_VALUE",
+    "FLOAT",
+    "FIRST",
+    "FROM",
+    "GROUP",
+    "HAVING",
+    "INTEGER",
+    "INT",
+    "IN",
+    "INNER",
+    "IS",
+    "JOIN",
+    "LEFT",
+    "LENGTH",
+    "LIKE",
+    "LOWER",
+    "MAX",
+    "MIN",
+    "MOD",
+    "NOT",
+    "NULL",
+    "ON",
+    "ONLY",
+    "ORDER",
+    "OR",
+    "OUTER",
+    "OVER",
+    "PARTITION",
+    "RIGHT",
+    "ROWS",
+    "RTRIM",
+    "SELECT",
+    "SMALLINT",
+    "SUBSTR",
+    "SUM",
+    "THEN",
+    "TIMESTAMP",
+    "TRIM",
+    "UNION",
+    "UPPER",
+    "VARCHAR",
+    "WHEN",
+    "WHERE",
+    "WITH",
+}
 
 
 def _normalize_table_reference(table: Any) -> str:
@@ -3091,12 +3244,121 @@ def _table_references_absent(table: Any, existing: frozenset[str]) -> bool:
     return bool(table_ref) and table_ref not in existing
 
 
+def _column_references_absent(
+    table: Any,
+    column: Any,
+    known_columns: dict[str, frozenset[str]] | None,
+) -> bool:
+    if not known_columns:
+        return False
+    table_ref = _normalize_table_reference(table)
+    columns = known_columns.get(table_ref)
+    if columns is None:
+        return False
+    column_name = str(column or "").strip().upper()
+    return bool(column_name) and column_name not in columns
+
+
+def _filter_known_columns(
+    columns: Iterable[Any],
+    table: Any,
+    known_columns: dict[str, frozenset[str]] | None,
+) -> list[str]:
+    filtered: list[str] = []
+    seen: set[str] = set()
+    for column in columns:
+        text = str(column or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        if _column_references_absent(table, text, known_columns):
+            continue
+        filtered.append(text)
+    return filtered
+
+
 def _expression_references_absent_table(expr: str, existing: frozenset[str]) -> bool:
     """Return True when the SQL expression references a table not present in this crawl."""
     if not existing:
         return False
     for match in _TABLE_REFERENCE_RE.finditer(str(expr)):
         if _table_references_absent(match.group(1), existing):
+            return True
+    return False
+
+
+def _fetch_table_column_sets(
+    conn, tables: frozenset[str]
+) -> dict[str, frozenset[str]]:
+    result: dict[str, frozenset[str]] = {}
+    for table in tables:
+        try:
+            columns = _fetch_column_names(conn, table)
+        except Exception:
+            continue
+        result[_normalize_table_reference(table)] = frozenset(
+            str(column).strip().upper()
+            for column in columns
+            if str(column).strip()
+        )
+    return result
+
+
+def _expression_references_absent_column(
+    expr: str,
+    known_columns: dict[str, frozenset[str]],
+    *,
+    default_table: Any = None,
+) -> bool:
+    if not known_columns:
+        return False
+    text = _STRING_LITERAL_RE.sub(" ", str(expr))
+    alias_to_table: dict[str, str] = {}
+    for match in _TABLE_ALIAS_RE.finditer(text):
+        table_ref = _normalize_table_reference(match.group(1))
+        alias = str(match.group(2) or "").strip().upper()
+        if alias in _SQL_IDENTIFIERS_TO_IGNORE:
+            alias = ""
+        if alias:
+            alias_to_table[alias] = table_ref
+    for match in _DOTTED_COLUMN_RE.finditer(text):
+        alias = match.group(1).upper()
+        column = match.group(2).upper()
+        table_ref = alias_to_table.get(alias)
+        if table_ref is None:
+            normalized = _normalize_table_reference(alias)
+            if normalized in known_columns:
+                table_ref = normalized
+        if table_ref is None:
+            continue
+        columns = known_columns.get(table_ref)
+        if columns is not None and column not in columns:
+            return True
+
+    default_table_ref = _normalize_table_reference(default_table)
+    default_columns = known_columns.get(default_table_ref)
+    if not default_columns:
+        return False
+
+    table_tokens = {
+        token
+        for table_ref in list(alias_to_table.values()) + [default_table_ref]
+        for token in table_ref.replace(".", " ").split()
+        if token
+    }
+    scrubbed = _DOTTED_COLUMN_RE.sub(" ", text)
+    for match in _IDENTIFIER_RE.finditer(scrubbed):
+        token = match.group(1).upper()
+        if (
+            token in _SQL_IDENTIFIERS_TO_IGNORE
+            or token in alias_to_table
+            or token in table_tokens
+        ):
+            continue
+        next_char = scrubbed[match.end() : match.end() + 1]
+        if next_char == "(":
+            continue
+        if token not in default_columns:
             return True
     return False
 
@@ -3262,7 +3524,7 @@ def _row_matches_blob_patterns(
 ) -> bool:
     for column, pattern in checks:
         idx = indexes.get(column)
-        if idx is None:
+        if idx is None or idx < 0:
             return False
         if not _blob_contains(row[idx], pattern):
             return False
@@ -4249,6 +4511,13 @@ def _measure_text_pixels_tk(text: str, *, family: str, size: int, weight: str) -
     global _TK_ROOT
     if not text:
         return 0
+    try:
+        import threading
+
+        if threading.current_thread() is not threading.main_thread():
+            return None
+    except Exception:
+        return None
     try:
         import tkinter as tk
         import tkinter.font as tkfont
