@@ -681,6 +681,16 @@ class Crawl:
         self._backend = backend
         self.internal = InternalView(backend)
 
+    def close(self) -> None:
+        """Close the underlying backend connection and release resources."""
+        self._backend.close()
+
+    def __enter__(self) -> "Crawl":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
     @classmethod
     def from_exports(cls, export_dir: str) -> "Crawl":
         return cls(CSVBackend(export_dir))

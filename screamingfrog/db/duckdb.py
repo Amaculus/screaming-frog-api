@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
@@ -146,6 +148,777 @@ def ensure_duckdb_cache(
         conn.close()
 
 
+def _try_syscs_export(backend: Any, conn: Any, relation_name: str, raw_name: str) -> bool:
+    """Fast path: export a Derby table via SYSCS_UTIL.SYSCS_EXPORT_TABLE then bulk-load into DuckDB.
+
+    Derby's native export writes directly to disk at I/O speed, completely bypassing
+    JDBC row iteration and Java-to-Python value conversion.  DuckDB then reads the CSV
+    in a single bulk operation.  For large tables (100K+ rows) this is 20-50x faster
+    than the standard _write_relation() path.
+
+    Returns True on success.  Returns False on any failure so the caller falls back to
+    the normal JDBC row-iteration path.
+    """
+    derby_conn = getattr(backend, "_conn", None)
+    if derby_conn is None:
+        return False
+
+    upper = str(raw_name).strip().upper()
+    if "." in upper:
+        schema, table = upper.split(".", 1)
+    else:
+        schema, table = "APP", upper
+
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".csv", prefix=f"sf_syscs_{table}_")
+    os.close(tmp_fd)
+    # SYSCS_EXPORT_TABLE requires the file to NOT already exist on some Derby versions.
+    os.unlink(tmp_path)
+
+    try:
+        cursor = derby_conn.cursor()
+        # Export table to CSV: no column delimiter override (comma), double-quote char delimiter,
+        # UTF-8 encoding.  Derby writes one row per line with no header.
+        cursor.execute(
+            "CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE(?, ?, ?, NULL, NULL, 'UTF-8')",
+            [schema, table, tmp_path],
+        )
+
+        if not os.path.exists(tmp_path):
+            return False
+        if os.path.getsize(tmp_path) == 0:
+            return False
+
+        # Get column names from Derby metadata (zero-row fetch, no data transfer).
+        cursor.execute(f"SELECT * FROM {schema}.{table} WHERE 1=0")
+        columns = [desc[0] for desc in cursor.description or []]
+        if not columns:
+            return False
+
+        # Bulk-load from CSV into DuckDB.  read_csv with header=false + names preserves
+        # column names and lets DuckDB infer types (integers, booleans, strings) from data.
+        _drop_relation(conn, relation_name)
+        names_sql = "[" + ", ".join(f"'{c}'" for c in columns) + "]"
+        conn.execute(
+            f"""
+            CREATE TABLE {relation_name} AS
+            SELECT * FROM read_csv(
+                '{tmp_path}',
+                header      = false,
+                names       = {names_sql},
+                nullstr     = '',
+                quote       = '"',
+                delim       = ','
+            )
+            """
+        )
+        return True
+
+    except Exception:
+        return False
+
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+
+def _syscs_export_all_app_tables(
+    backend: Any,
+    conn: Any,
+    exported_keys: set[tuple[str, str]],
+    exported_objects: list[tuple[str, str, str]],
+    *,
+    namespace: str | None = None,
+) -> None:
+    """Discover and SYSCS-export ALL tables in the APP schema to DuckDB.
+
+    Rather than maintaining a hardcoded list of raw tables, this dynamically discovers
+    every user table in Derby's APP schema and exports each one via the SYSCS fast path.
+    Tables that fail to export (e.g. tables with unsupported column types) are silently
+    skipped.  Tables already exported by the explicit raw-table loop are not re-exported.
+
+    This ensures ALL raw data is available in DuckDB for tab computation and crawl.sql()
+    queries, regardless of which Screaming Frog version created the database.
+    """
+    derby_conn = getattr(backend, "_conn", None)
+    if derby_conn is None:
+        return
+
+    try:
+        cursor = derby_conn.cursor()
+        cursor.execute(
+            "SELECT t.TABLENAME FROM SYS.SYSTABLES t "
+            "JOIN SYS.SYSSCHEMAS s ON t.SCHEMAID = s.SCHEMAID "
+            "WHERE s.SCHEMANAME = 'APP' AND t.TABLETYPE = 'T' "
+            "ORDER BY t.TABLENAME"
+        )
+        all_tables = [str(row[0]) for row in cursor.fetchall()]
+    except Exception:
+        return
+
+    normalized_namespace = namespace or ""
+    for table_name in all_tables:
+        raw_name = f"APP.{table_name}"
+        export_name = _normalize_export_name("raw", raw_name)
+        if ("raw", export_name) in exported_keys:
+            continue
+        relation_name = _raw_relation_name(export_name, namespace=normalized_namespace)
+        try:
+            written = _try_syscs_export(backend, conn, relation_name, raw_name)
+            if not written:
+                rows = backend.raw(raw_name)
+                written = _write_relation(conn, relation_name, rows)
+        except Exception:
+            written = False
+        if written:
+            exported_objects.append((export_name, "raw", relation_name))
+            exported_keys.add(("raw", export_name))
+
+
+def _try_duckdb_compute_tab(
+    conn: Any,
+    backend: Any,
+    tab_name: str,
+    relation_name: str,
+    *,
+    namespace: str | None = None,
+) -> bool:
+    """Fast path: compute a tab from DuckDB-resident raw tables instead of Derby.
+
+    Derby computes all_inlinks/all_outlinks using N+1 correlated subqueries — for each
+    row in APP.LINKS it runs 5-10 separate sub-queries back into APP.UNIQUE_URLS and
+    APP.URLS. A DuckDB JOIN on the already-extracted raw tables is orders of magnitude
+    faster (seconds vs 30-60+ minutes for large crawls).
+
+    Tabs handled:
+      all_inlinks / all_outlinks  — JOIN on app.links + app.unique_urls + app.urls
+      content_exact_duplicates    — simple SELECT from app.urls (MD5SUM column)
+      near_duplicates_report      — on-demand SYSCS export of APP.COSINE_SIMILARITY
+                                     then JOIN with app.urls
+
+    Returns True if the tab was computed and stored in DuckDB.
+    Returns False on any failure so the caller falls back to Derby backend.get_tab().
+    """
+    stem = Path(tab_name).stem  # strips .csv suffix: "all_inlinks.csv" -> "all_inlinks"
+    links_rn = _raw_relation_name("APP.LINKS", namespace=namespace)
+    urls_rn = _raw_relation_name("APP.URLS", namespace=namespace)
+    unique_urls_rn = _raw_relation_name("APP.UNIQUE_URLS", namespace=namespace)
+    cosine_rn = _raw_relation_name("APP.COSINE_SIMILARITY", namespace=namespace)
+
+    try:
+        if stem == "internal_all":
+            if not _relation_exists(conn, urls_rn):
+                return False
+            # internal_all is just APP.URLS exposed as a DuckDB relation.
+            # Derby's internal_all tab query fails on crawls that lack optional columns
+            # (e.g. VIEWPORT from APP.PAGE_SPEED_API), but this DuckDB path always works
+            # because it only reads the columns that actually exist in the raw table.
+            # The DuckDBBackend's _INTERNAL_COMMON_FIELD_CANDIDATES handles mapping
+            # Derby column names (ENCODED_URL, RESPONSE_CODE) to GUI names (Address, Status Code).
+            _drop_relation(conn, relation_name)
+            conn.execute(f"CREATE TABLE {relation_name} AS SELECT * FROM {urls_rn}")
+            return True
+
+        if stem in ("all_inlinks", "all_outlinks"):
+            if not (_relation_exists(conn, links_rn) and _relation_exists(conn, unique_urls_rn)):
+                return False
+            has_urls = _relation_exists(conn, urls_rn)
+            src_join = f"LEFT JOIN {urls_rn} src_u ON src_u.ENCODED_URL = src.ENCODED_URL" if has_urls else ""
+            dst_join = f"LEFT JOIN {urls_rn} dst_u ON dst_u.ENCODED_URL = dst.ENCODED_URL" if has_urls else ""
+            status_col = "dst_u.RESPONSE_CODE" if has_urls else "NULL"
+            size_col   = "dst_u.PAGE_SIZE"     if has_urls else "NULL"
+            src_seg    = "COALESCE(CAST(src_u.SEGMENTS AS VARCHAR), '')" if has_urls else "''"
+            dst_seg    = "COALESCE(CAST(dst_u.SEGMENTS AS VARCHAR), '')" if has_urls else "''"
+            _drop_relation(conn, relation_name)
+            conn.execute(f"""
+                CREATE TABLE {relation_name} AS
+                SELECT
+                    src.ENCODED_URL                                 AS "Source",
+                    {src_seg}                                       AS "Source Segments",
+                    dst.ENCODED_URL                                 AS "Destination",
+                    {dst_seg}                                       AS "Destination Segments",
+                    CASE l.LINK_TYPE
+                        WHEN 1  THEN 'Hyperlinks'
+                        WHEN 6  THEN 'Canonicals'
+                        WHEN 8  THEN 'Rel Prev'
+                        WHEN 10 THEN 'Rel Next'
+                        WHEN 12 THEN 'Hreflang (HTTP)'
+                        WHEN 13 THEN 'Hreflang'
+                        ELSE CAST(l.LINK_TYPE AS VARCHAR)
+                    END                                             AS "Type",
+                    l.LINK_TEXT                                     AS "Anchor",
+                    l.ALT_TEXT                                      AS "Alt Text",
+                    COALESCE(LENGTH(l.LINK_TEXT), 0)               AS "Length",
+                    {status_col}                                    AS "Status Code",
+                    {size_col}                                      AS "Size (Bytes)",
+                    l.HREF_LANG                                     AS "hreflang",
+                    NOT CAST(COALESCE(l.NOFOLLOW, 0) AS BOOLEAN)  AS "Follow",
+                    l.TARGET                                        AS "Target",
+                    l.PATH_TYPE                                     AS "Path Type"
+                FROM {links_rn} l
+                JOIN {unique_urls_rn} src ON src.ID = l.SRC_ID
+                JOIN {unique_urls_rn} dst ON dst.ID = l.DST_ID
+                {src_join}
+                {dst_join}
+            """)
+            return True
+
+        if stem == "content_exact_duplicates":
+            if not _relation_exists(conn, urls_rn):
+                return False
+            # Only proceed if APP.URLS actually has an MD5SUM column (not all SF versions do)
+            if "md5sum" not in {c.lower() for c in _table_columns(conn, "app", "urls")}:
+                return False
+            _drop_relation(conn, relation_name)
+            conn.execute(f"""
+                CREATE TABLE {relation_name} AS
+                SELECT ENCODED_URL AS "Address", MD5SUM AS "Hash"
+                FROM {urls_rn}
+                WHERE MD5SUM IS NOT NULL
+            """)
+            return True
+
+        if stem == "near_duplicates_report":
+            if not _relation_exists(conn, urls_rn):
+                return False
+            # Ensure APP.COSINE_SIMILARITY is in DuckDB (on-demand SYSCS export).
+            # This table is computed by SF's near-duplicate analysis and may not exist
+            # in all crawls — if it's absent the fast path returns False.
+            if not _relation_exists(conn, cosine_rn):
+                ok = _try_syscs_export(backend, conn, cosine_rn, "APP.COSINE_SIMILARITY")
+                if not ok:
+                    try:
+                        rows = backend.raw("APP.COSINE_SIMILARITY")
+                        ok = _write_relation(conn, cosine_rn, rows)
+                    except Exception:
+                        ok = False
+                if not ok:
+                    return False
+            _drop_relation(conn, relation_name)
+            conn.execute(f"""
+                CREATE TABLE {relation_name} AS
+                SELECT
+                    u.ENCODED_URL  AS "Address",
+                    cs.CLOSEST_URL AS "Near Duplicate Address",
+                    cs.SCORE       AS "Similarity"
+                FROM {cosine_rn} cs
+                JOIN {urls_rn} u ON u.ENCODED_URL = cs.ENCODED_URL
+            """)
+            return True
+
+        if stem in ("response_codes_all", "response_codes"):
+            if not _relation_exists(conn, urls_rn):
+                return False
+            written = _try_duckdb_compute_response_codes(
+                conn, backend, relation_name, urls_rn,
+                links_rn=links_rn, unique_urls_rn=unique_urls_rn,
+            )
+            return written
+
+        if stem in ("redirect_chains", "redirect_and_canonical_chains", "canonical_chains"):
+            if not (_relation_exists(conn, urls_rn) and _relation_exists(conn, links_rn)
+                    and _relation_exists(conn, unique_urls_rn)):
+                return False
+            written = _try_duckdb_compute_chain_tab(
+                conn, relation_name, stem, urls_rn, links_rn, unique_urls_rn,
+                namespace=namespace,
+            )
+            return written
+
+    except Exception:
+        return False
+
+    return False
+
+
+def _try_duckdb_compute_response_codes(
+    conn: Any,
+    backend: Any,
+    relation_name: str,
+    urls_rn: str,
+    *,
+    links_rn: str,
+    unique_urls_rn: str,
+) -> bool:
+    """Build response_codes_all from DuckDB-resident APP.URLS + APP.LINKS.
+
+    Avoids Derby's correlated sub-query against APP.INLINK_COUNTS for Inlinks and
+    eliminates the JPype JDBC round-trip overhead for 16K+ page crawls.
+    Indexability/Indexability Status expressions are read from the Derby mapping so
+    they stay in sync with the SF schema version automatically.
+
+    HTTP redirect destination (Location header) is unavailable because
+    HTTP_RESPONSE_HEADER_COLLECTION is a binary Java-serialized BLOB that SYSCS
+    exports as NULL. The Redirect URL column is populated for meta refresh only.
+    """
+    try:
+        # Get Indexability / Indexability Status SQL CASE expressions from Derby mapping.
+        mapping = getattr(backend, "_mapping", {})
+        idx_expr: str = "'Indexable'"
+        idx_status_expr: str = "NULL"
+        for entry in mapping.get("internal_all.csv", []):
+            if entry.get("csv_column") == "Indexability":
+                raw = str(entry.get("db_expression") or "")
+                if raw:
+                    # DuckDB accepts VARCHAR(N) but width is ignored; strip the length
+                    # to avoid any edge-case issues with older DuckDB builds.
+                    idx_expr = raw.replace("VARCHAR(10)", "VARCHAR").replace(
+                        "VARCHAR(255)", "VARCHAR"
+                    )
+            elif entry.get("csv_column") == "Indexability Status":
+                raw = str(entry.get("db_expression") or "")
+                if raw:
+                    idx_status_expr = raw.replace("VARCHAR(10)", "VARCHAR").replace(
+                        "VARCHAR(255)", "VARCHAR"
+                    )
+
+        urls_cols = {c.lower() for c in _table_columns(conn, "app", "urls")}
+
+        def _opt(col: str, fallback: str = "NULL") -> str:
+            return col if col.lower() in urls_cols else fallback
+
+        response_msg_col   = _opt("RESPONSE_MSG")
+        resp_time_col      = _opt("RESPONSE_TIME_MS")
+        num_meta_col       = _opt("NUM_METAREFRESH", "0")
+        meta_url1_col      = _opt("META_FULL_URL_1")
+        is_canon_col       = _opt("IS_CANONICALISED")
+
+        # Redirect URL: only meta refresh is derivable without HTTP headers.
+        if "meta_full_url_1" in urls_cols:
+            redirect_url_expr = (
+                f"CASE WHEN COALESCE({num_meta_col}, 0) > 0 AND {meta_url1_col} IS NOT NULL"
+                f" THEN {meta_url1_col} ELSE NULL END"
+            )
+        else:
+            redirect_url_expr = "NULL"
+
+        redirect_type_expr = (
+            f"CASE WHEN COALESCE({num_meta_col}, 0) > 0 THEN 'Meta Refresh'"
+            f" WHEN RESPONSE_CODE BETWEEN 300 AND 399 THEN 'HTTP Redirect'"
+            f" ELSE NULL END"
+        )
+
+        # IS_CANONICALISED marks pages that point to a different canonical — Non-Indexable
+        # in SF terms. The mapping expression covers robots/noindex/x-robots but omits this
+        # flag (it is handled as a separate "supplementary" column in Derby). Wrap the
+        # existing CASE to add the IS_CANONICALISED check first.
+        if is_canon_col != "NULL":
+            indexability_sql = (
+                f"CASE WHEN LOWER(CAST({is_canon_col} AS VARCHAR)) IN ('1','true')"
+                f" THEN 'Non-Indexable' ELSE ({idx_expr}) END"
+            )
+            idx_status_sql = (
+                f"CASE WHEN LOWER(CAST({is_canon_col} AS VARCHAR)) IN ('1','true')"
+                f" THEN 'canonicalised' ELSE ({idx_status_expr}) END"
+            )
+        else:
+            indexability_sql = f"({idx_expr})"
+            idx_status_sql = f"({idx_status_expr})"
+
+        # Inlinks: count distinct hyperlink sources from APP.LINKS (LINK_TYPE=1).
+        # Using a CTE + LEFT JOIN avoids a correlated sub-query per row.
+        has_links = _relation_exists(conn, links_rn) and _relation_exists(conn, unique_urls_rn)
+
+        _drop_relation(conn, relation_name)
+        if has_links:
+            conn.execute(f"""
+                CREATE TABLE {relation_name} AS
+                WITH inlinks_cte AS (
+                    SELECT d.ENCODED_URL AS dst_url, COUNT(DISTINCT l.SRC_ID) AS cnt
+                    FROM {links_rn} l
+                    JOIN {unique_urls_rn} d ON l.DST_ID = d.ID
+                    WHERE l.LINK_TYPE = 1
+                    GROUP BY d.ENCODED_URL
+                )
+                SELECT
+                    u.ENCODED_URL                       AS "Address",
+                    u.CONTENT_TYPE                      AS "Content Type",
+                    u.RESPONSE_CODE                     AS "Status Code",
+                    {response_msg_col}                  AS "Status",
+                    {indexability_sql}                  AS "Indexability",
+                    {idx_status_sql}                    AS "Indexability Status",
+                    COALESCE(il.cnt, 0)                 AS "Inlinks",
+                    {resp_time_col}                     AS "Response Time",
+                    {redirect_url_expr}                 AS "Redirect URL",
+                    {redirect_type_expr}                AS "Redirect Type"
+                FROM {urls_rn} u
+                LEFT JOIN inlinks_cte il ON il.dst_url = u.ENCODED_URL
+            """)
+        else:
+            conn.execute(f"""
+                CREATE TABLE {relation_name} AS
+                SELECT
+                    u.ENCODED_URL                       AS "Address",
+                    u.CONTENT_TYPE                      AS "Content Type",
+                    u.RESPONSE_CODE                     AS "Status Code",
+                    {response_msg_col}                  AS "Status",
+                    {indexability_sql}                  AS "Indexability",
+                    {idx_status_sql}                    AS "Indexability Status",
+                    NULL                                AS "Inlinks",
+                    {resp_time_col}                     AS "Response Time",
+                    {redirect_url_expr}                 AS "Redirect URL",
+                    {redirect_type_expr}                AS "Redirect Type"
+                FROM {urls_rn} u
+            """)
+        return True
+    except Exception:
+        return False
+
+
+_CHAIN_MAX_HOPS = 10
+
+
+def _try_duckdb_compute_chain_tab(
+    conn: Any,
+    relation_name: str,
+    stem: str,
+    urls_rn: str,
+    links_rn: str,
+    unique_urls_rn: str,
+    *,
+    namespace: str | None = None,
+) -> bool:
+    """Build redirect_chains / canonical_chains / redirect_and_canonical_chains from DuckDB.
+
+    Derby's _get_chain_tab() makes one JDBC query per URL in the chain — up to
+    N × 4 round-trips for N start URLs. On a 16K-page crawl that is ~7,400 queries
+    (~9.8s) and scales linearly with site size.
+
+    This fast path bulk-loads all URL data (1 query) and the canonical link map
+    (1 query) into Python dicts, then traverses chains entirely in memory.
+
+    Limitation: HTTP redirect destination URLs are derived from the Location header
+    in HTTP_RESPONSE_HEADER_COLLECTION, which is a binary Java-serialized BLOB that
+    SYSCS exports as NULL. Redirect chains therefore only contain meta-refresh hops
+    and report 0 rows for pure HTTP-redirect-only crawls. Canonical chains are not
+    affected — canonical links are stored in APP.LINKS (LINK_TYPE=6) and are available.
+    """
+    try:
+        if stem == "canonical_chains":
+            mode = "canonical"
+        elif stem == "redirect_chains":
+            mode = "redirect"
+        else:
+            mode = "redirect_and_canonical"
+
+        urls_cols = {c.lower() for c in _table_columns(conn, "app", "urls")}
+
+        def _opt_col(col: str) -> str | None:
+            return col if col.lower() in urls_cols else None
+
+        # Build the SELECT column list for bulk URL load.
+        select_parts = ["ENCODED_URL", "RESPONSE_CODE"]
+        col_idx: dict[str, int] = {"ENCODED_URL": 0, "RESPONSE_CODE": 1}
+        for col in ("RESPONSE_MSG", "CONTENT_TYPE", "NUM_METAREFRESH", "META_FULL_URL_1", "META_FULL_URL_2"):
+            if _opt_col(col):
+                col_idx[col] = len(select_parts)
+                select_parts.append(col)
+
+        # 1. Bulk-load all URL data into a dict.
+        url_data: dict[str, dict[str, Any]] = {}
+        rows_result = conn.execute(f"SELECT {', '.join(select_parts)} FROM {urls_rn}").fetchall()
+        for row in rows_result:
+            url = row[0]
+            d: dict[str, Any] = {
+                "response_code": row[1],
+                "response_msg": row[col_idx["RESPONSE_MSG"]] if "RESPONSE_MSG" in col_idx else None,
+                "content_type": row[col_idx["CONTENT_TYPE"]] if "CONTENT_TYPE" in col_idx else None,
+                "num_metarefresh": row[col_idx["NUM_METAREFRESH"]] if "NUM_METAREFRESH" in col_idx else 0,
+                "meta_url_1": row[col_idx["META_FULL_URL_1"]] if "META_FULL_URL_1" in col_idx else None,
+                "meta_url_2": row[col_idx["META_FULL_URL_2"]] if "META_FULL_URL_2" in col_idx else None,
+            }
+            url_data[url] = d
+
+        # 2. Bulk-load canonical link map: source -> first canonical target (LINK_TYPE=6).
+        canonical_map: dict[str, str] = {}
+        can_rows = conn.execute(f"""
+            SELECT s.ENCODED_URL, d.ENCODED_URL
+            FROM {links_rn} l
+            JOIN {unique_urls_rn} s ON l.SRC_ID = s.ID
+            JOIN {unique_urls_rn} d ON l.DST_ID = d.ID
+            WHERE l.LINK_TYPE = 6
+            ORDER BY s.ENCODED_URL, d.ENCODED_URL
+        """).fetchall()
+        for src, dst in can_rows:
+            if src not in canonical_map:
+                canonical_map[src] = dst
+
+        # 3. Bulk-load first hyperlink inlink details per destination URL.
+        #    Filter to LINK_TYPE=1 (hyperlinks) to match Derby's chain tab Source column.
+        inlink_map: dict[str, dict[str, Any]] = {}
+        inlink_rows = conn.execute(f"""
+            SELECT d.ENCODED_URL, s.ENCODED_URL, l.ALT_TEXT, l.LINK_TEXT, l.ELEMENT_PATH, l.ELEMENT_POSITION
+            FROM {links_rn} l
+            JOIN {unique_urls_rn} s ON l.SRC_ID = s.ID
+            JOIN {unique_urls_rn} d ON l.DST_ID = d.ID
+            WHERE l.LINK_TYPE = 1
+            ORDER BY d.ENCODED_URL, s.ENCODED_URL
+        """).fetchall()
+        for dst, src, alt, anchor, path, pos in inlink_rows:
+            if dst not in inlink_map:
+                inlink_map[dst] = {
+                    "Source": src,
+                    "Alt Text": alt,
+                    "Anchor Text": anchor,
+                    "Link Path": path,
+                    "Link Position": pos,
+                }
+
+        # 4. Try to load Indexability from the already-materialized internal_all tab.
+        #    If not available, leave None (downstream filters on Final Indexability are optional).
+        indexability_map: dict[str, tuple[Any, Any]] = {}
+        internal_rn = _tab_relation_name("internal_all", namespace=namespace)
+        if _relation_exists(conn, internal_rn):
+            try:
+                int_cols_lower = {c.lower() for c in _table_columns(conn, "main", "sf_tab_internal_all")}
+                idx_sel = '"Indexability"' if "indexability" in int_cols_lower else "NULL"
+                idx_st_sel = '"Indexability Status"' if "indexability status" in int_cols_lower else "NULL"
+                # Address column may be named "Address" or "ENCODED_URL" in internal_all
+                addr_sel = '"Address"' if "address" in int_cols_lower else "ENCODED_URL"
+                idx_rows = conn.execute(
+                    f'SELECT {addr_sel}, {idx_sel}, {idx_st_sel} FROM {internal_rn}'
+                ).fetchall()
+                for url, idx_val, idx_st_val in idx_rows:
+                    if url:
+                        indexability_map[str(url)] = (idx_val, idx_st_val)
+            except Exception:
+                pass
+
+        # 5. Build start URLs.
+        start_urls: list[str] = []
+        seen_starts: set[str] = set()
+        if mode in ("redirect", "redirect_and_canonical"):
+            for url, d in url_data.items():
+                code = d.get("response_code")
+                meta = d.get("num_metarefresh") or 0
+                if (code is not None and 300 <= code < 400) or meta:
+                    if url not in seen_starts:
+                        seen_starts.add(url)
+                        start_urls.append(url)
+        if mode in ("canonical", "redirect_and_canonical"):
+            for url in sorted(canonical_map.keys()):
+                if url not in seen_starts:
+                    seen_starts.add(url)
+                    start_urls.append(url)
+
+        # 6. Chain traversal helpers.
+        def _safe_int_local(v: Any) -> int | None:
+            try:
+                return int(v) if v is not None else None
+            except (TypeError, ValueError):
+                return None
+
+        def resolve_meta_redirect(d: dict[str, Any], base: str) -> str | None:
+            meta = _safe_int_local(d.get("num_metarefresh"))
+            if not meta:
+                return None
+            target = d.get("meta_url_1") or d.get("meta_url_2")
+            if not target:
+                return None
+            from urllib.parse import urljoin
+            return urljoin(base, str(target).strip())
+
+        def build_chain(
+            start_url: str, chain_mode: str
+        ) -> tuple[list[dict[str, Any]], list[str], list[str], bool, bool] | None:
+            steps: list[dict[str, Any]] = []
+            hop_types: list[str] = []
+            hop_targets: list[str] = []
+            visited: set[str] = set()
+            loop = False
+            temp_redirect = False
+            current = start_url
+
+            # Redirect phase.
+            while len(steps) < _CHAIN_MAX_HOPS and chain_mode in ("redirect", "redirect_and_canonical"):
+                if current in visited:
+                    loop = True
+                    break
+                visited.add(current)
+                d = url_data.get(current)
+                if not d:
+                    break
+                steps.append(d)
+                code = _safe_int_local(d.get("response_code"))
+                next_url: str | None = None
+                hop_type: str | None = None
+                # HTTP redirects: Location header unavailable (BLOB is NULL in DuckDB).
+                # Meta refresh: can be resolved from META_FULL_URL columns.
+                meta_target = resolve_meta_redirect(d, current)
+                if meta_target:
+                    next_url = meta_target
+                    hop_type = "Meta Refresh"
+                if not next_url or next_url == current:
+                    break
+                if code in (302, 303, 307):
+                    temp_redirect = True
+                hop_types.append(hop_type or "HTTP Redirect")
+                hop_targets.append(next_url)
+                current = next_url
+
+            # Canonical phase.
+            if chain_mode in ("canonical", "redirect_and_canonical"):
+                while len(steps) < _CHAIN_MAX_HOPS:
+                    if chain_mode == "canonical" and not steps:
+                        # For canonical-only mode, seed with URL data even if no redirect hops.
+                        d = url_data.get(current)
+                        if d:
+                            steps.append(d)
+                    canon_target = canonical_map.get(current)
+                    if not canon_target or canon_target == current:
+                        break
+                    if canon_target in visited:
+                        loop = True
+                        break
+                    visited.add(current)
+                    hop_types.append("Canonical")
+                    hop_targets.append(canon_target)
+                    current = canon_target
+                    d = url_data.get(current)
+                    if not d:
+                        steps.append({
+                            "response_code": None, "response_msg": None,
+                            "content_type": None, "num_metarefresh": 0,
+                            "meta_url_1": None, "meta_url_2": None,
+                        })
+                        break
+                    steps.append(d)
+
+                if chain_mode == "canonical" and not any(h == "Canonical" for h in hop_types):
+                    return None
+
+            if chain_mode == "redirect" and not hop_types:
+                return None
+            return steps, hop_types, hop_targets, loop, temp_redirect
+
+        def chain_type_for(chain_mode: str, hop_types: list[str]) -> str | None:
+            has_redirect = any(t in ("HTTP Redirect", "Meta Refresh") for t in hop_types)
+            has_canonical = any(t == "Canonical" for t in hop_types)
+            if chain_mode == "canonical":
+                return "Canonical" if has_canonical else None
+            if chain_mode == "redirect_and_canonical":
+                if has_redirect and has_canonical:
+                    return "Redirect & Canonical"
+                if has_canonical:
+                    return "Canonical"
+            if has_redirect:
+                return "HTTP Redirect" if any(t == "HTTP Redirect" for t in hop_types) else "Meta Refresh"
+            return None
+
+        def hop_count_for(chain_mode: str, hop_types: list[str]) -> int:
+            if chain_mode == "canonical":
+                return sum(1 for h in hop_types if h == "Canonical")
+            if chain_mode == "redirect_and_canonical":
+                return len(hop_types)
+            return sum(1 for h in hop_types if h in ("HTTP Redirect", "Meta Refresh"))
+
+        # 7. Compute chain rows.
+        chain_rows: list[dict[str, Any]] = []
+        seen_chains: set[str] = set()
+        for start_url in start_urls:
+            if start_url in seen_chains:
+                continue
+            seen_chains.add(start_url)
+            result = build_chain(start_url, mode)
+            if not result:
+                continue
+            steps, hop_types, hop_targets, loop, temp_redirect = result
+            chain_type = chain_type_for(mode, hop_types)
+            hop_count = hop_count_for(mode, hop_types)
+
+            row: dict[str, Any] = {
+                "Chain Type": chain_type,
+                "Number of Redirects": hop_count,
+                "Number of Redirects/Canonicals": hop_count,
+                "Number of Canonicals": hop_count,
+                "Loop": loop,
+                "Temp Redirect in Chain": temp_redirect,
+                "Address": start_url,
+            }
+            row.update(inlink_map.get(start_url, {
+                "Source": None, "Alt Text": None, "Anchor Text": None,
+                "Link Path": None, "Link Position": None,
+            }))
+
+            final = steps[-1] if steps else None
+            final_url = None
+            if hop_targets:
+                final_url = hop_targets[-1]
+            elif final:
+                # canonical_chains: final step is the canonical target
+                final_url = canonical_map.get(start_url)
+            idx_val, idx_st_val = indexability_map.get(final_url or "", (None, None)) if final_url else (None, None)
+            row["Final Address"]            = final_url
+            row["Final Content"]            = final.get("content_type") if final else None
+            row["Final Status Code"]        = final.get("response_code") if final else None
+            row["Final Status"]             = final.get("response_msg") if final else None
+            row["Final Indexability"]       = idx_val
+            row["Final Indexability Status"] = idx_st_val
+
+            for i in range(1, _CHAIN_MAX_HOPS + 1):
+                if i <= len(steps):
+                    s = steps[i - 1]
+                    row[f"Content {i}"]     = s.get("content_type")
+                    row[f"Status Code {i}"] = s.get("response_code")
+                    row[f"Status {i}"]      = s.get("response_msg")
+                else:
+                    row[f"Content {i}"]     = None
+                    row[f"Status Code {i}"] = None
+                    row[f"Status {i}"]      = None
+                if i <= len(hop_targets):
+                    row[f"Redirect Type {i}"] = hop_types[i - 1]
+                    row[f"Redirect URL {i}"]  = hop_targets[i - 1]
+                else:
+                    row[f"Redirect Type {i}"] = None
+                    row[f"Redirect URL {i}"]  = None
+
+            chain_rows.append(row)
+
+        _drop_relation(conn, relation_name)
+        if chain_rows:
+            written = _write_relation(conn, relation_name, iter(chain_rows))
+            if written:
+                return True
+        # Even with 0 rows, create an empty table with the correct schema so the export
+        # loop marks this tab as written and does NOT fall back to Derby (saves Derby
+        # chain traversal time on crawls where headers are NULL and redirect chains are empty).
+        hop_cols = []
+        for i in range(1, _CHAIN_MAX_HOPS + 1):
+            hop_cols += [
+                f'"Content {i}" VARCHAR', f'"Status Code {i}" BIGINT', f'"Status {i}" VARCHAR',
+                f'"Redirect Type {i}" VARCHAR', f'"Redirect URL {i}" VARCHAR',
+            ]
+        hop_col_ddl = ", ".join(hop_cols)
+        conn.execute(f"""
+            CREATE TABLE {relation_name} (
+                "Chain Type" VARCHAR,
+                "Number of Redirects" BIGINT,
+                "Number of Redirects/Canonicals" BIGINT,
+                "Number of Canonicals" BIGINT,
+                "Loop" BOOLEAN,
+                "Temp Redirect in Chain" BOOLEAN,
+                "Address" VARCHAR,
+                "Source" VARCHAR,
+                "Alt Text" VARCHAR,
+                "Anchor Text" VARCHAR,
+                "Link Path" VARCHAR,
+                "Link Position" VARCHAR,
+                "Final Address" VARCHAR,
+                "Final Content" VARCHAR,
+                "Final Status Code" BIGINT,
+                "Final Status" VARCHAR,
+                "Final Indexability" VARCHAR,
+                "Final Indexability Status" VARCHAR,
+                {hop_col_ddl}
+            )
+        """)
+        return True
+
+    except Exception:
+        return False
+
+
 def export_duckdb_from_backend(
     backend: Any,
     duckdb_path: str | Path,
@@ -202,6 +975,8 @@ def export_duckdb_from_backend(
             existing_objects = []
 
         conn.execute("CREATE SCHEMA IF NOT EXISTS app")
+        import time as _time
+        _t0 = _time.monotonic()
 
         exported_objects: list[tuple[str, str, str]] = list(existing_objects)
         exported_keys = {(kind, export_name) for export_name, kind, _ in exported_objects}
@@ -210,20 +985,55 @@ def export_duckdb_from_backend(
             if ("raw", export_name) in exported_keys:
                 continue
             relation_name = _raw_relation_name(export_name, namespace=normalized_namespace)
-            rows = backend.raw(raw_name)
-            if _write_relation(conn, relation_name, rows):
+            _ts = _time.monotonic()
+            # Fast path: Derby SYSCS CSV export -> DuckDB bulk CSV import.
+            # Falls back to JDBC row iteration when SYSCS is unavailable or fails.
+            # Per-table exception handling: a missing optional table must not abort the whole export.
+            try:
+                written = _try_syscs_export(backend, conn, relation_name, raw_name)
+                if not written:
+                    rows = backend.raw(raw_name)
+                    written = _write_relation(conn, relation_name, rows)
+            except Exception:
+                written = False
+            print(f"  [duckdb] raw {raw_name}: {'OK' if written else 'SKIP'} ({_time.monotonic() - _ts:.1f}s)", flush=True)
+            if written:
                 exported_objects.append((export_name, "raw", relation_name))
                 exported_keys.add(("raw", export_name))
+
+        print(f"  [duckdb] explicit raw tables done ({_time.monotonic() - _t0:.1f}s)", flush=True)
+
+        # Universal export: discover and SYSCS-export ALL remaining APP schema tables.
+        # This ensures every raw Derby table is available in DuckDB for tab computation
+        # and crawl.sql() queries, regardless of the hardcoded duckdb_tables list.
+        _tu = _time.monotonic()
+        _syscs_export_all_app_tables(
+            backend, conn, exported_keys, exported_objects, namespace=normalized_namespace,
+        )
+        print(f"  [duckdb] universal raw export done ({_time.monotonic() - _tu:.1f}s, total {_time.monotonic() - _t0:.1f}s)", flush=True)
 
         for tab_name in materialized_tabs:
             normalized = _normalize_export_name("tab", tab_name)
             if ("tab", normalized) in exported_keys:
                 continue
             relation_name = _tab_relation_name(normalized, namespace=normalized_namespace)
-            rows = backend.get_tab(normalized)
-            if _write_relation(conn, relation_name, rows):
+            _ts = _time.monotonic()
+            # Fast path: compute from DuckDB-resident raw tables (avoids Derby N+1 subqueries).
+            # Falls back to Derby backend.get_tab() when raw tables are unavailable or SQL fails.
+            written = _try_duckdb_compute_tab(
+                conn, backend, normalized, relation_name, namespace=normalized_namespace
+            )
+            path = "duckdb"
+            if not written:
+                path = "derby"
+                rows = backend.get_tab(normalized)
+                written = _write_relation(conn, relation_name, rows)
+            print(f"  [duckdb] tab {normalized}: {'OK' if written else 'SKIP'} via {path} ({_time.monotonic() - _ts:.1f}s)", flush=True)
+            if written:
                 exported_objects.append((normalized, "tab", relation_name))
                 exported_keys.add(("tab", normalized))
+
+        print(f"  [duckdb] all exports done ({_time.monotonic() - _t0:.1f}s)", flush=True)
 
         _store_export_metadata(
             conn,

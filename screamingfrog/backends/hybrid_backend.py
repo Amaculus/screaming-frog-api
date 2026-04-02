@@ -64,6 +64,10 @@ class HybridBackend(CrawlBackend):
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterable[dict[str, Any]]:
         return self._primary.sql(query, params=params)
 
+    def close(self) -> None:
+        """Close the primary backend connection."""
+        self._primary.close()
+
     def get_tab(
         self, tab_name: str, filters: Optional[dict[str, Any]] = None
     ) -> Iterable[dict[str, Any]]:
