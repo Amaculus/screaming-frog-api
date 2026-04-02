@@ -520,6 +520,15 @@ class DuckDBBackend(CrawlBackend):
     def _open_connection(self) -> None:
         self.conn = self._duckdb.connect(str(self.db_path), read_only=True)
 
+    def close(self) -> None:
+        """Close the DuckDB connection."""
+        if hasattr(self, "conn") and self.conn is not None:
+            try:
+                self.conn.close()
+            except Exception:
+                pass
+            self.conn = None
+
     def _resolve_namespace(self, namespace: str | None) -> str:
         requested = str(namespace or "").strip().lower()
         namespaces = list_duckdb_namespaces(self.db_path)

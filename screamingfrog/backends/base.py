@@ -46,3 +46,7 @@ class CrawlBackend(ABC):
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
         """Execute SQL and yield rows as dictionaries."""
         raise NotImplementedError("SQL access not supported by this backend")
+
+    def close(self) -> None:
+        """Release backend resources (connections, file handles). No-op by default."""
+        pass

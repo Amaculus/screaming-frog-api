@@ -215,6 +215,15 @@ class DerbyBackend(CrawlBackend):
             if csv_col not in self._internal_missing_expr_names
         ]
 
+    def close(self) -> None:
+        """Close the JDBC connection and release the Derby lock."""
+        if self._conn is not None:
+            try:
+                self._conn.close()
+            except Exception:
+                pass
+            self._conn = None
+
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         table_alias = "sf_internal"
         where_parts: list[str] = []
