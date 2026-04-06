@@ -2139,6 +2139,10 @@ def _duckdb_chain_rows(crawl: Crawl, tab_name: str) -> list[dict[str, Any]] | No
     if not isinstance(backend, DuckDBBackend):
         return None
 
+    helper_rows = _duckdb_chain_rows_from_helpers(crawl, tab_name)
+    if helper_rows is not None:
+        return helper_rows
+
     urls_relation, links_relation, unique_urls_relation = _duckdb_ensure_raw_relations(
         backend,
         "APP.URLS",
@@ -2508,6 +2512,265 @@ def _duckdb_chain_rows(crawl: Crawl, tab_name: str) -> list[dict[str, Any]] | No
 
         rows.append(row)
     return rows
+
+
+def _duckdb_chain_rows_from_helpers(crawl: Crawl, tab_name: str) -> list[dict[str, Any]] | None:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return None
+
+    if tab_name == "canonical_chains":
+        mode = "canonical"
+    elif tab_name == "redirect_and_canonical_chains":
+        mode = "redirect_and_canonical"
+    elif tab_name == "redirect_chains":
+        mode = "redirect"
+    else:
+        return None
+
+    ensure_chain_helpers = getattr(backend, "ensure_chain_helpers", None)
+    if callable(ensure_chain_helpers):
+        try:
+            ensure_chain_helpers()
+        except Exception:
+            pass
+
+    helper_relations = {
+        "chain_url_info": _helper_relation_name("chain_url_info", namespace=backend.namespace),
+        "redirect_edges": _helper_relation_name("redirect_edges", namespace=backend.namespace),
+        "canonical_edges": _helper_relation_name("canonical_edges", namespace=backend.namespace),
+        "chain_inlinks": _helper_relation_name("chain_inlinks", namespace=backend.namespace),
+    }
+    if not _relation_exists(backend.conn, helper_relations["chain_url_info"]):
+        return None
+    if mode in {"redirect", "redirect_and_canonical"} and not _relation_exists(
+        backend.conn, helper_relations["redirect_edges"]
+    ):
+        return None
+    if mode in {"canonical", "redirect_and_canonical"} and not _relation_exists(
+        backend.conn, helper_relations["canonical_edges"]
+    ):
+        return None
+
+    url_info = {
+        str(row.get("url") or ""): dict(row)
+        for row in iter_relation_rows(backend.conn, helper_relations["chain_url_info"])
+        if str(row.get("url") or "").strip()
+    }
+    redirect_edges = {
+        str(row.get("source_url") or ""): dict(row)
+        for row in iter_relation_rows(backend.conn, helper_relations["redirect_edges"])
+        if str(row.get("source_url") or "").strip()
+    }
+    canonical_edges = {
+        str(row.get("source_url") or ""): str(row.get("target_url") or "").strip()
+        for row in iter_relation_rows(backend.conn, helper_relations["canonical_edges"])
+        if str(row.get("source_url") or "").strip()
+    }
+    inlink_rows = {
+        str(row.get("destination_url") or ""): dict(row)
+        for row in iter_relation_rows(backend.conn, helper_relations["chain_inlinks"])
+        if str(row.get("destination_url") or "").strip()
+    }
+    if not url_info:
+        return None
+
+    indexability = _duckdb_chain_indexability_map(crawl)
+
+    def build_chain(
+        start_url: str, chain_mode: str
+    ) -> Optional[tuple[list[dict[str, Any]], list[str], list[str], bool, bool]]:
+        steps: list[dict[str, Any]] = []
+        hop_types: list[str] = []
+        hop_targets: list[str] = []
+        visited: set[str] = set()
+        loop = False
+        temp_redirect = False
+        current = start_url
+
+        while len(steps) < _CHAIN_MAX_HOPS:
+            if current in visited:
+                loop = True
+                break
+            visited.add(current)
+            data = url_info.get(current)
+            if not data:
+                break
+            steps.append(data)
+            if chain_mode not in {"redirect", "redirect_and_canonical"}:
+                break
+            edge = redirect_edges.get(current)
+            if not edge:
+                break
+            next_url = str(edge.get("target_url") or "").strip()
+            if not next_url or next_url == current:
+                break
+            hop_types.append(str(edge.get("redirect_type") or "HTTP Redirect"))
+            hop_targets.append(next_url)
+            temp_redirect = temp_redirect or bool(_to_bool(edge.get("temp_redirect")))
+            current = next_url
+
+        if chain_mode in {"canonical", "redirect_and_canonical"}:
+            while len(steps) < _CHAIN_MAX_HOPS:
+                next_url = canonical_edges.get(current)
+                if not next_url or next_url == current:
+                    break
+                if next_url in visited:
+                    loop = True
+                    break
+                hop_types.append("Canonical")
+                hop_targets.append(next_url)
+                current = next_url
+                visited.add(current)
+                data = url_info.get(current)
+                if data:
+                    steps.append(data)
+                else:
+                    steps.append(
+                        {
+                            "url": current,
+                            "response_code": None,
+                            "response_msg": None,
+                            "content_type": None,
+                        }
+                    )
+                    break
+            if chain_mode == "canonical" and not any(hop == "Canonical" for hop in hop_types):
+                return None
+
+        if chain_mode == "redirect" and not hop_types:
+            return None
+        return steps, hop_types, hop_targets, loop, temp_redirect
+
+    def chain_type_for(chain_mode: str, hop_types: list[str]) -> Optional[str]:
+        has_redirect = any(t in {"HTTP Redirect", "Meta Refresh"} for t in hop_types)
+        has_canonical = any(t == "Canonical" for t in hop_types)
+        if chain_mode == "canonical":
+            return "Canonical" if has_canonical else None
+        if chain_mode == "redirect_and_canonical":
+            if has_redirect and has_canonical:
+                return "Redirect & Canonical"
+            if has_canonical:
+                return "Canonical"
+        if has_redirect:
+            return "HTTP Redirect" if any(t == "HTTP Redirect" for t in hop_types) else "Meta Refresh"
+        return None
+
+    def hop_count_for(chain_mode: str, hop_types: list[str]) -> int:
+        if chain_mode == "canonical":
+            return sum(1 for hop in hop_types if hop == "Canonical")
+        if chain_mode == "redirect_and_canonical":
+            return len(hop_types)
+        return sum(1 for hop in hop_types if hop in {"HTTP Redirect", "Meta Refresh"})
+
+    start_urls: list[str] = []
+    if mode in {"redirect", "redirect_and_canonical"}:
+        start_urls.extend(sorted(redirect_edges.keys()))
+    if mode in {"canonical", "redirect_and_canonical"}:
+        start_urls.extend(sorted(canonical_edges.keys()))
+
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for start_url in start_urls:
+        if not start_url or start_url in seen:
+            continue
+        seen.add(start_url)
+        result = build_chain(start_url, mode)
+        if not result:
+            continue
+        steps, hop_types, hop_targets, loop, temp_redirect = result
+        chain_type = chain_type_for(mode, hop_types)
+        hop_count = hop_count_for(mode, hop_types)
+        final = steps[-1] if steps else None
+        final_url = str(final.get("url") or "").strip() if final else ""
+        final_indexability, final_indexability_status = indexability.get(final_url, (None, None))
+        inlink = inlink_rows.get(start_url, {})
+
+        row: dict[str, Any] = {
+            "Chain Type": chain_type,
+            "Number of Redirects": hop_count,
+            "Number of Redirects/Canonicals": hop_count,
+            "Number of Canonicals": hop_count,
+            "Loop": loop,
+            "Temp Redirect in Chain": temp_redirect,
+            "Address": start_url,
+            "Source": inlink.get("source_url"),
+            "Alt Text": inlink.get("alt_text"),
+            "Anchor Text": inlink.get("anchor_text"),
+            "Link Path": inlink.get("element_path"),
+            "Link Position": inlink.get("element_position"),
+            "Final Address": final_url or None,
+            "Final Content": final.get("content_type") if final else None,
+            "Final Status Code": final.get("response_code") if final else None,
+            "Final Status": final.get("response_msg") if final else None,
+            "Final Indexability": final_indexability,
+            "Final Indexability Status": final_indexability_status,
+        }
+
+        for i in range(1, _CHAIN_MAX_HOPS + 1):
+            if i <= len(steps):
+                step = steps[i - 1]
+                row[f"Content {i}"] = step.get("content_type")
+                row[f"Status Code {i}"] = step.get("response_code")
+                row[f"Status {i}"] = step.get("response_msg")
+            else:
+                row[f"Content {i}"] = None
+                row[f"Status Code {i}"] = None
+                row[f"Status {i}"] = None
+            if i <= len(hop_targets):
+                row[f"Redirect Type {i}"] = hop_types[i - 1]
+                row[f"Redirect URL {i}"] = hop_targets[i - 1]
+            else:
+                row[f"Redirect Type {i}"] = None
+                row[f"Redirect URL {i}"] = None
+        rows.append(row)
+    return rows
+
+
+def _duckdb_chain_indexability_map(crawl: Crawl) -> dict[str, tuple[Any, Any]]:
+    backend = getattr(crawl, "_backend", None)
+    if not isinstance(backend, DuckDBBackend):
+        return {}
+
+    internal_relation = getattr(backend, "_internal_relation", None)
+    if internal_relation:
+        try:
+            return {
+                str(row.get("address") or ""): (
+                    row.get("indexability"),
+                    row.get("indexability_status"),
+                )
+                for row in backend.sql(
+                    f'SELECT "Address" AS address, '
+                    f'{_duckdb_optional_internal_select(set(getattr(backend, "_internal_columns", [])), ("Indexability", "INDEXABILITY"), "indexability")}, '
+                    f'{_duckdb_optional_internal_select(set(getattr(backend, "_internal_columns", [])), ("Indexability Status", "INDEXABILITY_STATUS"), "indexability_status")} '
+                    f"FROM {internal_relation}"
+                )
+                if str(row.get("address") or "").strip()
+            }
+        except Exception:
+            pass
+
+    source_backend = _duckdb_source_backend(backend)
+    projected_internal = (
+        getattr(source_backend, "iter_internal_projection", None)
+        if source_backend is not None
+        else None
+    )
+    if callable(projected_internal):
+        try:
+            return {
+                str(row.get("Address") or ""): (
+                    row.get("Indexability"),
+                    row.get("Indexability Status"),
+                )
+                for row in projected_internal(("Address", "Indexability", "Indexability Status"))
+                if str(row.get("Address") or "").strip()
+            }
+        except Exception:
+            pass
+
+    return {}
 
 
 def _duckdb_inlink_rows_for_report(

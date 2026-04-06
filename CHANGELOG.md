@@ -3,6 +3,7 @@
 ## Unreleased
 - Added backend/resource cleanup support via `close()` and `with Crawl.load(...) as crawl:` context-manager usage.
 - Added a narrow DuckDB export fast path for `response_codes_all`, preserving the mapped tab shape without forcing universal raw-table export or changing `internal_all` semantics.
+- Added lazy DuckDB chain helper relations (`chain_url_info`, `redirect_edges`, `canonical_edges`, `chain_inlinks`) so chain traversal can stay off raw-table export and repeated per-row Derby queries.
 
 ## 0.2.2 (2026-03-25)
 - Fixed Derby optional-column handling for older crawl schemas so missing `APP.PAGE_SPEED_API` columns now resolve to `NULL`/post-filters instead of crashing generic tabs, filters, or `mobile_all`, and added an off-main-thread Tk fallback for macOS pixel-width measurement.

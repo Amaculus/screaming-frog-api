@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Callable, Iterator, Optional, Sequence
+from typing import Any, Callable, Iterable, Iterator, Mapping, Optional, Sequence
+from urllib.parse import urljoin
 
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.duckdb import (
@@ -347,6 +348,51 @@ class DuckDBBackend(CrawlBackend):
             return True
         return self._materialize_exports(tables=missing)
 
+    def ensure_chain_helpers(self) -> bool:
+        helper_names = (
+            "chain_url_info",
+            "redirect_edges",
+            "canonical_edges",
+            "chain_inlinks",
+        )
+        if all(
+            _relation_exists(self.conn, _helper_relation_name(name, namespace=self.namespace))
+            for name in helper_names
+        ):
+            return True
+
+        source_backend = self.get_lazy_source_backend()
+        if source_backend is None:
+            return False
+
+        try:
+            helper_rows = _build_chain_helper_bundle_from_source(source_backend)
+        except Exception:
+            return False
+
+        self.conn.close()
+        try:
+            conn = self._duckdb.connect(str(self.db_path))
+            try:
+                for helper_name in helper_names:
+                    relation = _helper_relation_name(helper_name, namespace=self.namespace)
+                    if _relation_exists(conn, relation):
+                        continue
+                    rows = helper_rows.get(helper_name, [])
+                    if rows:
+                        _write_relation(conn, relation, rows)
+                    else:
+                        _create_empty_helper_relation(conn, relation, _CHAIN_HELPER_SCHEMAS[helper_name])
+            finally:
+                conn.close()
+        finally:
+            self._open_connection()
+
+        return all(
+            _relation_exists(self.conn, _helper_relation_name(name, namespace=self.namespace))
+            for name in helper_names
+        )
+
     def ensure_tab(self, tab_name: str, *, gui_filter: Any = None) -> bool:
         candidates = _tab_export_candidates(tab_name, gui_filter)
         if any(resolve_relation_name(self.conn, "tab", candidate, namespace=self.namespace) for candidate in candidates):
@@ -465,6 +511,9 @@ class DuckDBBackend(CrawlBackend):
             return _iter_internal_common_rows_from_source(source_backend)
         if normalized == "links_core":
             return _iter_links_core_rows_from_source(source_backend)
+        if normalized in _CHAIN_HELPER_SCHEMAS:
+            bundle = _build_chain_helper_bundle_from_source(source_backend)
+            return iter(bundle.get(normalized, ()))
         return None
 
     def _materialize_exports(
@@ -938,6 +987,243 @@ def _iter_links_core_rows_from_source(source_backend: Any) -> Iterator[dict[str,
                 "origin_value": row.get("ORIGIN"),
             }
         )
+
+
+_CHAIN_HELPER_SCHEMAS: dict[str, tuple[tuple[str, str], ...]] = {
+    "chain_url_info": (
+        ("url", "VARCHAR"),
+        ("response_code", "BIGINT"),
+        ("response_msg", "VARCHAR"),
+        ("content_type", "VARCHAR"),
+    ),
+    "redirect_edges": (
+        ("source_url", "VARCHAR"),
+        ("target_url", "VARCHAR"),
+        ("redirect_type", "VARCHAR"),
+        ("temp_redirect", "BOOLEAN"),
+    ),
+    "canonical_edges": (
+        ("source_url", "VARCHAR"),
+        ("target_url", "VARCHAR"),
+    ),
+    "chain_inlinks": (
+        ("destination_url", "VARCHAR"),
+        ("source_url", "VARCHAR"),
+        ("alt_text", "VARCHAR"),
+        ("anchor_text", "VARCHAR"),
+        ("element_path", "VARCHAR"),
+        ("element_position", "BIGINT"),
+    ),
+}
+
+
+def _create_empty_helper_relation(
+    conn: Any,
+    relation_name: str,
+    columns: Sequence[tuple[str, str]],
+) -> None:
+    conn.execute(f"DROP TABLE IF EXISTS {relation_name}")
+    column_sql = ", ".join(f'{_quote_identifier(name)} {dtype}' for name, dtype in columns)
+    conn.execute(f"CREATE TABLE {relation_name} ({column_sql})")
+
+
+def _build_chain_helper_bundle_from_source(source_backend: Any) -> dict[str, list[dict[str, Any]]]:
+    try:
+        from screamingfrog.backends.derby_backend import (  # type: ignore
+            _extract_link_rel,
+            _headers_from_blob,
+            _parse_link_headers,
+            _strip_default_port,
+        )
+    except Exception:
+        return {name: [] for name in _CHAIN_HELPER_SCHEMAS}
+
+    def normalize_target(base: str, target: Any) -> str | None:
+        if target is None:
+            return None
+        text = str(target).strip()
+        if not text:
+            return None
+        return _strip_default_port(urljoin(base, text))
+
+    url_rows = list(_iter_chain_source_url_rows(source_backend))
+    link_rows = list(_iter_chain_source_link_rows(source_backend))
+
+    chain_url_info: list[dict[str, Any]] = []
+    redirect_edges: list[dict[str, Any]] = []
+    header_canonicals: dict[str, str] = {}
+
+    for row in url_rows:
+        url = str(row.get("url") or "").strip()
+        if not url:
+            continue
+        chain_url_info.append(
+            {
+                "url": url,
+                "response_code": row.get("response_code"),
+                "response_msg": row.get("response_msg"),
+                "content_type": row.get("content_type"),
+            }
+        )
+        headers = _headers_from_blob(row.get("headers_blob")) or {}
+        code = _to_int(row.get("response_code"))
+        target_url: str | None = None
+        redirect_type: str | None = None
+        temp_redirect = False
+        if code is not None and 300 <= code < 400:
+            locations = headers.get("location", [])
+            if locations:
+                target_url = normalize_target(url, locations[0])
+                redirect_type = "HTTP Redirect"
+                temp_redirect = code in {302, 303, 307}
+        if not target_url and _to_int(row.get("num_metarefresh")):
+            target_url = normalize_target(url, row.get("meta_url_1") or row.get("meta_url_2"))
+            if target_url:
+                redirect_type = "Meta Refresh"
+        if target_url and target_url != url:
+            redirect_edges.append(
+                {
+                    "source_url": url,
+                    "target_url": target_url,
+                    "redirect_type": redirect_type,
+                    "temp_redirect": temp_redirect,
+                }
+            )
+
+        parsed_links = _parse_link_headers(headers.get("link", [])) if headers else []
+        canonical = normalize_target(url, _extract_link_rel(parsed_links, "canonical"))
+        if canonical and canonical != url:
+            header_canonicals[url] = canonical
+
+    canonical_candidates: dict[str, str] = {}
+    first_inlinks: dict[str, dict[str, Any]] = {}
+    for row in link_rows:
+        source_url = str(row.get("source_url") or "").strip()
+        destination_url = str(row.get("destination_url") or "").strip()
+        if not source_url or not destination_url:
+            continue
+        if _to_int(row.get("link_type")) == 6:
+            existing = canonical_candidates.get(source_url)
+            if existing is None or destination_url < existing:
+                canonical_candidates[source_url] = destination_url
+        current = first_inlinks.get(destination_url)
+        candidate = {
+            "destination_url": destination_url,
+            "source_url": source_url,
+            "alt_text": row.get("alt_text"),
+            "anchor_text": row.get("anchor_text"),
+            "element_path": row.get("element_path"),
+            "element_position": row.get("element_position"),
+        }
+        if current is None or _chain_inlink_sort_key(candidate) < _chain_inlink_sort_key(current):
+            first_inlinks[destination_url] = candidate
+
+    canonical_edges = [
+        {"source_url": source_url, "target_url": target_url}
+        for source_url, target_url in sorted(canonical_candidates.items())
+    ]
+    for source_url, target_url in sorted(header_canonicals.items()):
+        if source_url in canonical_candidates:
+            continue
+        canonical_edges.append({"source_url": source_url, "target_url": target_url})
+
+    return {
+        "chain_url_info": sorted(chain_url_info, key=lambda row: str(row.get("url") or "")),
+        "redirect_edges": sorted(redirect_edges, key=lambda row: str(row.get("source_url") or "")),
+        "canonical_edges": canonical_edges,
+        "chain_inlinks": sorted(first_inlinks.values(), key=lambda row: str(row.get("destination_url") or "")),
+    }
+
+
+def _iter_chain_source_url_rows(source_backend: Any) -> Iterator[dict[str, Any]]:
+    sql = """
+        SELECT
+            ENCODED_URL AS url,
+            RESPONSE_CODE AS response_code,
+            RESPONSE_MSG AS response_msg,
+            CONTENT_TYPE AS content_type,
+            NUM_METAREFRESH AS num_metarefresh,
+            META_FULL_URL_1 AS meta_url_1,
+            META_FULL_URL_2 AS meta_url_2,
+            HTTP_RESPONSE_HEADER_COLLECTION AS headers_blob
+        FROM APP.URLS
+    """
+    if hasattr(source_backend, "sql"):
+        try:
+            for row in source_backend.sql(sql):
+                yield dict(row)
+            return
+        except Exception:
+            pass
+    if not hasattr(source_backend, "raw"):
+        return
+    for row in source_backend.raw("APP.URLS"):
+        url = row.get("ENCODED_URL")
+        if not url:
+            continue
+        yield {
+            "url": url,
+            "response_code": row.get("RESPONSE_CODE"),
+            "response_msg": row.get("RESPONSE_MSG"),
+            "content_type": row.get("CONTENT_TYPE"),
+            "num_metarefresh": row.get("NUM_METAREFRESH"),
+            "meta_url_1": row.get("META_FULL_URL_1"),
+            "meta_url_2": row.get("META_FULL_URL_2"),
+            "headers_blob": row.get("HTTP_RESPONSE_HEADER_COLLECTION"),
+        }
+
+
+def _iter_chain_source_link_rows(source_backend: Any) -> Iterator[dict[str, Any]]:
+    sql = """
+        SELECT
+            s.ENCODED_URL AS source_url,
+            d.ENCODED_URL AS destination_url,
+            l.ALT_TEXT AS alt_text,
+            l.LINK_TEXT AS anchor_text,
+            l.ELEMENT_PATH AS element_path,
+            l.ELEMENT_POSITION AS element_position,
+            l.LINK_TYPE AS link_type
+        FROM APP.LINKS l
+        JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID
+        JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID
+    """
+    if hasattr(source_backend, "sql"):
+        try:
+            for row in source_backend.sql(sql):
+                yield dict(row)
+            return
+        except Exception:
+            pass
+    if not hasattr(source_backend, "raw"):
+        return
+    unique_urls: dict[Any, str] = {}
+    for row in source_backend.raw("APP.UNIQUE_URLS"):
+        if row.get("ID") is None or row.get("ENCODED_URL") is None:
+            continue
+        unique_urls[row.get("ID")] = str(row.get("ENCODED_URL"))
+    for row in source_backend.raw("APP.LINKS"):
+        source_url = unique_urls.get(row.get("SRC_ID"))
+        destination_url = unique_urls.get(row.get("DST_ID"))
+        if not source_url or not destination_url:
+            continue
+        yield {
+            "source_url": source_url,
+            "destination_url": destination_url,
+            "alt_text": row.get("ALT_TEXT"),
+            "anchor_text": row.get("LINK_TEXT"),
+            "element_path": row.get("ELEMENT_PATH"),
+            "element_position": row.get("ELEMENT_POSITION"),
+            "link_type": row.get("LINK_TYPE"),
+        }
+
+
+def _chain_inlink_sort_key(row: Mapping[str, Any]) -> tuple[str, int, str]:
+    position = _to_int(row.get("element_position"))
+    return (
+        str(row.get("source_url") or ""),
+        position if position is not None else 10**9,
+        str(row.get("anchor_text") or ""),
+    )
 
 
 def _rel_value(

@@ -1302,11 +1302,18 @@ def test_duckdb_issue_helpers_read_issue_tabs_directly(tmp_path: Path) -> None:
 
 
 def test_duckdb_chain_helpers_work_without_materialized_chain_tabs(tmp_path: Path) -> None:
-    crawl = Crawl(ChainDuckBackend())
+    source_backend = ChainDuckBackend()
+    crawl = Crawl(source_backend)
     target = tmp_path / "crawl-chains.duckdb"
 
-    crawl.export_duckdb(str(target), source_label="chains", tabs=("internal_all",))
+    crawl.export_duckdb(str(target), source_label="chains", tables=(), tabs=("internal_all",))
     duck = Crawl.from_duckdb(str(target))
+    backend = duck._backend
+    backend.configure_lazy_source(
+        source_backend=source_backend,
+        source_label="chains",
+        available_tabs=("internal_all.csv",),
+    )
 
     redirect_rows = list(duck.redirect_chains(min_hops=2))
     canonical_rows = list(duck.canonical_chains(min_hops=2))
@@ -1338,6 +1345,9 @@ def test_duckdb_chain_helpers_work_without_materialized_chain_tabs(tmp_path: Pat
 
     assert {"https://example.com/l1", "https://example.com/l2"} <= loop_addresses
     assert all(row["Loop"] is True for row in loop_rows)
+    assert resolve_relation_name(backend.conn, "raw", "APP.URLS") is None
+    assert _relation_exists(backend.conn, _helper_relation_name("redirect_edges", namespace=backend.namespace))
+    assert _relation_exists(backend.conn, _helper_relation_name("canonical_edges", namespace=backend.namespace))
 
 
 def test_duckdb_compare_uses_projected_internal_rows(tmp_path: Path) -> None:
