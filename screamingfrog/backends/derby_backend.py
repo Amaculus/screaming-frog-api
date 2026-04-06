@@ -538,6 +538,16 @@ class DerbyBackend(CrawlBackend):
                 continue
             yield {field: data.get(field) for field in requested}
 
+    def close(self) -> None:
+        conn = getattr(self, "_conn", None)
+        if conn is None:
+            return
+        try:
+            conn.close()
+        except Exception:
+            pass
+        self._conn = None
+
     def _internal_row_key_column(self) -> str | None:
         return _resolve_column_name(self._internal_columns, "ID") or _resolve_column_name(
             self._internal_columns, "ENCODED_URL"

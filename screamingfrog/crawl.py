@@ -681,6 +681,18 @@ class Crawl:
         self._backend = backend
         self.internal = InternalView(backend)
 
+    def close(self) -> None:
+        close = getattr(self._backend, "close", None)
+        if callable(close):
+            close()
+
+    def __enter__(self) -> "Crawl":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        self.close()
+        return False
+
     @classmethod
     def from_exports(cls, export_dir: str) -> "Crawl":
         return cls(CSVBackend(export_dir))

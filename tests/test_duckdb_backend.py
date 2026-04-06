@@ -13,6 +13,7 @@ from screamingfrog.db.duckdb import (
     _helper_relation_name,
     _relation_exists,
     ensure_duckdb_cache,
+    export_duckdb_from_backend,
     resolve_relation_name,
 )
 from screamingfrog.models import InternalPage
@@ -367,6 +368,72 @@ class ProjectedOnlyCompareBackend(FakeDuckCompareBackend):
         raise AssertionError("compare() should use iter_internal_projection() on lean caches")
 
 
+class ProjectedOnlyResponseCodesBackend(CrawlBackend):
+    def __init__(self) -> None:
+        self._rows = [
+            {
+                "Address": "https://example.com/ok",
+                "Content Type": "text/html",
+                "Status Code": 200,
+                "Status": "OK",
+                "Indexability": "Indexable",
+                "Indexability Status": None,
+                "Inlinks": 4,
+                "Response Time": 123,
+                "Redirect URL": None,
+                "Redirect Type": None,
+            },
+            {
+                "Address": "https://example.com/redirect",
+                "Content Type": "text/html",
+                "Status Code": 301,
+                "Status": "Moved Permanently",
+                "Indexability": "Indexable",
+                "Indexability Status": None,
+                "Inlinks": 2,
+                "Response Time": 45,
+                "Redirect URL": "https://example.com/final",
+                "Redirect Type": "HTTP Redirect",
+            },
+        ]
+
+    def iter_internal_projection(
+        self, fields: Sequence[str], filters: Optional[dict[str, Any]] = None
+    ) -> Iterator[dict[str, Any]]:
+        wanted = tuple(str(field) for field in fields)
+        for row in self._rows:
+            yield {field: row.get(field) for field in wanted}
+
+    def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
+        raise AssertionError("response_codes_all fast path should avoid get_internal()")
+
+    def get_inlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def get_outlinks(self, url: str):  # pragma: no cover - not used directly
+        return iter(())
+
+    def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
+        return len(self._rows)
+
+    def aggregate(self, table: str, column: str, func: str) -> Any:  # pragma: no cover
+        return None
+
+    def list_tabs(self) -> list[str]:
+        return ["response_codes_all.csv"]
+
+    def get_tab(
+        self, tab_name: str, filters: Optional[dict[str, Any]] = None
+    ) -> Iterator[dict[str, Any]]:
+        raise AssertionError("response_codes_all should use the projected DuckDB fast path")
+
+    def raw(self, table: str) -> Iterator[dict[str, Any]]:
+        return iter(())
+
+    def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
+        return iter(())
+
+
 class ProjectedOnlyInternalBackend(CrawlBackend):
     def __init__(self) -> None:
         self._rows = [
@@ -650,6 +717,47 @@ def test_export_duckdb_respects_explicit_empty_raw_table_list(tmp_path: Path) ->
     ]
     with pytest.raises(NotImplementedError, match="Raw table not available"):
         next(duck.raw("APP.URLS"))
+
+
+def test_export_duckdb_can_materialize_response_codes_all_without_raw_exports(tmp_path: Path) -> None:
+    target = tmp_path / "response-codes-only.duckdb"
+
+    export_duckdb_from_backend(
+        ProjectedOnlyResponseCodesBackend(),
+        target,
+        tables=(),
+        tabs=("response_codes_all",),
+        source_label="projected-response-codes",
+    )
+    duck = Crawl.from_duckdb(str(target))
+
+    assert duck.tab("response_codes_all").collect() == [
+        {
+            "Address": "https://example.com/ok",
+            "Content Type": "text/html",
+            "Status Code": 200,
+            "Status": "OK",
+            "Indexability": "Indexable",
+            "Indexability Status": None,
+            "Inlinks": 4,
+            "Response Time": 123,
+            "Redirect URL": None,
+            "Redirect Type": None,
+        },
+        {
+            "Address": "https://example.com/redirect",
+            "Content Type": "text/html",
+            "Status Code": 301,
+            "Status": "Moved Permanently",
+            "Indexability": "Indexable",
+            "Indexability Status": None,
+            "Inlinks": 2,
+            "Response Time": 45,
+            "Redirect URL": "https://example.com/final",
+            "Redirect Type": "HTTP Redirect",
+        },
+    ]
+    assert resolve_relation_name(duck._backend.conn, "raw", "APP.URLS") is None
 
 
 def test_single_crawl_duckdb_defaults_to_empty_namespace(tmp_path: Path) -> None:

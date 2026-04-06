@@ -18,6 +18,18 @@ DEFAULT_DUCKDB_TABS: tuple[str, ...] = (
     "redirect_and_canonical_chains",
 )
 _FETCH_BATCH_SIZE = 1000
+_RESPONSE_CODES_FAST_FIELDS: tuple[str, ...] = (
+    "Address",
+    "Content Type",
+    "Status Code",
+    "Status",
+    "Indexability",
+    "Indexability Status",
+    "Inlinks",
+    "Response Time",
+    "Redirect URL",
+    "Redirect Type",
+)
 
 
 def export_duckdb_from_derby(
@@ -220,7 +232,9 @@ def export_duckdb_from_backend(
             if ("tab", normalized) in exported_keys:
                 continue
             relation_name = _tab_relation_name(normalized, namespace=normalized_namespace)
-            rows = backend.get_tab(normalized)
+            rows = _fast_tab_rows_from_backend(backend, normalized)
+            if rows is None:
+                rows = backend.get_tab(normalized)
             if _write_relation(conn, relation_name, rows):
                 exported_objects.append((normalized, "tab", relation_name))
                 exported_keys.add(("tab", normalized))
@@ -242,6 +256,32 @@ def iter_relation_rows(conn: Any, relation_name: str) -> Iterator[dict[str, Any]
     columns = [desc[0] for desc in cursor.description or []]
     for row in iter_cursor_rows(cursor):
         yield {col: val for col, val in zip(columns, row)}
+
+
+def _fast_tab_rows_from_backend(backend: Any, normalized_tab_name: str) -> Iterator[dict[str, Any]] | None:
+    tab_name = _normalize_tab_name(normalized_tab_name)
+    if tab_name == "response_codes_all.csv":
+        projected_internal = getattr(backend, "iter_internal_projection", None)
+        if not callable(projected_internal):
+            return None
+        try:
+            iterator = iter(projected_internal(_RESPONSE_CODES_FAST_FIELDS))
+            first_row = next(iterator)
+        except StopIteration:
+            return iter(())
+        except Exception:
+            return None
+        return _iter_buffered_fast_rows(first_row, iterator)
+    return None
+
+
+def _iter_buffered_fast_rows(
+    first_row: Mapping[str, Any],
+    remaining_rows: Iterator[Mapping[str, Any]],
+) -> Iterator[dict[str, Any]]:
+    yield {field: first_row.get(field) for field in _RESPONSE_CODES_FAST_FIELDS}
+    for row in remaining_rows:
+        yield {field: row.get(field) for field in _RESPONSE_CODES_FAST_FIELDS}
 
 
 def list_exported_tabs(conn: Any) -> list[str]:

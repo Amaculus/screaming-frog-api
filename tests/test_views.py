@@ -234,6 +234,9 @@ def test_links_rejects_invalid_direction(tmp_path: Path) -> None:
 
 
 class FakeBackend(CrawlBackend):
+    def __init__(self) -> None:
+        self.closed = False
+
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         yield InternalPage.from_data({"Address": "https://example.com/internal", "Status Code": 200})
 
@@ -259,6 +262,9 @@ class FakeBackend(CrawlBackend):
 
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
         yield {"Address": "https://example.com/query", "Status Code": 202}
+
+    def close(self) -> None:
+        self.closed = True
 
 
 def test_view_dataframe_exports(monkeypatch) -> None:
@@ -309,3 +315,12 @@ def test_internal_search_uses_page_data() -> None:
     rows = crawl.internal.search("internal", fields=["Address"]).collect()
 
     assert rows[0].address == "https://example.com/internal"
+
+
+def test_crawl_context_manager_closes_backend() -> None:
+    backend = FakeBackend()
+
+    with Crawl(backend) as crawl:
+        assert crawl.internal.first().address == "https://example.com/internal"
+
+    assert backend.closed is True

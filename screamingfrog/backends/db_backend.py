@@ -144,6 +144,16 @@ class DatabaseBackend(CrawlBackend):
         for row in _iter_cursor_rows(cursor):
             yield {col: val for col, val in zip(columns, row)}
 
+    def close(self) -> None:
+        conn = getattr(self, "conn", None)
+        if conn is None:
+            return
+        try:
+            conn.close()
+        except Exception:
+            pass
+        self.conn = None
+
     def _get_table_columns(self, table_name: str) -> list[str]:
         cursor = self.conn.execute(f"PRAGMA table_info({table_name});")
         return [row[1] for row in cursor.fetchall()]

@@ -64,6 +64,14 @@ class HybridBackend(CrawlBackend):
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterable[dict[str, Any]]:
         return self._primary.sql(query, params=params)
 
+    def close(self) -> None:
+        primary = getattr(self, "_primary", None)
+        if primary is None:
+            return
+        close = getattr(primary, "close", None)
+        if callable(close):
+            close()
+
     def get_tab(
         self, tab_name: str, filters: Optional[dict[str, Any]] = None
     ) -> Iterable[dict[str, Any]]:
