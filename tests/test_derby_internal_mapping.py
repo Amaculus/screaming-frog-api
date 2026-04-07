@@ -36,6 +36,10 @@ class _MetadataCursor:
         self.closed = True
 
 
+class _NonIterableMetadataCursor(_MetadataCursor):
+    __iter__ = None
+
+
 class _MetadataConnection:
     def __init__(self, cursor: _MetadataCursor) -> None:
         self._cursor = cursor
@@ -369,6 +373,15 @@ def test_fetch_existing_tables_reads_schema_names_from_sysschemas() -> None:
     tables = _fetch_existing_tables(_MetadataConnection(cursor))
 
     assert "JOIN SYS.SYSSCHEMAS s ON t.SCHEMAID = s.SCHEMAID" in str(cursor.executed_sql)
+    assert tables == frozenset({"APP.URLS", "APP.PAGE_SPEED_API"})
+    assert cursor.closed is True
+
+
+def test_fetch_existing_tables_handles_non_iterable_jaydebeapi_style_cursor() -> None:
+    cursor = _NonIterableMetadataCursor([("APP.URLS",), ("APP.PAGE_SPEED_API",)])
+
+    tables = _fetch_existing_tables(_MetadataConnection(cursor))
+
     assert tables == frozenset({"APP.URLS", "APP.PAGE_SPEED_API"})
     assert cursor.closed is True
 

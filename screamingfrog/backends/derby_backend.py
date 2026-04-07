@@ -3188,7 +3188,7 @@ def _fetch_existing_tables(conn) -> frozenset[str]:
         )
         tables: set[str] = set()
         try:
-            for row in cursor:
+            for row in cursor.fetchall():
                 if row and row[0]:
                     tables.add(str(row[0]).upper())
         finally:
