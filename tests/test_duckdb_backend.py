@@ -682,7 +682,7 @@ def test_export_and_load_duckdb_cache(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl.duckdb"
 
-    exported = crawl.export_duckdb(str(target), source_label="fake-crawl")
+    exported = crawl.export_duckdb(str(target), source_label="fake-crawl", profile="full")
     duck = Crawl.from_duckdb(str(exported))
 
     assert exported.exists()
@@ -698,6 +698,55 @@ def test_export_and_load_duckdb_cache(tmp_path: Path) -> None:
         .collect()
         == [{"ENCODED_URL": "https://example.com/broken", "RESPONSE_CODE": 404}]
     )
+
+
+def test_export_and_load_portable_duckdb_cache(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-portable.duckdb"
+
+    exported = crawl.export_duckdb(str(target), source_label="fake-crawl")
+    duck = Crawl.from_duckdb(str(exported))
+
+    assert exported.exists()
+    assert duck.tabs == []
+    broken_rows = duck.pages().filter(status_code=404).collect()
+    assert len(broken_rows) == 1
+    assert broken_rows[0]["Address"] == "https://example.com/broken"
+    assert broken_rows[0]["Status Code"] == 404
+    assert broken_rows[0]["Title 1"] == ""
+    assert duck.pages().select("Address", "Title 1").collect() == [
+        {"Address": "https://example.com/ok", "Title 1": "OK"},
+        {"Address": "https://example.com/broken", "Title 1": ""},
+    ]
+    assert duck.links("in").select("Source", "Address", "Status Code", "Anchor").collect() == [
+        {
+            "Source": "https://example.com/source",
+            "Address": "https://example.com/broken",
+            "Status Code": 404,
+            "Anchor": "Broken link",
+        }
+    ]
+    with pytest.raises(NotImplementedError, match="Raw table not available"):
+        next(duck.raw("APP.URLS"))
+
+
+def test_export_duckdb_tabs_do_not_implicitly_export_raw_tables(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-tabs-only.duckdb"
+
+    exported = crawl.export_duckdb(
+        str(target),
+        source_label="fake-crawl",
+        tabs=("internal_all",),
+        profile="full",
+    )
+    duck = Crawl.from_duckdb(str(exported))
+
+    assert duck.pages().filter(status_code=404).collect() == [
+        {"Address": "https://example.com/broken", "Status Code": 404, "Title 1": ""}
+    ]
+    with pytest.raises(NotImplementedError, match="Raw table not available"):
+        next(duck.raw("APP.URLS"))
 
 
 def test_export_duckdb_respects_explicit_empty_raw_table_list(tmp_path: Path) -> None:
@@ -1024,7 +1073,7 @@ def test_duckdb_projected_link_view_uses_links_core_without_link_tabs(tmp_path: 
 def test_duckdb_backend_supports_links_and_chain_reports(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl.duckdb"
-    crawl.export_duckdb(str(target), source_label="fake-crawl")
+    crawl.export_duckdb(str(target), source_label="fake-crawl", profile="full")
 
     duck = Crawl.load(str(target))
 
@@ -1116,7 +1165,7 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
     crawl = Crawl(MinimalDuckReportBackend())
     target = tmp_path / "crawl-minimal.duckdb"
 
-    crawl.export_duckdb(str(target), source_label="minimal", tabs=("internal_all",))
+    crawl.export_duckdb(str(target), source_label="minimal")
     duck = Crawl.from_duckdb(str(target))
 
     broken = duck.broken_inlinks_report()
@@ -1130,7 +1179,7 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
     indexable_orphans = duck.orphan_pages_report(only_indexable=True)
     summary = duck.summary()
 
-    assert broken == [
+    assert sorted(broken, key=lambda row: row["Address"]) == [
         {
             "Type": "Hyperlink",
             "Source": "https://example.com/nav",
@@ -1221,7 +1270,10 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
     assert [(link.source, link.destination, link.anchor_text) for link in inlinks] == [
         ("https://example.com/nav", "https://example.com/broken-page", "Broken internal")
     ]
-    assert [(link.source, link.destination, link.anchor_text) for link in outlinks] == [
+    assert sorted(
+        ((link.source, link.destination, link.anchor_text) for link in outlinks),
+        key=lambda row: row[1],
+    ) == [
         ("https://example.com/nav", "https://example.com/broken-page", "Broken internal"),
         ("https://example.com/nav", "https://example.com/broken-target", "Broken"),
         ("https://example.com/nav", "https://example.com/home", "Home"),
@@ -1250,7 +1302,7 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
     assert [row["Address"] for row in indexable_orphans] == ["https://example.com/orphan"]
     assert summary == {
         "pages": 4,
-        "tabs": 1,
+        "tabs": 0,
         "broken_pages": 1,
         "broken_inlinks": 2,
         "nofollow_inlinks": 1,

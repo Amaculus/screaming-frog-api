@@ -138,11 +138,16 @@ rows = (
     .where("RESPONSE_CODE >= ?", 400)
     .collect()
 )
+
+# if you want the old wide export (raw APP tables + default tabs), opt in explicitly
+derby_crawl.export_duckdb("./crawl-full.duckdb", profile="full", if_exists="replace")
 ```
 
 Notes:
 - Derby remains the source-of-truth crawl store.
 - DuckDB is the default analysis engine for DB-backed workflows.
+- `crawl.export_duckdb()` now defaults to a portable helper cache instead of a full raw mirror, so exported `.duckdb` files open much faster and still support the main page/link/diff/report workflows.
+- Use `profile="full"` when you explicitly want raw `APP.*` tables plus the default materialized tabs inside the exported `.duckdb`.
 - Default DB-backed loads now create a tiny sidecar DuckDB cache first, keep Derby prewarmed as the lazy source backend, and only materialize heavier relations if you actually ask for them.
 - DuckDB caches can now store multiple crawls in one `.duckdb` file via namespaces; pass `namespace=...` on export and `Crawl.from_duckdb(..., namespace=...)` on load.
 - Repeated DB-backed loads in the same Python process now reuse the cached Derby source backend for the same crawl fingerprint, so reopening the same crawl avoids paying Derby startup again.

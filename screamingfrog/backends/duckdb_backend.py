@@ -117,6 +117,16 @@ class DuckDBBackend(CrawlBackend):
             if source_backend is not None:
                 yield from source_backend.get_internal(filters=filters)
                 return
+            common_relation = self.ensure_helper_relation("internal_common")
+            if common_relation:
+                for row in self._iter_relation(common_relation, filters=filters):
+                    yield InternalPage.from_data(row, copy_data=False)
+                return
+            basic_relation = self.ensure_helper_relation("internal_basic")
+            if basic_relation:
+                for row in self._iter_relation(basic_relation, filters=filters):
+                    yield InternalPage.from_data(row, copy_data=False)
+                return
             if not self.ensure_internal():
                 raise NotImplementedError(
                     "DuckDB cache does not include internal_all and no lazy source is configured."
@@ -723,9 +733,25 @@ def _iter_internal_basic_rows_from_source(source_backend: Any) -> Iterator[dict[
             return
         except Exception:
             pass
+    if hasattr(source_backend, "get_internal"):
+        try:
+            for page in source_backend.get_internal():
+                address = getattr(page, "address", None)
+                if not address:
+                    continue
+                yield {
+                    "Address": address,
+                    "Status Code": getattr(page, "status_code", None),
+                }
+            return
+        except Exception:
+            pass
     if not hasattr(source_backend, "raw"):
         return
     for row in source_backend.raw("APP.URLS"):
+        is_internal = row.get("IS_INTERNAL")
+        if is_internal is False or is_internal == 0:
+            continue
         address = row.get("ENCODED_URL") or row.get("Address")
         if not address:
             continue

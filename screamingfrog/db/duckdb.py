@@ -18,6 +18,15 @@ DEFAULT_DUCKDB_TABS: tuple[str, ...] = (
     "canonical_chains",
     "redirect_and_canonical_chains",
 )
+DEFAULT_DUCKDB_HELPERS: tuple[str, ...] = (
+    "internal_basic",
+    "internal_common",
+    "links_core",
+    "chain_url_info",
+    "redirect_edges",
+    "canonical_edges",
+    "chain_inlinks",
+)
 _FETCH_BATCH_SIZE = 1000
 _RESPONSE_CODES_FAST_FIELDS: tuple[str, ...] = (
     "Address",
@@ -58,6 +67,7 @@ def export_duckdb_from_derby(
     *,
     tables: Sequence[str] | None = None,
     tabs: Sequence[str] | str | None = None,
+    helpers: Sequence[str] | None = None,
     if_exists: str = "auto",
     source_label: str | None = None,
     namespace: str | None = None,
@@ -73,6 +83,7 @@ def export_duckdb_from_derby(
         duckdb_path,
         tables=tables,
         tabs=tabs,
+        helpers=helpers,
         if_exists=if_exists,
         source_label=label,
         source_fingerprint=_source_fingerprint(Path(db_path)),
@@ -86,6 +97,7 @@ def export_duckdb_from_db_id(
     *,
     tables: Sequence[str] | None = None,
     tabs: Sequence[str] | str | None = None,
+    helpers: Sequence[str] | None = None,
     if_exists: str = "auto",
     project_root: str | Path | None = None,
     namespace: str | None = None,
@@ -98,6 +110,7 @@ def export_duckdb_from_db_id(
         duckdb_path,
         tables=tables,
         tabs=tabs,
+        helpers=helpers,
         if_exists=if_exists,
         source_label=db_id,
         namespace=namespace,
@@ -184,6 +197,7 @@ def export_duckdb_from_backend(
     *,
     tables: Sequence[str] | None = None,
     tabs: Sequence[str] | str | None = None,
+    helpers: Sequence[str] | None = None,
     if_exists: str = "replace",
     source_label: str | None = None,
     source_fingerprint: str | None = None,
@@ -193,9 +207,15 @@ def export_duckdb_from_backend(
     if mode not in {"replace", "skip", "auto"}:
         raise ValueError("if_exists must be 'replace', 'skip', or 'auto'")
 
-    relation_tables = DEFAULT_DUCKDB_TABLES if tables is None else tuple(tables)
-    materialized_tabs = _resolve_export_tabs(backend, tabs)
-    explicit_exports = tables is not None or tabs is not None
+    explicit_exports = tables is not None or tabs is not None or helpers is not None
+    if explicit_exports:
+        relation_tables = tuple(tables or ())
+        materialized_tabs = _resolve_export_tabs(backend, tabs) if tabs is not None else ()
+        helper_names = tuple(str(name).strip().lower() for name in (helpers or ()) if str(name).strip())
+    else:
+        relation_tables = DEFAULT_DUCKDB_TABLES
+        materialized_tabs = _resolve_export_tabs(backend, None)
+        helper_names = ()
     target = Path(duckdb_path)
     target.parent.mkdir(parents=True, exist_ok=True)
     normalized_namespace = _normalize_namespace(namespace)
@@ -220,13 +240,21 @@ def export_duckdb_from_backend(
         requested_keys.update(
             ("tab", _normalize_export_name("tab", tab_name)) for tab_name in materialized_tabs
         )
+        requested_helpers = tuple(dict.fromkeys(helper_names))
         if existing and mode == "skip":
             return target
         if same_source and mode == "auto":
             if not explicit_exports:
                 return target
             available_keys = {(kind, export_name) for export_name, kind, _ in existing_objects}
-            if requested_keys.issubset(available_keys):
+            helper_relations_ready = all(
+                _relation_exists(
+                    conn,
+                    _helper_relation_name(helper_name, namespace=normalized_namespace),
+                )
+                for helper_name in requested_helpers
+            )
+            if requested_keys.issubset(available_keys) and helper_relations_ready:
                 return target
 
         if existing and mode in {"replace", "auto"} and not same_source:
@@ -258,6 +286,14 @@ def export_duckdb_from_backend(
             if _write_relation(conn, relation_name, rows):
                 exported_objects.append((normalized, "tab", relation_name))
                 exported_keys.add(("tab", normalized))
+
+        if requested_helpers:
+            _write_helper_relations_from_backend(
+                conn,
+                backend,
+                requested_helpers,
+                namespace=normalized_namespace,
+            )
 
         _store_export_metadata(
             conn,
@@ -389,6 +425,130 @@ def _write_relation(conn: Any, relation_name: str, rows: Iterable[Mapping[str, A
     _insert_rows(conn, relation_name, columns, buffered)
     _insert_rows(conn, relation_name, columns, iterator)
     return True
+
+
+def _write_helper_relations_from_backend(
+    conn: Any,
+    backend: Any,
+    helper_names: Sequence[str],
+    *,
+    namespace: str | None = None,
+) -> None:
+    if not helper_names:
+        return
+
+    from screamingfrog.backends.duckdb_backend import (
+        _CHAIN_HELPER_SCHEMAS,
+        _build_chain_helper_bundle_from_source,
+        _create_empty_helper_relation,
+        _iter_internal_basic_rows_from_source,
+        _iter_internal_common_rows_from_source,
+        _iter_links_core_rows_from_source,
+    )
+
+    normalized = tuple(dict.fromkeys(str(name).strip().lower() for name in helper_names if str(name).strip()))
+    chain_requested = any(name in _CHAIN_HELPER_SCHEMAS for name in normalized)
+    chain_bundle: dict[str, list[dict[str, Any]]] | None = None
+    if chain_requested:
+        chain_bundle = _build_chain_helper_bundle_from_source(backend)
+
+    basic_schema = (("Address", "VARCHAR"), ("Status Code", "BIGINT"))
+    common_schema = tuple(
+        (field_name, "BIGINT" if field_name in {"Status Code", "Word Count", "Response Time"} else "VARCHAR")
+        for field_name in (
+            "Address",
+            "Status Code",
+            "Status",
+            "Title 1",
+            "Title",
+            "Meta Description 1",
+            "Meta Description",
+            "Meta Keywords 1",
+            "Meta Keywords",
+            "Meta Refresh 1",
+            "Meta Refresh",
+            "Canonical Link Element 1",
+            "Canonical Link Element",
+            "Canonical",
+            "Indexability",
+            "Indexability Status",
+            "Meta Robots 1",
+            "Meta Robots",
+            "X-Robots-Tag 1",
+            "X-Robots-Tag",
+            "H1-1",
+            "H1 1",
+            "H1",
+            "H2-1",
+            "H2 1",
+            "H2",
+            "H3-1",
+            "H3 1",
+            "H3",
+            "Word Count",
+            "Redirect URL",
+            "Redirect URI",
+            "Redirect Destination",
+            "Redirect Type",
+            "HTTP Canonical",
+            "HTTP_CANONICAL",
+            "HTTP_RESPONSE_HEADER_COLLECTION",
+            "Response Time",
+            "Last Modified",
+            "URL Encoded Address",
+            "Encoded URL",
+            "Crawl Timestamp",
+        )
+    )
+    links_core_schema = (
+        ("Type", "VARCHAR"),
+        ("Source", "VARCHAR"),
+        ("Address", "VARCHAR"),
+        ("Destination", "VARCHAR"),
+        ("Alt Text", "VARCHAR"),
+        ("Anchor", "VARCHAR"),
+        ("Status Code", "BIGINT"),
+        ("Status", "VARCHAR"),
+        ("Follow", "BOOLEAN"),
+        ("Target", "VARCHAR"),
+        ("Rel", "VARCHAR"),
+        ("Path Type", "VARCHAR"),
+        ("Link Path", "VARCHAR"),
+        ("Link Position", "BIGINT"),
+        ("hreflang", "VARCHAR"),
+        ("Link Type", "BIGINT"),
+        ("Scope", "VARCHAR"),
+        ("Origin", "VARCHAR"),
+        ("NoFollow", "BOOLEAN"),
+        ("UGC", "BOOLEAN"),
+        ("Sponsored", "BOOLEAN"),
+        ("Noopener", "BOOLEAN"),
+        ("Noreferrer", "BOOLEAN"),
+    )
+
+    for helper_name in normalized:
+        relation_name = _helper_relation_name(helper_name, namespace=namespace)
+        if _relation_exists(conn, relation_name):
+            continue
+        if helper_name == "internal_basic":
+            rows = _iter_internal_basic_rows_from_source(backend)
+            if not _write_relation(conn, relation_name, rows):
+                _create_empty_helper_relation(conn, relation_name, basic_schema)
+            continue
+        if helper_name == "internal_common":
+            rows = _iter_internal_common_rows_from_source(backend)
+            if not _write_relation(conn, relation_name, rows):
+                _create_empty_helper_relation(conn, relation_name, common_schema)
+            continue
+        if helper_name == "links_core":
+            rows = _iter_links_core_rows_from_source(backend)
+            if not _write_relation(conn, relation_name, rows):
+                _create_empty_helper_relation(conn, relation_name, links_core_schema)
+            continue
+        if helper_name in _CHAIN_HELPER_SCHEMAS:
+            rows = iter((chain_bundle or {}).get(helper_name, ()))
+            if not _write_relation(conn, relation_name, rows):
+                _create_empty_helper_relation(conn, relation_name, _CHAIN_HELPER_SCHEMAS[helper_name])
 
 
 def _normalize_export_row(row: Mapping[str, Any]) -> dict[str, Any]:

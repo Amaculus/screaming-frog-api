@@ -20,6 +20,9 @@ from screamingfrog.backends.duckdb_backend import _INTERNAL_COMMON_FIELD_NAMES
 from screamingfrog.backends.hybrid_backend import FallbackConfig
 from screamingfrog.db.derby import find_derby_db_root
 from screamingfrog.db.duckdb import (
+    DEFAULT_DUCKDB_HELPERS,
+    DEFAULT_DUCKDB_TABLES,
+    DEFAULT_DUCKDB_TABS,
     _helper_relation_name,
     _relation_exists,
     _source_fingerprint,
@@ -1346,16 +1349,36 @@ class Crawl:
         *,
         tables: Sequence[str] | None = None,
         tabs: Sequence[str] | str | None = None,
+        helpers: Sequence[str] | None = None,
         if_exists: str = "replace",
         source_label: str | None = None,
         namespace: str | None = None,
+        profile: str = "portable",
     ) -> Path:
         """Export the current crawl into a DuckDB analytics cache."""
+        mode = str(profile).strip().lower()
+        if mode not in {"portable", "full"}:
+            raise ValueError("profile must be 'portable' or 'full'")
+
+        export_tables = tables
+        export_tabs = tabs
+        export_helpers = helpers
+        if tables is None and tabs is None and helpers is None:
+            if mode == "portable":
+                export_tables = ()
+                export_tabs = ()
+                export_helpers = DEFAULT_DUCKDB_HELPERS
+            else:
+                export_tables = DEFAULT_DUCKDB_TABLES
+                export_tabs = DEFAULT_DUCKDB_TABS
+                export_helpers = ()
+
         return export_duckdb_from_backend(
             self._duckdb_export_backend(),
             path,
-            tables=tables,
-            tabs=tabs,
+            tables=export_tables,
+            tabs=export_tabs,
+            helpers=export_helpers,
             if_exists=if_exists,
             source_label=source_label,
             namespace=namespace,
@@ -2929,10 +2952,15 @@ def _duckdb_orphan_rows_for_report(
     if not isinstance(backend, DuckDBBackend):
         return None
 
-    backend.ensure_internal()
-    internal_relation = getattr(backend, "_internal_relation", None)
+    internal_relation = _duckdb_ensure_helper_relation(backend, "internal_common")
+    if not internal_relation:
+        backend.ensure_internal()
+        internal_relation = getattr(backend, "_internal_relation", None)
+    if not internal_relation:
+        internal_relation = _duckdb_ensure_helper_relation(backend, "internal_basic")
     if not internal_relation:
         return None
+    internal_columns = set(backend._get_relation_columns(internal_relation))
 
     all_inlinks_relation = _duckdb_ensure_helper_relation(backend, "links_core")
     if all_inlinks_relation:
@@ -2943,9 +2971,9 @@ def _duckdb_orphan_rows_for_report(
                     SELECT
                         i."Address" AS address,
                         i."Status Code" AS status_code,
-                        i."Title 1" AS title_1,
-                        i."Indexability" AS indexability,
-                        i."Indexability Status" AS indexability_status,
+                        {_duckdb_optional_internal_select(internal_columns, ("Title 1",), "title_1")},
+                        {_duckdb_optional_internal_select(internal_columns, ("Indexability",), "indexability")},
+                        {_duckdb_optional_internal_select(internal_columns, ("Indexability Status",), "indexability_status")},
                         COALESCE(incoming.inlinks, 0) AS inlinks
                     FROM {internal_relation} i
                     LEFT JOIN (
@@ -2961,8 +2989,8 @@ def _duckdb_orphan_rows_for_report(
                 )
             )
         except Exception:
-            rows = []
-        if rows:
+            rows = None
+        if rows is not None:
             shaped: list[dict[str, Any]] = []
             for row in rows:
                 report_row = {
@@ -3338,6 +3366,7 @@ def _duckdb_summary(crawl: Crawl) -> dict[str, Any] | None:
 
     internal_relation = getattr(backend, "_internal_relation", None)
     internal_basic_relation = _duckdb_ensure_helper_relation(backend, "internal_basic")
+    internal_common_relation = _duckdb_ensure_helper_relation(backend, "internal_common")
     count_relation = internal_basic_relation
     if not count_relation and backend.ensure_internal():
         internal_relation = getattr(backend, "_internal_relation", None)
@@ -3353,6 +3382,8 @@ def _duckdb_summary(crawl: Crawl) -> dict[str, Any] | None:
     )
     if internal_relation:
         non_indexable_pages = _duckdb_non_indexable_count(backend, internal_relation)
+    elif internal_common_relation:
+        non_indexable_pages = _duckdb_non_indexable_count(backend, internal_common_relation)
     else:
         source_backend = getattr(backend, "get_lazy_source_backend", lambda: None)()
         if source_backend is not None:
@@ -3499,7 +3530,10 @@ def _duckdb_issue_tab_count_or_none(
 
 
 def _duckdb_non_indexable_count(backend: DuckDBBackend, internal_relation: str) -> int:
-    where_sql = _duckdb_non_indexable_where(set(getattr(backend, "_internal_columns", [])))
+    internal_columns = set(getattr(backend, "_internal_columns", []))
+    if not internal_columns or internal_relation != getattr(backend, "_internal_relation", None):
+        internal_columns = set(backend._get_relation_columns(internal_relation))
+    where_sql = _duckdb_non_indexable_where(internal_columns)
     if not where_sql:
         return 0
     return _duckdb_scalar_count(
