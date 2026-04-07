@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import importlib
+import logging
 from dataclasses import dataclass, replace
+
+logger = logging.getLogger(__name__)
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
 from urllib.parse import urljoin, urlsplit, urlunsplit
@@ -681,6 +684,22 @@ class Crawl:
         self._backend = backend
         self.internal = InternalView(backend)
 
+    @property
+    def backend_source(self) -> str:
+        """Returns the name of the active backend ('duckdb', 'derby', 'hybrid', 'csv')."""
+        if self._backend is None:
+            return "none"
+        backend_type = type(self._backend).__name__.lower()
+        if "duckdb" in backend_type:
+            return "duckdb"
+        if "derby" in backend_type:
+            return "derby"
+        if "hybrid" in backend_type:
+            return "hybrid"
+        if "csv" in backend_type:
+            return "csv"
+        return backend_type
+
     def close(self) -> None:
         close = getattr(self._backend, "close", None)
         if callable(close):
@@ -759,6 +778,17 @@ class Crawl:
                     mapping_path=mapping_path,
                     derby_jar=derby_jar,
                 )
+            # Verify the DuckDB export is complete (has a .success marker)
+            try:
+                from screamingfrog.db.duckdb import verify_duckdb_success_marker
+                if not verify_duckdb_success_marker(str(exported)):
+                    logger.warning(
+                        "DuckDB export to %s has no .success marker - lazy Derby fallback "
+                        "will be active. Query results may mix sources.",
+                        exported,
+                    )
+            except ImportError:
+                pass
             crawl = cls.from_duckdb(str(exported), namespace=duckdb_namespace)
             if isinstance(crawl, Crawl):
                 source_backend = _get_cached_derby_source_backend(
@@ -771,6 +801,10 @@ class Crawl:
                     source_label=source_label,
                     source_backend=source_backend,
                     available_tabs=_available_duckdb_source_tabs(mapping_path),
+                )
+                logger.info(
+                    "Attached lazy Derby source backend for %s (fallback for missing DuckDB tabs)",
+                    source_label or db_path,
                 )
             return crawl
 

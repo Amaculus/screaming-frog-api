@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import logging
 import re
+import threading
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 from typing import Any, Callable, Iterable, Iterator, Mapping, Optional, Sequence
 from urllib.parse import urljoin
 
@@ -85,6 +89,7 @@ class DuckDBBackend(CrawlBackend):
         self.db_path = Path(db_path)
         if not self.db_path.exists():
             raise FileNotFoundError(f"DuckDB database not found: {self.db_path}")
+        self._conn_lock = threading.RLock()
         self._duckdb = _import_duckdb()
         self.namespace = self._resolve_namespace(namespace)
         self._lazy_source_backend: Any | None = None
@@ -92,6 +97,25 @@ class DuckDBBackend(CrawlBackend):
         self._lazy_source_label: str | None = None
         self._available_tabs: tuple[str, ...] | None = None
         self._open_connection()
+        # Health check: verify the DuckDB file is actually valid and queryable.
+        try:
+            with self._conn_lock:
+                self.conn.execute("SELECT 1").fetchone()
+        except Exception as exc:
+            raise RuntimeError(
+                f"DuckDB file at {self.db_path} is corrupted or unreadable: {exc}"
+            ) from exc
+        # Optional: warn if there is no valid .success marker for this export.
+        try:
+            from screamingfrog.db.duckdb import verify_duckdb_success_marker
+            if not verify_duckdb_success_marker(str(self.db_path)):
+                logger.warning(
+                    "DuckDB file %s has no valid .success marker - "
+                    "may be from an incomplete export. Consider re-exporting.",
+                    self.db_path,
+                )
+        except ImportError:
+            pass
         internal_relation = _resolve_tab_relation(self.conn, "internal_all", None, namespace=self.namespace)
         self._internal_relation = internal_relation
         self._internal_columns = self._get_relation_columns(self._internal_relation) if internal_relation else []
@@ -306,6 +330,15 @@ class DuckDBBackend(CrawlBackend):
     def ensure_internal(self) -> bool:
         if self._internal_relation:
             return True
+        if (
+            self._lazy_source_backend is None
+            and self._lazy_source_backend_factory is None
+        ):
+            logger.warning(
+                "ensure_internal() called on %s but no lazy source backend is configured; "
+                "internal_all cannot be materialized.",
+                self.db_path,
+            )
         if not self.ensure_tab("internal_all"):
             return False
         relation = _resolve_tab_relation(self.conn, "internal_all", None, namespace=self.namespace)
@@ -367,7 +400,8 @@ class DuckDBBackend(CrawlBackend):
 
         try:
             helper_rows = _build_chain_helper_bundle_from_source(source_backend)
-        except Exception:
+        except Exception as exc:
+            logger.debug("Failed to build chain helper bundle from source: %s", exc)
             return False
 
         self.conn.close()
@@ -567,16 +601,28 @@ class DuckDBBackend(CrawlBackend):
         return self._lazy_source_backend
 
     def _open_connection(self) -> None:
-        self.conn = self._duckdb.connect(str(self.db_path), read_only=True)
+        with self._conn_lock:
+            self.conn = self._duckdb.connect(str(self.db_path), read_only=True)
 
     def close(self) -> None:
-        conn = getattr(self, "conn", None)
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception:
-                pass
-        self.conn = None
+        with self._conn_lock:
+            conn = getattr(self, "conn", None)
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception as exc:
+                    logger.debug("Error closing DuckDB connection for %s: %s", self.db_path, exc)
+            self.conn = None
+
+    @property
+    def backend_source(self) -> str:
+        """Returns 'duckdb' if internal data is in DuckDB, 'lazy' if using lazy source backend."""
+        if getattr(self, "_internal_relation", None):
+            return "duckdb"
+        if getattr(self, "_lazy_source_backend", None) is not None or \
+           getattr(self, "_lazy_source_backend_factory", None) is not None:
+            return "lazy"
+        return "empty"
 
     def _resolve_namespace(self, namespace: str | None) -> str:
         requested = str(namespace or "").strip().lower()
@@ -588,7 +634,13 @@ class DuckDBBackend(CrawlBackend):
                 )
             return requested
         if len(namespaces) <= 1:
-            return namespaces[0] if namespaces else ""
+            resolved = namespaces[0] if namespaces else ""
+            if not resolved:
+                logger.warning(
+                    "No DuckDB namespaces found in %s - falling back to empty namespace.",
+                    self.db_path,
+                )
+            return resolved
         available = ", ".join(namespace or "<default>" for namespace in namespaces)
         raise ValueError(
             f"DuckDB file contains multiple crawl namespaces ({available}). Pass namespace=... to select one."

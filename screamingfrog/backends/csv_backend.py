@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import csv
+import logging
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
 
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.filters.names import make_tab_filename, normalize_name
 from screamingfrog.models import InternalPage, Link
+
+logger = logging.getLogger(__name__)
+
+_EXPECTED_CORE_COLUMNS = {"Address", "Status Code"}
 
 
 _INTERNAL_FILE_CANDIDATES = [
@@ -33,6 +38,11 @@ class CSVBackend(CrawlBackend):
         csv_path = self._resolve_internal_file()
         with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
             reader = csv.DictReader(handle)
+            fieldnames = reader.fieldnames or []
+            if not fieldnames:
+                raise ValueError(f"CSV file {csv_path} has no header row")
+            logger.debug("CSV %s columns: %s", csv_path.name, fieldnames)
+            _validate_csv_headers(csv_path, fieldnames, _EXPECTED_CORE_COLUMNS)
             for row in reader:
                 if not _row_matches(row, filters, _INTERNAL_FILTER_MAP):
                     continue
@@ -70,7 +80,11 @@ class CSVBackend(CrawlBackend):
             csv_path = self._resolve_tab_file(tab_name)
         with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
             reader = csv.DictReader(handle)
-            header_map = _build_header_map(reader.fieldnames or [])
+            fieldnames = reader.fieldnames or []
+            if not fieldnames:
+                raise ValueError(f"CSV file {csv_path} has no header row")
+            logger.debug("CSV %s columns: %s", csv_path.name, fieldnames)
+            header_map = _build_header_map(fieldnames)
             for row in reader:
                 if not _row_matches(row, filters, header_map):
                     continue
@@ -176,6 +190,18 @@ def _row_matches(
 
 def _normalize_key(value: str) -> str:
     return value.strip().lower().replace(" ", "_")
+
+
+def _validate_csv_headers(csv_path: Path, fieldnames: Sequence[str], expected: set[str]) -> None:
+    """Validate CSV headers contain expected columns."""
+    actual = set(fieldnames or [])
+    missing = expected - actual
+    if missing:
+        raise ValueError(
+            f"CSV {csv_path.name} missing required columns: {sorted(missing)}. "
+            f"Got: {sorted(actual)}. "
+            f"This may indicate a Screaming Frog export format mismatch."
+        )
 
 
 def _build_header_map(headers: list[str]) -> dict[str, str]:

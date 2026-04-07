@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import atexit
 import gzip
 import json
+import logging
 import os
 import re
 import tempfile
+import threading
+import weakref
 import zipfile
 import zlib
 from collections import defaultdict
@@ -13,6 +17,27 @@ from typing import Any, Iterator, Optional, Sequence
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from screamingfrog.backends.base import CrawlBackend
+
+logger = logging.getLogger(__name__)
+
+# Track live DerbyBackend instances so we can close them on process exit,
+# releasing Derby's db.lck file even on unexpected termination.
+_LIVE_BACKENDS: "weakref.WeakSet[DerbyBackend]" = weakref.WeakSet()
+_LIVE_BACKENDS_LOCK = threading.Lock()
+
+
+def _close_all_live_backends() -> None:
+    """Close all live DerbyBackend instances. Called at process exit."""
+    with _LIVE_BACKENDS_LOCK:
+        backends = list(_LIVE_BACKENDS)
+    for backend in backends:
+        try:
+            backend.close()
+        except Exception as exc:
+            logger.warning("atexit: failed to close Derby backend: %s", exc)
+
+
+atexit.register(_close_all_live_backends)
 from screamingfrog.db.derby import (
     ensure_java_home,
     extract_dbseospider,
@@ -159,6 +184,9 @@ _DERBY_BOOLEAN_SQL_COLUMNS = {
 class DerbyBackend(CrawlBackend):
     """Backend that queries the Apache Derby database inside .dbseospider crawls."""
 
+    # Derby has a hard limit of approximately 4000 expressions in a single SELECT
+    # list (error XCL41). We cap at 1000 to leave headroom for joins, WHERE clauses,
+    # and Derby's internal expression expansion.
     _DERBY_SELECT_LIMIT = 1000
     _INTERNAL_OVERFLOW_BATCH_SIZE = 100
 
@@ -179,41 +207,59 @@ class DerbyBackend(CrawlBackend):
         self._table, self._column_map = _resolve_internal_mapping(self._mapping)
         self._derby_jars = resolve_derby_jars(derby_jar)
         self._conn = _connect_derby(self._db_root, self._derby_jars)
-        self._internal_columns = _fetch_column_names(self._conn, self._table)
-        self._internal_is_internal_col = _resolve_column_name(
-            self._internal_columns, "IS_INTERNAL"
-        )
-        self._internal_alias_map = _resolve_internal_alias_map(
-            self._mapping, self._table, self._internal_columns
-        )
-        self._internal_header_extract_map = _resolve_internal_header_extract_map(
-            self._mapping, self._table
-        )
-        all_internal_expr_selects = _resolve_internal_expression_selects(
-            self._mapping, self._table
-        )
-        self._existing_tables: frozenset[str] = _fetch_existing_tables(self._conn)
-        self._known_table_columns: dict[str, frozenset[str]] = _fetch_table_column_sets(
-            self._conn, self._existing_tables
-        )
-        self._internal_missing_expr_names = {
-            csv_col
-            for _alias, csv_col, expr in all_internal_expr_selects
-            if _expression_references_absent_table(expr, self._existing_tables)
-            or _expression_references_absent_column(
-                expr,
-                getattr(self, "_known_table_columns", {}),
-                default_table=self._table,
+        try:
+            self._internal_columns = _fetch_column_names(self._conn, self._table)
+            self._internal_is_internal_col = _resolve_column_name(
+                self._internal_columns, "IS_INTERNAL"
             )
-        }
-        self._internal_unavailable_expr_keys = {
-            _normalize_key(csv_col) for csv_col in self._internal_missing_expr_names
-        }
-        self._internal_expr_selects = [
-            (alias, csv_col, expr)
-            for alias, csv_col, expr in all_internal_expr_selects
-            if csv_col not in self._internal_missing_expr_names
-        ]
+            if self._internal_is_internal_col is None:
+                logger.warning(
+                    "Derby column IS_INTERNAL not found in %s - internal/external "
+                    "filtering may be disabled. This may indicate a Screaming Frog "
+                    "version mismatch.",
+                    getattr(self, "db_path", "<unknown>"),
+                )
+            self._internal_alias_map = _resolve_internal_alias_map(
+                self._mapping, self._table, self._internal_columns
+            )
+            self._internal_header_extract_map = _resolve_internal_header_extract_map(
+                self._mapping, self._table
+            )
+            all_internal_expr_selects = _resolve_internal_expression_selects(
+                self._mapping, self._table
+            )
+            self._existing_tables: frozenset[str] = _fetch_existing_tables(self._conn)
+            self._known_table_columns: dict[str, frozenset[str]] = _fetch_table_column_sets(
+                self._conn, self._existing_tables
+            )
+            self._internal_missing_expr_names = {
+                csv_col
+                for _alias, csv_col, expr in all_internal_expr_selects
+                if _expression_references_absent_table(expr, self._existing_tables)
+                or _expression_references_absent_column(
+                    expr,
+                    getattr(self, "_known_table_columns", {}),
+                    default_table=self._table,
+                )
+            }
+            self._internal_unavailable_expr_keys = {
+                _normalize_key(csv_col) for csv_col in self._internal_missing_expr_names
+            }
+            self._internal_expr_selects = [
+                (alias, csv_col, expr)
+                for alias, csv_col, expr in all_internal_expr_selects
+                if csv_col not in self._internal_missing_expr_names
+            ]
+            with _LIVE_BACKENDS_LOCK:
+                _LIVE_BACKENDS.add(self)
+        except Exception:
+            try:
+                self.close()
+            except Exception as close_exc:
+                logger.warning(
+                    "Failed to close Derby backend during init cleanup: %s", close_exc
+                )
+            raise
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         table_alias = "sf_internal"
@@ -539,14 +585,23 @@ class DerbyBackend(CrawlBackend):
             yield {field: data.get(field) for field in requested}
 
     def close(self) -> None:
+        """Close the JDBC connection and release the Derby lock."""
         conn = getattr(self, "_conn", None)
-        if conn is None:
-            return
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception as exc:
+                logger.warning(
+                    "Failed to close Derby connection for %s: %s",
+                    getattr(self, "db_path", "<unknown>"),
+                    exc,
+                )
+            self._conn = None
         try:
-            conn.close()
+            with _LIVE_BACKENDS_LOCK:
+                _LIVE_BACKENDS.discard(self)
         except Exception:
             pass
-        self._conn = None
 
     def _internal_row_key_column(self) -> str | None:
         return _resolve_column_name(self._internal_columns, "ID") or _resolve_column_name(
@@ -3141,6 +3196,7 @@ def _preferred_tables(table_counts: dict[str, int]) -> list[str]:
 
 def _fetch_existing_tables(conn) -> frozenset[str]:
     """Return uppercase SCHEMA.TABLE names for every base table in the Derby database."""
+    result: set[str] = set()
     try:
         cursor = conn.cursor()
         cursor.execute(
@@ -3149,8 +3205,21 @@ def _fetch_existing_tables(conn) -> frozenset[str]:
             "JOIN SYS.SYSSCHEMAS s ON t.SCHEMAID = s.SCHEMAID "
             "WHERE t.TABLETYPE = 'T'"
         )
-        return frozenset(str(row[0]).upper() for row in cursor.fetchall() if row and row[0])
-    except Exception:
+        try:
+            # Iterate the cursor to avoid fetchall() loading everything at once
+            # on very large Derby databases. JDBC cursors via jaydebeapi support
+            # __iter__ natively.
+            for row in cursor:
+                if row and row[0]:
+                    result.add(str(row[0]).upper())
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        return frozenset(result)
+    except Exception as exc:
+        logger.warning("Failed to fetch existing Derby tables: %s", exc)
         return frozenset()
 
 
@@ -3304,7 +3373,8 @@ def _fetch_table_column_sets(
     for table in tables:
         try:
             columns = _fetch_column_names(conn, table)
-        except Exception:
+        except Exception as exc:
+            logger.debug("Skipping Derby table %s during column scan: %s", table, exc)
             continue
         result[_normalize_table_reference(table)] = frozenset(
             str(column).strip().upper()
@@ -3402,6 +3472,18 @@ def _resolve_column_name(columns: Sequence[str], target: str) -> str | None:
         if str(column).strip().lower() == target_norm:
             return str(column)
     return None
+
+
+def _require_column_name(columns: Sequence[str], target: str, context: str) -> str:
+    """Resolve a column name, raising KeyError if missing."""
+    result = _resolve_column_name(columns, target)
+    if result is None:
+        raise KeyError(
+            f"Required column {target!r} not found in {context}. "
+            f"Available columns: {sorted(columns)}. "
+            f"This may indicate a Screaming Frog version mismatch."
+        )
+    return result
 
 
 def _iter_cursor_rows(cursor, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:

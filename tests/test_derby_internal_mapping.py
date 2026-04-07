@@ -21,12 +21,22 @@ class _MetadataCursor:
     def __init__(self, rows: list[tuple[str, ...]]) -> None:
         self._rows = rows
         self.executed_sql: str | None = None
+        self.closed = False
 
     def execute(self, sql: str) -> None:
         self.executed_sql = sql
 
     def fetchall(self) -> list[tuple[str, ...]]:
         return list(self._rows)
+
+    def __iter__(self):
+        # Mirror JDBC cursor behaviour used by _fetch_existing_tables(): consume
+        # rows via iteration instead of fetchall() so very large Derby databases
+        # do not load every row into memory at once.
+        return iter(self._rows)
+
+    def close(self) -> None:
+        self.closed = True
 
 
 class _MetadataConnection:

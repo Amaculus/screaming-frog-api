@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Optional, Sequence
+
+logger = logging.getLogger(__name__)
 
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.backends.csv_backend import CSVBackend
@@ -39,6 +42,12 @@ class HybridBackend(CrawlBackend):
         self._fallback = fallback
         self._schema_dir = _resolve_schema_dir()
         self._warned: set[str] = set()
+        self._last_source: str = "primary"
+
+    @property
+    def backend_source(self) -> str:
+        """Returns the source ('primary' or 'fallback') that served the last query."""
+        return self._last_source
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None):
         return self._primary.get_internal(filters=filters)
@@ -78,7 +87,13 @@ class HybridBackend(CrawlBackend):
         filters = dict(filters or {})
         gui_filter = filters.get("__gui__")
         if self._should_fallback(tab_name, gui_filter):
+            logger.info(
+                "HybridBackend: falling back to secondary source for tab=%r filter=%r",
+                tab_name, gui_filter,
+            )
+            self._last_source = "fallback"
             return self._fallback_tab(tab_name, filters)
+        self._last_source = "primary"
         return self._primary.get_tab(tab_name, filters=filters)
 
     def _should_fallback(self, tab_name: str, gui_filter: Any) -> bool:

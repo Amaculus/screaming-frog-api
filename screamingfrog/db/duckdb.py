@@ -1,11 +1,52 @@
 from __future__ import annotations
 
 import json
+import logging
+import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
 
 from screamingfrog.db.packaging import find_project_dir
+
+logger = logging.getLogger(__name__)
+
+# Whitelist: only accept uppercase identifiers for Derby/DuckDB table and schema names.
+_SAFE_IDENT_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+
+
+def _assert_safe_ident(name: str, context: str = "identifier") -> str:
+    """Validate a Derby/DuckDB identifier against a strict whitelist."""
+    if not isinstance(name, str) or not _SAFE_IDENT_RE.match(name.upper()):
+        raise ValueError(f"Unsafe {context}: {name!r}")
+    return name.upper()
+
+
+def _assert_safe_relation(name: str) -> str:
+    """Validate a dot-separated relation name (namespace.table or schema.table)."""
+    if not isinstance(name, str):
+        raise ValueError(f"Unsafe relation name: {name!r}")
+    parts = name.split(".")
+    for part in parts:
+        _assert_safe_ident(part, "relation part")
+    return name
+
+
+def verify_duckdb_success_marker(duckdb_path: str | Path) -> bool:
+    """Check if the DuckDB file has a valid .success marker.
+
+    Returns False if the marker is missing or the DuckDB file is newer than
+    the marker (indicating the file was modified after export completed).
+    """
+    duckdb_file = Path(duckdb_path)
+    marker = Path(str(duckdb_path) + ".success")
+    if not marker.exists() or not duckdb_file.exists():
+        return False
+    try:
+        return duckdb_file.stat().st_mtime <= marker.stat().st_mtime + 1.0
+    except OSError:
+        return False
 
 
 DEFAULT_DUCKDB_TABLES: tuple[str, ...] = ("APP.URLS", "APP.LINKS", "APP.UNIQUE_URLS")
@@ -246,12 +287,31 @@ def export_duckdb_from_backend(
             objects=exported_objects,
             namespace=normalized_namespace,
         )
-        return target
     finally:
         conn.close()
 
+    success_marker = Path(str(duckdb_path) + ".success")
+    try:
+        success_marker.write_text(
+            json.dumps({
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "source_label": source_label or "",
+                "source_fingerprint": source_fingerprint or "",
+            }),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        logger.warning("Failed to write success marker for %s: %s", duckdb_path, exc)
+    return target
+
 
 def iter_relation_rows(conn: Any, relation_name: str) -> Iterator[dict[str, Any]]:
+    _assert_safe_relation(relation_name)
+    # NOTE: DuckDB's conn.execute() returns the connection itself (wrapped with
+    # a pending result), not a separate cursor object. Calling .close() on the
+    # returned handle CLOSES THE CONNECTION. Do not add a cursor.close() here.
+    # DuckDB drains the result naturally via iteration; any remaining rows are
+    # cleaned up by GC when the local goes out of scope.
     cursor = conn.execute(f"SELECT * FROM {relation_name}")
     columns = [desc[0] for desc in cursor.description or []]
     for row in iter_cursor_rows(cursor):
@@ -430,6 +490,7 @@ def _duckdb_type_for_value(value: Any) -> str:
 
 
 def _create_relation(conn: Any, relation_name: str, columns: Sequence[str], type_map: Mapping[str, str]) -> None:
+    _assert_safe_relation(relation_name)
     column_sql = ", ".join(
         f'{_quote_identifier(column)} {type_map.get(column, "VARCHAR")}' for column in columns
     )
@@ -442,6 +503,7 @@ def _insert_rows(
     columns: Sequence[str],
     rows: Iterable[Mapping[str, Any]],
 ) -> None:
+    _assert_safe_relation(relation_name)
     placeholders = ", ".join("?" for _ in columns)
     quoted_columns = ", ".join(_quote_identifier(column) for column in columns)
     sql = f"INSERT INTO {relation_name} ({quoted_columns}) VALUES ({placeholders})"
@@ -660,6 +722,7 @@ def _store_export_metadata(
 
 
 def _drop_relation(conn: Any, relation_name: str) -> None:
+    _assert_safe_relation(relation_name)
     conn.execute(f"DROP TABLE IF EXISTS {relation_name}")
 
 
