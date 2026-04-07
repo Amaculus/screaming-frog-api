@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
@@ -30,6 +31,25 @@ _RESPONSE_CODES_FAST_FIELDS: tuple[str, ...] = (
     "Redirect URL",
     "Redirect Type",
 )
+_SAFE_IDENT_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+
+
+def _assert_safe_ident(name: str, context: str = "identifier") -> str:
+    text = str(name or "")
+    normalized = text.upper()
+    if not _SAFE_IDENT_RE.match(normalized):
+        raise ValueError(f"Unsafe {context}: {name!r}")
+    return normalized
+
+
+def _assert_safe_relation(name: str) -> str:
+    text = str(name or "")
+    parts = text.split(".")
+    if not parts or any(not part for part in parts):
+        raise ValueError(f"Unsafe relation name: {name!r}")
+    for part in parts:
+        _assert_safe_ident(part, "relation part")
+    return text
 
 
 def export_duckdb_from_derby(
@@ -252,6 +272,7 @@ def export_duckdb_from_backend(
 
 
 def iter_relation_rows(conn: Any, relation_name: str) -> Iterator[dict[str, Any]]:
+    _assert_safe_relation(relation_name)
     cursor = conn.execute(f"SELECT * FROM {relation_name}")
     columns = [desc[0] for desc in cursor.description or []]
     for row in iter_cursor_rows(cursor):
@@ -430,6 +451,7 @@ def _duckdb_type_for_value(value: Any) -> str:
 
 
 def _create_relation(conn: Any, relation_name: str, columns: Sequence[str], type_map: Mapping[str, str]) -> None:
+    _assert_safe_relation(relation_name)
     column_sql = ", ".join(
         f'{_quote_identifier(column)} {type_map.get(column, "VARCHAR")}' for column in columns
     )
@@ -442,6 +464,7 @@ def _insert_rows(
     columns: Sequence[str],
     rows: Iterable[Mapping[str, Any]],
 ) -> None:
+    _assert_safe_relation(relation_name)
     placeholders = ", ".join("?" for _ in columns)
     quoted_columns = ", ".join(_quote_identifier(column) for column in columns)
     sql = f"INSERT INTO {relation_name} ({quoted_columns}) VALUES ({placeholders})"
@@ -660,6 +683,7 @@ def _store_export_metadata(
 
 
 def _drop_relation(conn: Any, relation_name: str) -> None:
+    _assert_safe_relation(relation_name)
     conn.execute(f"DROP TABLE IF EXISTS {relation_name}")
 
 

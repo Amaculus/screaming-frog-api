@@ -19,6 +19,7 @@ _INTERNAL_FILTER_MAP = {
     "address": "Address",
     "status_code": "Status Code",
 }
+_EXPECTED_INTERNAL_COLUMNS = {"Address", "Status Code"}
 
 
 class CSVBackend(CrawlBackend):
@@ -33,6 +34,10 @@ class CSVBackend(CrawlBackend):
         csv_path = self._resolve_internal_file()
         with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
             reader = csv.DictReader(handle)
+            fieldnames = reader.fieldnames or []
+            if not fieldnames:
+                raise ValueError(f"CSV file {csv_path.name} has no header row")
+            _validate_csv_headers(csv_path, fieldnames, _EXPECTED_INTERNAL_COLUMNS)
             for row in reader:
                 if not _row_matches(row, filters, _INTERNAL_FILTER_MAP):
                     continue
@@ -176,6 +181,16 @@ def _row_matches(
 
 def _normalize_key(value: str) -> str:
     return value.strip().lower().replace(" ", "_")
+
+
+def _validate_csv_headers(csv_path: Path, fieldnames: Sequence[str], expected: set[str]) -> None:
+    actual = set(fieldnames or [])
+    missing = expected - actual
+    if missing:
+        raise ValueError(
+            f"CSV {csv_path.name} missing required columns: {sorted(missing)}. "
+            f"Got: {sorted(actual)}."
+        )
 
 
 def _build_header_map(headers: list[str]) -> dict[str, str]:

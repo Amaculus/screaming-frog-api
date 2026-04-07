@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 from screamingfrog.backends.db_backend import DatabaseBackend, _build_sqlite_where
 from screamingfrog.backends.duckdb_backend import DuckDBBackend
 from screamingfrog.db.duckdb import _convert_duckdb_value, _normalize_export_row, iter_relation_rows
@@ -214,6 +216,14 @@ def test_duckdb_iter_relation_rows_streams_without_fetchall() -> None:
     assert cursor.executed_sql == "SELECT * FROM app.urls"
     assert cursor.fetchall_called == 0
     assert len(cursor.fetchmany_calls) >= 1
+
+
+def test_duckdb_iter_relation_rows_rejects_unsafe_relation_names() -> None:
+    cursor = _FakeCursor(["ENCODED_URL"], [("https://example.com/",)])
+    conn = _FakeConnection([cursor])
+
+    with pytest.raises(ValueError, match="Unsafe relation"):
+        list(iter_relation_rows(conn, "app.urls;drop table app.urls"))
 
 
 def test_convert_duckdb_value_handles_derby_blob_and_clob_objects() -> None:

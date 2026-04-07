@@ -6,6 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Iterator, Optional, Sequence
 
+import pytest
+
 from screamingfrog import Crawl
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.models import InternalPage
@@ -315,6 +317,18 @@ def test_internal_search_uses_page_data() -> None:
     rows = crawl.internal.search("internal", fields=["Address"]).collect()
 
     assert rows[0].address == "https://example.com/internal"
+
+
+def test_csv_internal_requires_core_headers(tmp_path: Path) -> None:
+    _write_csv(
+        tmp_path / "internal_all.csv",
+        [{"Address": "https://example.com/missing-status"}],
+    )
+
+    crawl = Crawl.load(str(tmp_path))
+
+    with pytest.raises(ValueError, match="missing required columns"):
+        list(crawl.internal)
 
 
 def test_crawl_context_manager_closes_backend() -> None:

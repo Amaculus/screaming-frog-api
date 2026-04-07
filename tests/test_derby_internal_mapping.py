@@ -21,12 +21,19 @@ class _MetadataCursor:
     def __init__(self, rows: list[tuple[str, ...]]) -> None:
         self._rows = rows
         self.executed_sql: str | None = None
+        self.closed = False
 
     def execute(self, sql: str) -> None:
         self.executed_sql = sql
 
     def fetchall(self) -> list[tuple[str, ...]]:
         return list(self._rows)
+
+    def __iter__(self):
+        return iter(self._rows)
+
+    def close(self) -> None:
+        self.closed = True
 
 
 class _MetadataConnection:
@@ -363,6 +370,7 @@ def test_fetch_existing_tables_reads_schema_names_from_sysschemas() -> None:
 
     assert "JOIN SYS.SYSSCHEMAS s ON t.SCHEMAID = s.SCHEMAID" in str(cursor.executed_sql)
     assert tables == frozenset({"APP.URLS", "APP.PAGE_SPEED_API"})
+    assert cursor.closed is True
 
 
 def test_expression_references_absent_table_detects_joined_optional_tables() -> None:

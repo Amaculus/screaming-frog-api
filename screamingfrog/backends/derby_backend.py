@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import atexit
 import gzip
 import json
+import logging
 import os
 import re
 import tempfile
+import threading
+import weakref
 import zipfile
 import zlib
 from collections import defaultdict
@@ -22,6 +26,23 @@ from screamingfrog.db.derby import (
 from screamingfrog.filters.names import make_tab_filename, normalize_name
 from screamingfrog.filters.registry import get_filter
 from screamingfrog.models import InternalPage, Link
+
+logger = logging.getLogger(__name__)
+_LIVE_BACKENDS: "weakref.WeakSet[DerbyBackend]" = weakref.WeakSet()
+_LIVE_BACKENDS_LOCK = threading.Lock()
+
+
+def _close_all_live_backends() -> None:
+    with _LIVE_BACKENDS_LOCK:
+        backends = list(_LIVE_BACKENDS)
+    for backend in backends:
+        try:
+            backend.close()
+        except Exception:
+            continue
+
+
+atexit.register(_close_all_live_backends)
 
 
 _INTERNAL_MAPPING_KEY = "internal_all.csv"
@@ -135,7 +156,7 @@ _CARBON_RATING_THRESHOLDS_MG = [
 _TK_ROOT: Any | None = None
 _TK_FONT_CACHE: dict[tuple[str, int, str], Any] = {}
 _CHAIN_MAX_HOPS = 10
-_FETCH_BATCH_SIZE = 1000
+_FETCH_BATCH_SIZE = 10000
 _BLOB_FETCH_BATCH_SIZE = 1
 _APP_URLS_ENCODED_URL_RE = re.compile(r"(?i)\bAPP\.URLS\.ENCODED_URL\b")
 _DERBY_BOOLEAN_SQL_COLUMNS = {
@@ -159,6 +180,8 @@ _DERBY_BOOLEAN_SQL_COLUMNS = {
 class DerbyBackend(CrawlBackend):
     """Backend that queries the Apache Derby database inside .dbseospider crawls."""
 
+    # Derby starts failing around ~4000 expressions in one SELECT list. Keep
+    # the internal projection limit conservative to leave headroom for rewrites.
     _DERBY_SELECT_LIMIT = 1000
     _INTERNAL_OVERFLOW_BATCH_SIZE = 100
 
@@ -179,41 +202,50 @@ class DerbyBackend(CrawlBackend):
         self._table, self._column_map = _resolve_internal_mapping(self._mapping)
         self._derby_jars = resolve_derby_jars(derby_jar)
         self._conn = _connect_derby(self._db_root, self._derby_jars)
-        self._internal_columns = _fetch_column_names(self._conn, self._table)
-        self._internal_is_internal_col = _resolve_column_name(
-            self._internal_columns, "IS_INTERNAL"
-        )
-        self._internal_alias_map = _resolve_internal_alias_map(
-            self._mapping, self._table, self._internal_columns
-        )
-        self._internal_header_extract_map = _resolve_internal_header_extract_map(
-            self._mapping, self._table
-        )
-        all_internal_expr_selects = _resolve_internal_expression_selects(
-            self._mapping, self._table
-        )
-        self._existing_tables: frozenset[str] = _fetch_existing_tables(self._conn)
-        self._known_table_columns: dict[str, frozenset[str]] = _fetch_table_column_sets(
-            self._conn, self._existing_tables
-        )
-        self._internal_missing_expr_names = {
-            csv_col
-            for _alias, csv_col, expr in all_internal_expr_selects
-            if _expression_references_absent_table(expr, self._existing_tables)
-            or _expression_references_absent_column(
-                expr,
-                getattr(self, "_known_table_columns", {}),
-                default_table=self._table,
+        try:
+            self._internal_columns = _fetch_column_names(self._conn, self._table)
+            self._internal_is_internal_col = _resolve_column_name(
+                self._internal_columns, "IS_INTERNAL"
             )
-        }
-        self._internal_unavailable_expr_keys = {
-            _normalize_key(csv_col) for csv_col in self._internal_missing_expr_names
-        }
-        self._internal_expr_selects = [
-            (alias, csv_col, expr)
-            for alias, csv_col, expr in all_internal_expr_selects
-            if csv_col not in self._internal_missing_expr_names
-        ]
+            self._internal_alias_map = _resolve_internal_alias_map(
+                self._mapping, self._table, self._internal_columns
+            )
+            self._internal_header_extract_map = _resolve_internal_header_extract_map(
+                self._mapping, self._table
+            )
+            all_internal_expr_selects = _resolve_internal_expression_selects(
+                self._mapping, self._table
+            )
+            self._existing_tables: frozenset[str] = _fetch_existing_tables(self._conn)
+            self._known_table_columns: dict[str, frozenset[str]] = _fetch_table_column_sets(
+                self._conn, self._existing_tables
+            )
+            self._internal_missing_expr_names = {
+                csv_col
+                for _alias, csv_col, expr in all_internal_expr_selects
+                if _expression_references_absent_table(expr, self._existing_tables)
+                or _expression_references_absent_column(
+                    expr,
+                    getattr(self, "_known_table_columns", {}),
+                    default_table=self._table,
+                )
+            }
+            self._internal_unavailable_expr_keys = {
+                _normalize_key(csv_col) for csv_col in self._internal_missing_expr_names
+            }
+            self._internal_expr_selects = [
+                (alias, csv_col, expr)
+                for alias, csv_col, expr in all_internal_expr_selects
+                if csv_col not in self._internal_missing_expr_names
+            ]
+            with _LIVE_BACKENDS_LOCK:
+                _LIVE_BACKENDS.add(self)
+        except Exception:
+            try:
+                self.close()
+            except Exception:
+                pass
+            raise
 
     def get_internal(self, filters: Optional[dict[str, Any]] = None) -> Iterator[InternalPage]:
         table_alias = "sf_internal"
@@ -540,13 +572,18 @@ class DerbyBackend(CrawlBackend):
 
     def close(self) -> None:
         conn = getattr(self, "_conn", None)
-        if conn is None:
-            return
-        try:
-            conn.close()
-        except Exception:
-            pass
-        self._conn = None
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception as exc:
+                logger.debug(
+                    "Error closing Derby connection for %s: %s",
+                    getattr(self, "db_path", "<unknown>"),
+                    exc,
+                )
+            self._conn = None
+        with _LIVE_BACKENDS_LOCK:
+            _LIVE_BACKENDS.discard(self)
 
     def _internal_row_key_column(self) -> str | None:
         return _resolve_column_name(self._internal_columns, "ID") or _resolve_column_name(
@@ -3149,7 +3186,17 @@ def _fetch_existing_tables(conn) -> frozenset[str]:
             "JOIN SYS.SYSSCHEMAS s ON t.SCHEMAID = s.SCHEMAID "
             "WHERE t.TABLETYPE = 'T'"
         )
-        return frozenset(str(row[0]).upper() for row in cursor.fetchall() if row and row[0])
+        tables: set[str] = set()
+        try:
+            for row in cursor:
+                if row and row[0]:
+                    tables.add(str(row[0]).upper())
+        finally:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+        return frozenset(tables)
     except Exception:
         return frozenset()
 
@@ -4537,6 +4584,37 @@ def _measure_text_pixels_tk(text: str, *, family: str, size: int, weight: str) -
         if _TK_ROOT is None:
             root = tk.Tk()
             root.withdraw()
+            try:
+                import ctypes
+                import ctypes.util
+                import platform
+
+                if platform.system() == "Darwin":
+                    objc = ctypes.cdll.LoadLibrary(
+                        ctypes.util.find_library("objc") or "libobjc.A.dylib"
+                    )
+                    objc.objc_getClass.restype = ctypes.c_void_p
+                    objc.objc_getClass.argtypes = [ctypes.c_char_p]
+                    objc.sel_registerName.restype = ctypes.c_void_p
+                    objc.sel_registerName.argtypes = [ctypes.c_char_p]
+                    shared_fn = ctypes.CFUNCTYPE(
+                        ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p
+                    )
+                    policy_fn = ctypes.CFUNCTYPE(
+                        ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long
+                    )
+                    msg_send = ctypes.cast(objc.objc_msgSend, ctypes.c_void_p).value
+                    ns_app_cls = objc.objc_getClass(b"NSApplication")
+                    ns_app = shared_fn(msg_send)(
+                        ns_app_cls, objc.sel_registerName(b"sharedApplication")
+                    )
+                    policy_fn(msg_send)(
+                        ns_app,
+                        objc.sel_registerName(b"setActivationPolicy:"),
+                        ctypes.c_long(1),
+                    )
+            except Exception:
+                pass
             _TK_ROOT = root
         key = (family, size, weight)
         font = _TK_FONT_CACHE.get(key)
