@@ -160,7 +160,9 @@ _CARBON_RATING_THRESHOLDS_MG = [
 _TK_ROOT: Any | None = None
 _TK_FONT_CACHE: dict[tuple[str, int, str], Any] = {}
 _CHAIN_MAX_HOPS = 10
-_FETCH_BATCH_SIZE = 1000
+# Reduces JPype JDBC fetchmany() round-trips by 10x on all non-BLOB tabs.
+# BLOB tabs are unaffected - they always use _BLOB_FETCH_BATCH_SIZE=1.
+_FETCH_BATCH_SIZE = 10000
 _BLOB_FETCH_BATCH_SIZE = 1
 _APP_URLS_ENCODED_URL_RE = re.compile(r"(?i)\bAPP\.URLS\.ENCODED_URL\b")
 _DERBY_BOOLEAN_SQL_COLUMNS = {
@@ -4619,6 +4621,42 @@ def _measure_text_pixels_tk(text: str, *, family: str, size: int, weight: str) -
         if _TK_ROOT is None:
             root = tk.Tk()
             root.withdraw()
+            # On macOS, tk.Tk() creates a Dock entry even when withdrawn.
+            # After Tk is initialised, change NSApplicationActivationPolicy to
+            # NSApplicationActivationPolicyAccessory (1) so the process becomes
+            # an invisible background agent with no Dock icon or menu bar.
+            # The policy change must happen AFTER tk.Tk() - setting it before
+            # crashes Tk's NSApp initialisation.
+            try:
+                import ctypes
+                import ctypes.util
+                import platform
+                if platform.system() == "Darwin":
+                    _lib = ctypes.cdll.LoadLibrary(
+                        ctypes.util.find_library("objc") or "libobjc.A.dylib"
+                    )
+                    _lib.objc_getClass.restype = ctypes.c_void_p
+                    _lib.objc_getClass.argtypes = [ctypes.c_char_p]
+                    _lib.sel_registerName.restype = ctypes.c_void_p
+                    _lib.sel_registerName.argtypes = [ctypes.c_char_p]
+                    _SharedFn = ctypes.CFUNCTYPE(
+                        ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p
+                    )
+                    _PolicyFn = ctypes.CFUNCTYPE(
+                        ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long
+                    )
+                    _msg_ptr = ctypes.cast(_lib.objc_msgSend, ctypes.c_void_p).value
+                    _cls = _lib.objc_getClass(b"NSApplication")
+                    _nsapp = _SharedFn(_msg_ptr)(
+                        _cls, _lib.sel_registerName(b"sharedApplication")
+                    )
+                    _PolicyFn(_msg_ptr)(
+                        _nsapp,
+                        _lib.sel_registerName(b"setActivationPolicy:"),
+                        ctypes.c_long(1),
+                    )
+            except Exception as exc:
+                logger.debug("NSApp policy change skipped: %s", exc)
             _TK_ROOT = root
         key = (family, size, weight)
         font = _TK_FONT_CACHE.get(key)
