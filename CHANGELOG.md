@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fixed Derby scalar select-expression normalization so mapped expressions like hreflang `Occurrences` and similar no-FROM wrappers are unwrapped into valid Derby select-list expressions instead of raising `SQLSyntaxErrorException`.
 
 ## 0.2.3 (2026-04-07)
 - Added backend/resource cleanup support via `close()` and `with Crawl.load(...) as crawl:` context-manager usage.

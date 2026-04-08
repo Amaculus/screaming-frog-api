@@ -3005,7 +3005,90 @@ def _normalize_select_expression(expr: Any) -> str:
             text,
         )
 
-    return text
+    return _unwrap_scalar_select_without_from(text)
+
+
+def _unwrap_scalar_select_without_from(expr: str) -> str:
+    candidate = _strip_wrapping_parentheses(expr)
+    if not candidate[:6].upper() == "SELECT":
+        return expr
+    body = candidate[6:].strip()
+    if not body:
+        return expr
+    top_level = _top_level_sql_text(body)
+    if re.search(r"(?i)\b(?:FROM|ORDER|FETCH|OFFSET|GROUP|HAVING|UNION)\b", top_level):
+        return expr
+    return body
+
+
+def _strip_wrapping_parentheses(text: str) -> str:
+    stripped = text.strip()
+    if not stripped.startswith("(") or not stripped.endswith(")"):
+        return stripped
+    depth = 0
+    in_string = False
+    i = 0
+    while i < len(stripped):
+        ch = stripped[i]
+        if in_string:
+            if ch == "'" and i + 1 < len(stripped) and stripped[i + 1] == "'":
+                i += 2
+                continue
+            if ch == "'":
+                in_string = False
+            i += 1
+            continue
+        if ch == "'":
+            in_string = True
+            i += 1
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0 and i != len(stripped) - 1:
+                return stripped
+        i += 1
+    if depth != 0:
+        return stripped
+    return stripped[1:-1].strip()
+
+
+def _top_level_sql_text(text: str) -> str:
+    pieces: list[str] = []
+    depth = 0
+    in_string = False
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if in_string:
+            pieces.append(" ")
+            if ch == "'" and i + 1 < len(text) and text[i + 1] == "'":
+                pieces.append(" ")
+                i += 2
+                continue
+            if ch == "'":
+                in_string = False
+            i += 1
+            continue
+        if ch == "'":
+            in_string = True
+            pieces.append(" ")
+            i += 1
+            continue
+        if ch == "(":
+            depth += 1
+            pieces.append(" ")
+            i += 1
+            continue
+        if ch == ")":
+            depth = max(0, depth - 1)
+            pieces.append(" ")
+            i += 1
+            continue
+        pieces.append(ch if depth == 0 else " ")
+        i += 1
+    return "".join(pieces)
 
 
 def _normalize_gui_where_sql(sql_where: Any) -> str:

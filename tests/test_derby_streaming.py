@@ -1919,6 +1919,77 @@ def test_get_tab_derives_ajax_pretty_and_ugly_urls() -> None:
     ]
 
 
+def test_normalize_select_expression_unwraps_scalar_select_without_from() -> None:
+    expr = (
+        "(SELECT COALESCE((SELECT COUNT(*) FROM APP.LINKS l "
+        "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+        "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL AND l.LINK_TYPE IN (12,13)),0) "
+        "+ COALESCE((SELECT COUNT(*) FROM APP.SITEMAP_RESULTS sr "
+        "WHERE sr.SRC = APP.URLS.ENCODED_URL),0))"
+    )
+
+    normalized = derby_backend._normalize_select_expression(expr)
+
+    assert normalized == (
+        "COALESCE((SELECT COUNT(*) FROM APP.LINKS l "
+        "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+        "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL AND l.LINK_TYPE IN (12,13)),0) "
+        "+ COALESCE((SELECT COUNT(*) FROM APP.SITEMAP_RESULTS sr "
+        "WHERE sr.SRC = APP.URLS.ENCODED_URL),0)"
+    )
+
+
+def test_get_tab_hreflang_occurrences_avoids_invalid_scalar_select_wrapper() -> None:
+    cursor = _FakeCursor(
+        ["ENCODED_URL", "TITLE_1", "OCCURRENCES"],
+        [("https://example.com/", "Example", 2)],
+    )
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _FakeConnection(cursor)
+    backend._mapping = {
+        "hreflang_all.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+            {"csv_column": "Title 1", "db_column": "TITLE_1", "db_table": "APP.URLS"},
+            {
+                "csv_column": "Occurrences",
+                "db_expression": (
+                    "(SELECT COALESCE((SELECT COUNT(*) FROM APP.LINKS l "
+                    "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+                    "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL AND l.LINK_TYPE IN (12,13)),0) "
+                    "+ COALESCE((SELECT COUNT(*) FROM APP.SITEMAP_RESULTS sr "
+                    "WHERE sr.SRC = APP.URLS.ENCODED_URL),0))"
+                ),
+                "db_table": "APP.URLS",
+            },
+        ]
+    }
+    backend._existing_tables = frozenset(
+        {"APP.URLS", "APP.LINKS", "APP.UNIQUE_URLS", "APP.SITEMAP_RESULTS"}
+    )
+    backend._known_table_columns = {
+        "APP.URLS": frozenset({"ENCODED_URL", "TITLE_1"}),
+        "APP.LINKS": frozenset({"SRC_ID", "LINK_TYPE"}),
+        "APP.UNIQUE_URLS": frozenset({"ID", "ENCODED_URL"}),
+        "APP.SITEMAP_RESULTS": frozenset({"SRC"}),
+    }
+
+    rows = list(backend.get_tab("hreflang_all"))
+
+    assert rows == [
+        {
+            "Address": "https://example.com/",
+            "Title 1": "Example",
+            "Occurrences": 2,
+        }
+    ]
+    assert cursor.executed_sql is not None
+    assert "(SELECT COALESCE(" not in cursor.executed_sql
+    assert (
+        "COALESCE((SELECT COUNT(*) FROM APP.LINKS l JOIN APP.UNIQUE_URLS s "
+        "ON l.SRC_ID = s.ID"
+    ) in cursor.executed_sql
+
+
 def test_get_tab_derives_amphtml_link_from_original_content() -> None:
     cursor = _FakeCursor(
         ["ENCODED_URL", "ORIGINAL_CONTENT"],
