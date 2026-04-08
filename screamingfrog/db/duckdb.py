@@ -27,6 +27,10 @@ DEFAULT_DUCKDB_HELPERS: tuple[str, ...] = (
     "canonical_edges",
     "chain_inlinks",
 )
+_LINKS_CORE_TABS: frozenset[str] = frozenset({"all_inlinks.csv", "all_outlinks.csv"})
+_CHAIN_TABS: frozenset[str] = frozenset(
+    {"redirect_chains.csv", "canonical_chains.csv", "redirect_and_canonical_chains.csv"}
+)
 _FETCH_BATCH_SIZE = 1000
 _RESPONSE_CODES_FAST_FIELDS: tuple[str, ...] = (
     "Address",
@@ -241,6 +245,7 @@ def export_duckdb_from_backend(
             ("tab", _normalize_export_name("tab", tab_name)) for tab_name in materialized_tabs
         )
         requested_helpers = tuple(dict.fromkeys(helper_names))
+        materialization_helpers = _helpers_needed_for_tab_exports(materialized_tabs, requested_helpers)
         if existing and mode == "skip":
             return target
         if same_source and mode == "auto":
@@ -265,6 +270,15 @@ def export_duckdb_from_backend(
 
         exported_objects: list[tuple[str, str, str]] = list(existing_objects)
         exported_keys = {(kind, export_name) for export_name, kind, _ in exported_objects}
+
+        if materialization_helpers:
+            _write_helper_relations_from_backend(
+                conn,
+                backend,
+                materialization_helpers,
+                namespace=normalized_namespace,
+            )
+
         for raw_name in relation_tables:
             export_name = _normalize_export_name("raw", raw_name)
             if ("raw", export_name) in exported_keys:
@@ -280,20 +294,14 @@ def export_duckdb_from_backend(
             if ("tab", normalized) in exported_keys:
                 continue
             relation_name = _tab_relation_name(normalized, namespace=normalized_namespace)
-            rows = _fast_tab_rows_from_backend(backend, normalized)
+            rows = _fast_tab_rows_from_helper_relations(conn, normalized, namespace=normalized_namespace)
+            if rows is None:
+                rows = _fast_tab_rows_from_backend(backend, normalized)
             if rows is None:
                 rows = backend.get_tab(normalized)
             if _write_relation(conn, relation_name, rows):
                 exported_objects.append((normalized, "tab", relation_name))
                 exported_keys.add(("tab", normalized))
-
-        if requested_helpers:
-            _write_helper_relations_from_backend(
-                conn,
-                backend,
-                requested_helpers,
-                namespace=normalized_namespace,
-            )
 
         _store_export_metadata(
             conn,
@@ -332,6 +340,21 @@ def _fast_tab_rows_from_backend(backend: Any, normalized_tab_name: str) -> Itera
     return None
 
 
+def _fast_tab_rows_from_helper_relations(
+    conn: Any,
+    normalized_tab_name: str,
+    *,
+    namespace: str | None = None,
+) -> Iterator[dict[str, Any]] | None:
+    tab_name = _normalize_tab_name(normalized_tab_name)
+    if tab_name not in _LINKS_CORE_TABS:
+        return None
+    relation = _helper_relation_name("links_core", namespace=namespace)
+    if not _relation_exists(conn, relation):
+        return None
+    return iter_relation_rows(conn, relation)
+
+
 def _iter_buffered_fast_rows(
     first_row: Mapping[str, Any],
     remaining_rows: Iterator[Mapping[str, Any]],
@@ -339,6 +362,19 @@ def _iter_buffered_fast_rows(
     yield {field: first_row.get(field) for field in _RESPONSE_CODES_FAST_FIELDS}
     for row in remaining_rows:
         yield {field: row.get(field) for field in _RESPONSE_CODES_FAST_FIELDS}
+
+
+def _helpers_needed_for_tab_exports(
+    materialized_tabs: Sequence[str],
+    explicit_helpers: Sequence[str],
+) -> tuple[str, ...]:
+    helper_names = [str(name).strip().lower() for name in explicit_helpers if str(name).strip()]
+    normalized_tabs = {_normalize_export_name("tab", tab_name) for tab_name in materialized_tabs}
+    if normalized_tabs & _LINKS_CORE_TABS:
+        helper_names.append("links_core")
+    if normalized_tabs & _CHAIN_TABS:
+        helper_names.extend(("chain_url_info", "redirect_edges", "canonical_edges", "chain_inlinks"))
+    return tuple(dict.fromkeys(helper_names))
 
 
 def list_exported_tabs(conn: Any) -> list[str]:

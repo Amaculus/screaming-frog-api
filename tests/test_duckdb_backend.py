@@ -749,6 +749,50 @@ def test_export_duckdb_tabs_do_not_implicitly_export_raw_tables(tmp_path: Path) 
         next(duck.raw("APP.URLS"))
 
 
+def test_export_duckdb_link_tabs_use_helper_path_without_raw_tables(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-links-only.duckdb"
+
+    exported = crawl.export_duckdb(
+        str(target),
+        source_label="fake-crawl",
+        tabs=("all_inlinks",),
+        profile="full",
+    )
+    duck = Crawl.from_duckdb(str(exported))
+
+    rows = duck.tab("all_inlinks").collect()
+    assert rows == [
+        {
+            "Type": None,
+            "Source": "https://example.com/source",
+            "Address": "https://example.com/broken",
+            "Destination": "https://example.com/broken",
+            "Alt Text": None,
+            "Anchor": "Broken link",
+            "Status Code": 404,
+            "Status": None,
+            "Follow": None,
+            "Target": None,
+            "Rel": None,
+            "Path Type": None,
+            "Link Path": None,
+            "Link Position": None,
+            "hreflang": None,
+            "Link Type": None,
+            "Scope": None,
+            "Origin": None,
+            "NoFollow": None,
+            "UGC": None,
+            "Sponsored": None,
+            "Noopener": None,
+            "Noreferrer": None,
+        }
+    ]
+    with pytest.raises(NotImplementedError, match="Raw table not available"):
+        next(duck.raw("APP.URLS"))
+
+
 def test_export_duckdb_respects_explicit_empty_raw_table_list(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl-tabs-only.duckdb"

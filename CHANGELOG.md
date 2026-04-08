@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.3 (2026-04-07)
 - Added backend/resource cleanup support via `close()` and `with Crawl.load(...) as crawl:` context-manager usage.
 - Added a narrow DuckDB export fast path for `response_codes_all`, preserving the mapped tab shape without forcing universal raw-table export or changing `internal_all` semantics.
 - Added lazy DuckDB chain helper relations (`chain_url_info`, `redirect_edges`, `canonical_edges`, `chain_inlinks`) so chain traversal can stay off raw-table export and repeated per-row Derby queries.
