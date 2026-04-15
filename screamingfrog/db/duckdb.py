@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
 
 from screamingfrog.db.packaging import find_project_dir
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_DUCKDB_TABLES: tuple[str, ...] = ("APP.URLS", "APP.LINKS", "APP.UNIQUE_URLS")
@@ -104,6 +109,200 @@ def export_duckdb_from_db_id(
         mapping_path=mapping_path,
         derby_jar=derby_jar,
     )
+
+
+def _syscs_export_tables(
+    derby_conn: Any,
+    tables: Sequence[str],
+    export_dir: Path,
+) -> dict[str, Path]:
+    """Use Derby SYSCS_UTIL.SYSCS_EXPORT_TABLE to dump tables to CSV.
+
+    Returns a mapping of ``SCHEMA.TABLE`` -> CSV path for each table that
+    exported successfully. Tables that are empty or missing are silently
+    skipped.
+    """
+    exported: dict[str, Path] = {}
+    cursor = derby_conn.cursor()
+    for qualified_name in tables:
+        parts = qualified_name.upper().split(".", 1)
+        if len(parts) == 2:
+            schema_name, table_name = parts
+        else:
+            schema_name, table_name = "APP", parts[0]
+        csv_path = export_dir / f"{schema_name}_{table_name}.csv"
+        try:
+            cursor.execute(
+                "CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE(?, ?, ?, ?, ?, ?)",
+                [schema_name, table_name, str(csv_path), None, None, None],
+            )
+            if csv_path.exists() and csv_path.stat().st_size > 0:
+                exported[f"{schema_name}.{table_name}"] = csv_path
+                logger.info(
+                    "SYSCS exported %s.%s -> %s (%.1f MB)",
+                    schema_name, table_name, csv_path.name,
+                    csv_path.stat().st_size / 1e6,
+                )
+            else:
+                logger.debug("SYSCS export %s.%s produced empty file", schema_name, table_name)
+        except Exception as exc:
+            logger.warning("SYSCS export failed for %s.%s: %s", schema_name, table_name, exc)
+    cursor.close()
+    return exported
+
+
+def _bulk_load_csvs_to_duckdb(
+    duckdb_conn: Any,
+    csv_map: dict[str, Path],
+    *,
+    namespace: str = "",
+) -> list[tuple[str, str, str]]:
+    """Bulk-load SYSCS-exported CSVs into DuckDB via read_csv_auto.
+
+    Returns a list of ``(export_name, kind, relation_name)`` tuples
+    compatible with ``_store_export_metadata``.
+    """
+    duckdb_conn.execute("CREATE SCHEMA IF NOT EXISTS app")
+    objects: list[tuple[str, str, str]] = []
+    for qualified_name, csv_path in csv_map.items():
+        export_name = _normalize_export_name("raw", qualified_name)
+        relation_name = _raw_relation_name(export_name, namespace=namespace)
+        _drop_relation(duckdb_conn, relation_name)
+        _assert_safe_relation(relation_name)
+        escaped_path = str(csv_path).replace("'", "''")
+        duckdb_conn.execute(
+            f"CREATE TABLE {relation_name} AS "
+            f"SELECT * FROM read_csv_auto('{escaped_path}', "
+            f"header=true, sample_size=-1, ignore_errors=true)"
+        )
+        count_row = duckdb_conn.execute(f"SELECT COUNT(*) FROM {relation_name}").fetchone()
+        row_count = count_row[0] if count_row else 0
+        logger.info(
+            "Loaded %s -> %s (%s rows)",
+            csv_path.name, relation_name, f"{row_count:,}",
+        )
+        objects.append((export_name, "raw", relation_name))
+    return objects
+
+
+def export_duckdb_from_derby_fast(
+    db_path: str,
+    duckdb_path: str | Path,
+    *,
+    tables: Sequence[str] | None = None,
+    if_exists: str = "replace",
+    source_label: str | None = None,
+    namespace: str | None = None,
+    mapping_path: str | None = None,
+    derby_jar: str | None = None,
+) -> Path:
+    """Fast Derby -> DuckDB export using SYSCS_UTIL.SYSCS_EXPORT_TABLE.
+
+    Uses Derby's native CSV export followed by DuckDB's ``read_csv_auto``
+    bulk loader. This is dramatically faster than the row-by-row JDBC path
+    for large crawls because both the export and import happen in native
+    code with no per-row Python overhead.
+
+    Only exports raw tables (not tab views). For tab materialization, load
+    the resulting DuckDB file with ``Crawl.from_duckdb()`` which handles
+    view reconstruction.
+    """
+    from screamingfrog.backends.derby_backend import DerbyBackend
+
+    relation_tables = DEFAULT_DUCKDB_TABLES if tables is None else tuple(tables)
+    label = source_label or str(Path(db_path).resolve())
+    fingerprint = _source_fingerprint(Path(db_path))
+    normalized_namespace = _normalize_namespace(namespace)
+    target = Path(duckdb_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    mode = str(if_exists).strip().lower()
+    if mode not in {"replace", "skip", "auto"}:
+        raise ValueError("if_exists must be 'replace', 'skip', or 'auto'")
+
+    duckdb = _import_duckdb()
+
+    # Check cache validity
+    if target.exists() and mode in {"skip", "auto"}:
+        try:
+            read_conn = duckdb.connect(str(target), read_only=True)
+            try:
+                existing = _get_import_metadata(read_conn, namespace=normalized_namespace)
+                same_source = bool(
+                    existing
+                    and existing.get("source_label") == label
+                    and existing.get("source_fingerprint") == fingerprint
+                )
+                if existing and mode == "skip":
+                    return target
+                if same_source and mode == "auto":
+                    return target
+            finally:
+                read_conn.close()
+        except Exception:
+            pass
+
+    # Open Derby backend (handles extraction + JDBC connection)
+    backend = DerbyBackend(db_path, mapping_path=mapping_path, derby_jar=derby_jar)
+    derby_conn = backend._conn  # noqa: SLF001 - need raw JDBC for SYSCS
+
+    # Also discover all non-empty tables if default set is requested
+    all_tables = list(relation_tables)
+    if tables is None:
+        try:
+            cursor = derby_conn.cursor()
+            cursor.execute(
+                "SELECT SCHEMANAME || '.' || TABLENAME "
+                "FROM SYS.SYSTABLES T "
+                "JOIN SYS.SYSSCHEMAS S ON T.SCHEMAID = S.SCHEMAID "
+                "WHERE T.TABLETYPE = 'T' AND S.SCHEMANAME = 'APP' "
+                "ORDER BY TABLENAME"
+            )
+            all_tables = [row[0] for row in cursor.fetchall()]
+            cursor.close()
+        except Exception:
+            logger.warning("Could not enumerate Derby tables, using defaults")
+
+    export_dir = Path(tempfile.mkdtemp(prefix="sf_syscs_"))
+    try:
+        logger.info("SYSCS exporting %d tables to %s ...", len(all_tables), export_dir)
+        csv_map = _syscs_export_tables(derby_conn, all_tables, export_dir)
+
+        if not csv_map:
+            logger.warning("SYSCS export produced no files, falling back to row-by-row")
+            backend.close()
+            return export_duckdb_from_derby(
+                db_path, duckdb_path,
+                tables=tables, if_exists=if_exists,
+                source_label=source_label, namespace=namespace,
+                mapping_path=mapping_path, derby_jar=derby_jar,
+            )
+
+        # Close Derby before DuckDB ingestion to release locks
+        backend.close()
+
+        conn = duckdb.connect(str(target))
+        try:
+            _ensure_metadata_tables(conn)
+            existing = _get_import_metadata(conn, namespace=normalized_namespace)
+            if existing and mode in {"replace", "auto"}:
+                _drop_exported_objects(conn, namespace=normalized_namespace)
+
+            objects = _bulk_load_csvs_to_duckdb(conn, csv_map, namespace=normalized_namespace)
+            _store_export_metadata(
+                conn,
+                source_label=label,
+                source_fingerprint=fingerprint,
+                objects=objects,
+                namespace=normalized_namespace,
+            )
+            return target
+        finally:
+            conn.close()
+    finally:
+        # Clean up temp CSVs
+        import shutil
+        shutil.rmtree(export_dir, ignore_errors=True)
 
 
 def ensure_duckdb_cache(

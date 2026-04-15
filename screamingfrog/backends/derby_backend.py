@@ -2990,6 +2990,43 @@ def _normalize_select_expression(expr: Any) -> str:
     #   FROM APP.URLS u
     #   WHERE u.ENCODED_URL = (SELECT uu.ENCODED_URL FROM APP.UNIQUE_URLS uu
     #                          WHERE uu.ID = APP.LINKS.DST_ID FETCH FIRST 1 ROWS ONLY)
+    # Derby also rejects a scalar subquery whose outer SELECT has no FROM clause.
+    # Several expressions in mapping.json use the pattern
+    #   (SELECT COALESCE((SELECT COUNT(*) FROM ...), 0) + COALESCE((SELECT COUNT(*) FROM ...), 0))
+    # which is valid in some SQL dialects (e.g. SQL Server, MySQL in recent
+    # versions) but raises
+    #   "Syntax error: Encountered ')' at ..."
+    # on Derby because the outer SELECT is missing a FROM. Since the inner
+    # sub-selects provide the actual rows, the outer wrapper is redundant and
+    # can simply be dropped. Detect exactly-one top-level wrapper ``(SELECT <expr>)``
+    # where ``<expr>`` has no FROM at the outermost paren level and unwrap it.
+    #
+    # Phase 3.7 of the seo-command-center i18n hardening plan: the unwrap is
+    # now gated by the ``SF_DERBY_SELECTLESS_UNWRAP`` env var (default ON).
+    # Flip to "0" to bisect regressions against a crawl where the unwrap
+    # changes behaviour. The gate is intentionally opt-OUT so CI behaviour
+    # matches production behaviour on every fresh checkout.
+    if os.environ.get("SF_DERBY_SELECTLESS_UNWRAP", "1") == "1":
+        text_for_unwrap = text.strip()
+        if text_for_unwrap.startswith("(") and text_for_unwrap.endswith(")"):
+            # Strip the outer balanced parens only if they wrap a SELECT with no FROM
+            inner = text_for_unwrap[1:-1].strip()
+            if inner.upper().startswith("SELECT "):
+                # Check if the top-level (depth-0) text after "SELECT " contains a FROM
+                depth = 0
+                top_level_chars: list[str] = []
+                for ch in inner:
+                    if ch == "(":
+                        depth += 1
+                    elif ch == ")":
+                        depth -= 1
+                    elif depth == 0:
+                        top_level_chars.append(ch)
+                top_level_text = "".join(top_level_chars)
+                if not re.search(r"\bFROM\b", top_level_text, re.IGNORECASE):
+                    # Strip the "SELECT " prefix and keep only the expression body
+                    text = inner[7:].strip()
+
     for col_ref, col_name in (("DST_ID", "DST_ID"), ("SRC_ID", "SRC_ID")):
         text = re.sub(
             rf"(?i)FROM\s+APP\.URLS\s+(\w+)"
@@ -3177,25 +3214,36 @@ def _preferred_tables(table_counts: dict[str, int]) -> list[str]:
 
 
 def _fetch_existing_tables(conn) -> frozenset[str]:
-    """Return uppercase SCHEMA.TABLE names for every base table in the Derby database."""
+    """Return uppercase SCHEMA.TABLE names for every base table in the Derby database.
+
+    LOCAL PATCH (seo-command-center): upstream f0d7c43 iterates the cursor with
+    ``for row in cursor:`` which raises ``TypeError: 'Cursor' object is not
+    iterable`` against real jaydebeapi cursors. The outer ``except Exception``
+    silently swallowed the error and returned an empty set, disabling all
+    defensive ``_known_table_columns`` detection downstream and causing
+    PSI.ELIMINATE_RENDER_BLOCKING_RESOURCES (and similar optional columns) to
+    crash ``get_internal()`` on any crawl where the column is missing.
+    Use ``fetchall()`` instead, which jaydebeapi does support.
+    """
     try:
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT UPPER(s.SCHEMANAME) || '.' || UPPER(t.TABLENAME) "
-            "FROM SYS.SYSTABLES t "
-            "JOIN SYS.SYSSCHEMAS s ON t.SCHEMAID = s.SCHEMAID "
-            "WHERE t.TABLETYPE = 'T'"
-        )
-        tables: set[str] = set()
         try:
-            for row in cursor:
-                if row and row[0]:
-                    tables.add(str(row[0]).upper())
+            cursor.execute(
+                "SELECT UPPER(s.SCHEMANAME) || '.' || UPPER(t.TABLENAME) "
+                "FROM SYS.SYSTABLES t "
+                "JOIN SYS.SYSSCHEMAS s ON t.SCHEMAID = s.SCHEMAID "
+                "WHERE t.TABLETYPE = 'T'"
+            )
+            rows = cursor.fetchall() or []
         finally:
             try:
                 cursor.close()
             except Exception:
                 pass
+        tables: set[str] = set()
+        for row in rows:
+            if row and row[0]:
+                tables.add(str(row[0]).upper())
         return frozenset(tables)
     except Exception:
         return frozenset()
