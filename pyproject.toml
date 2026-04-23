@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "screamingfrog"
-version = "0.2.4"
+version = "0.2.5"
 description = "Python library for working with Screaming Frog SEO Spider crawl data"
 readme = "README.md"
 license = "MIT"

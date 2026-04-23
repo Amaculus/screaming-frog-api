@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 0.2.5 (2026-04-23)
 - Added a safe Derby SYSCS bulk-export fast path for DuckDB raw-table materialization that restores real column names, validates imported row counts, and falls back per table to the existing row-by-row export when bulk import is not trustworthy.
 
 ## 0.2.4 (2026-04-08)
