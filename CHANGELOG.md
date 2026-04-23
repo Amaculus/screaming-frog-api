@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Added a safe Derby SYSCS bulk-export fast path for DuckDB raw-table materialization that restores real column names, validates imported row counts, and falls back per table to the existing row-by-row export when bulk import is not trustworthy.
 
 ## 0.2.4 (2026-04-08)
 - Fixed Derby scalar select-expression normalization so mapped expressions like hreflang `Occurrences` and similar no-FROM wrappers are unwrapped into valid Derby select-list expressions instead of raising `SQLSyntaxErrorException`.

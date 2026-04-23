@@ -10,8 +10,11 @@ import pytest
 from screamingfrog import Crawl
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.duckdb import (
+    _bulk_load_syscs_csvs_to_duckdb,
     _helper_relation_name,
+    _import_duckdb,
     _relation_exists,
+    iter_relation_rows,
     ensure_duckdb_cache,
     export_duckdb_from_backend,
     resolve_relation_name,
@@ -1599,3 +1602,63 @@ def test_duckdb_compare_works_on_lean_caches_without_internal_all(tmp_path: Path
     ]
     assert new_crawl._backend._internal_relation is None  # type: ignore[attr-defined]
     assert old_crawl._backend._internal_relation is None  # type: ignore[attr-defined]
+
+
+def test_bulk_load_syscs_csvs_to_duckdb_preserves_column_names_without_headers(
+    tmp_path: Path,
+) -> None:
+    csv_path = tmp_path / "APP_URLS.csv"
+    csv_path.write_text(
+        "1,https://example.com/ok,200\n2,https://example.com/broken,404\n",
+        encoding="utf-8",
+    )
+    target = tmp_path / "syscs-no-header.duckdb"
+    duckdb = _import_duckdb()
+    conn = duckdb.connect(str(target))
+    try:
+        objects = _bulk_load_syscs_csvs_to_duckdb(
+            conn,
+            {
+                "APP.URLS": {
+                    "path": csv_path,
+                    "columns": ["ID", "ENCODED_URL", "RESPONSE_CODE"],
+                    "row_count": 2,
+                }
+            },
+        )
+        assert objects == [("APP.URLS", "raw", "app.urls")]
+        relation = objects[0][2]
+        assert relation == "app.urls"
+        rows = list(iter_relation_rows(conn, relation))
+        assert rows == [
+            {"ID": 1, "ENCODED_URL": "https://example.com/ok", "RESPONSE_CODE": 200},
+            {"ID": 2, "ENCODED_URL": "https://example.com/broken", "RESPONSE_CODE": 404},
+        ]
+    finally:
+        conn.close()
+
+
+def test_bulk_load_syscs_csvs_to_duckdb_rejects_row_count_mismatch(tmp_path: Path) -> None:
+    csv_path = tmp_path / "APP_URLS.csv"
+    csv_path.write_text(
+        "1,https://example.com/ok,200\n2,https://example.com/broken,404\n",
+        encoding="utf-8",
+    )
+    target = tmp_path / "syscs-mismatch.duckdb"
+    duckdb = _import_duckdb()
+    conn = duckdb.connect(str(target))
+    try:
+        objects = _bulk_load_syscs_csvs_to_duckdb(
+            conn,
+            {
+                "APP.URLS": {
+                    "path": csv_path,
+                    "columns": ["ID", "ENCODED_URL", "RESPONSE_CODE"],
+                    "row_count": 3,
+                }
+            },
+        )
+        assert objects == []
+        assert not _relation_exists(conn, "app.urls")
+    finally:
+        conn.close()

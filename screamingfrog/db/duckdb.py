@@ -1,12 +1,18 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
 import re
+import shutil
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
 
 from screamingfrog.db.packaging import find_project_dir
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_DUCKDB_TABLES: tuple[str, ...] = ("APP.URLS", "APP.LINKS", "APP.UNIQUE_URLS")
@@ -121,6 +127,165 @@ def export_duckdb_from_db_id(
         mapping_path=mapping_path,
         derby_jar=derby_jar,
     )
+
+
+def _syscs_fast_export_enabled() -> bool:
+    return os.environ.get("SF_DUCKDB_SYSCS_FAST_EXPORT", "1") != "0"
+
+
+def _is_derby_backend(backend: Any) -> bool:
+    cls = type(backend)
+    return cls.__name__ == "DerbyBackend" and cls.__module__ == "screamingfrog.backends.derby_backend"
+
+
+def _fetch_derby_column_names(derby_conn: Any, qualified_name: str) -> list[str]:
+    _assert_safe_relation(qualified_name)
+    cursor = derby_conn.cursor()
+    try:
+        cursor.execute(f"SELECT * FROM {qualified_name} FETCH FIRST 0 ROWS ONLY")
+        return [str(desc[0]) for desc in (cursor.description or []) if desc and desc[0]]
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+
+
+def _count_derby_rows(derby_conn: Any, qualified_name: str) -> int:
+    _assert_safe_relation(qualified_name)
+    cursor = derby_conn.cursor()
+    try:
+        cursor.execute(f"SELECT COUNT(*) FROM {qualified_name}")
+        row = cursor.fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+
+
+def _syscs_export_tables(
+    derby_conn: Any,
+    tables: Sequence[str],
+    export_dir: Path,
+) -> dict[str, dict[str, Any]]:
+    exported: dict[str, dict[str, Any]] = {}
+    cursor = derby_conn.cursor()
+    try:
+        for qualified_name in tables:
+            normalized_name = _assert_safe_relation(str(qualified_name).upper())
+            parts = normalized_name.split(".", 1)
+            schema_name, table_name = (parts[0], parts[1]) if len(parts) == 2 else ("APP", parts[0])
+            csv_path = export_dir / f"{schema_name}_{table_name}.csv"
+            try:
+                columns = _fetch_derby_column_names(derby_conn, normalized_name)
+                expected_rows = _count_derby_rows(derby_conn, normalized_name)
+                cursor.execute(
+                    "CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE(?, ?, ?, ?, ?, ?)",
+                    [schema_name, table_name, str(csv_path), None, None, None],
+                )
+                if not csv_path.exists() or csv_path.stat().st_size <= 0:
+                    continue
+                exported[normalized_name] = {
+                    "path": csv_path,
+                    "columns": columns,
+                    "row_count": expected_rows,
+                }
+            except Exception:
+                continue
+    finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
+    return exported
+
+
+def _rename_loaded_columns(
+    duckdb_conn: Any,
+    relation_name: str,
+    expected_columns: Sequence[str],
+) -> None:
+    actual_columns = _table_columns(duckdb_conn, *relation_name.split(".", 1))
+    if len(actual_columns) != len(expected_columns):
+        raise ValueError(
+            f"Column count mismatch for {relation_name}: imported {len(actual_columns)} vs expected {len(expected_columns)}"
+        )
+    for actual, expected in zip(actual_columns, expected_columns):
+        if str(actual).casefold() == str(expected).casefold():
+            continue
+        duckdb_conn.execute(
+            f"ALTER TABLE {relation_name} RENAME COLUMN {_quote_identifier(actual)} TO {_quote_identifier(expected)}"
+        )
+
+
+def _bulk_load_syscs_csvs_to_duckdb(
+    duckdb_conn: Any,
+    csv_map: Mapping[str, Mapping[str, Any]],
+    *,
+    namespace: str = "",
+) -> list[tuple[str, str, str]]:
+    duckdb_conn.execute("CREATE SCHEMA IF NOT EXISTS app")
+    objects: list[tuple[str, str, str]] = []
+    for qualified_name, spec in csv_map.items():
+        export_name = _normalize_export_name("raw", qualified_name)
+        relation_name = _raw_relation_name(export_name, namespace=namespace)
+        csv_path = Path(spec["path"])
+        columns = [str(column) for column in spec.get("columns", ())]
+        expected_rows = int(spec.get("row_count", -1))
+        _drop_relation(duckdb_conn, relation_name)
+        _assert_safe_relation(relation_name)
+        escaped_path = str(csv_path).replace("'", "''")
+        try:
+            duckdb_conn.execute(
+                f"CREATE TABLE {relation_name} AS "
+                f"SELECT * FROM read_csv_auto('{escaped_path}', header=false, sample_size=-1, ignore_errors=false)"
+            )
+            if columns:
+                _rename_loaded_columns(duckdb_conn, relation_name, columns)
+            count_row = duckdb_conn.execute(f"SELECT COUNT(*) FROM {relation_name}").fetchone()
+            row_count = int(count_row[0]) if count_row and count_row[0] is not None else 0
+            if expected_rows >= 0 and row_count != expected_rows:
+                raise ValueError(
+                    f"Row count mismatch for {qualified_name}: imported {row_count} vs expected {expected_rows}"
+                )
+        except Exception as exc:
+            _drop_relation(duckdb_conn, relation_name)
+            logger.warning(
+                "SYSCS fast import failed for %s; falling back to row-by-row: %s",
+                qualified_name,
+                exc,
+            )
+            continue
+        objects.append((export_name, "raw", relation_name))
+    return objects
+
+
+def _try_syscs_fast_export_raw_tables(
+    conn: Any,
+    backend: Any,
+    relation_tables: Sequence[str],
+    *,
+    namespace: str = "",
+) -> list[tuple[str, str, str]]:
+    if not relation_tables or not _syscs_fast_export_enabled() or not _is_derby_backend(backend):
+        return []
+    derby_conn = getattr(backend, "_conn", None)
+    if derby_conn is None:
+        return []
+    export_dir = Path(tempfile.mkdtemp(prefix="sf_syscs_"))
+    try:
+        csv_map = _syscs_export_tables(
+            derby_conn,
+            tuple(_normalize_export_name("raw", raw_name) for raw_name in relation_tables),
+            export_dir,
+        )
+        if not csv_map:
+            return []
+        return _bulk_load_syscs_csvs_to_duckdb(conn, csv_map, namespace=namespace)
+    finally:
+        shutil.rmtree(export_dir, ignore_errors=True)
 
 
 def ensure_duckdb_cache(
@@ -278,6 +443,18 @@ def export_duckdb_from_backend(
                 materialization_helpers,
                 namespace=normalized_namespace,
             )
+
+        fast_raw_objects = _try_syscs_fast_export_raw_tables(
+            conn,
+            backend,
+            relation_tables,
+            namespace=normalized_namespace,
+        )
+        for export_name, kind, relation_name in fast_raw_objects:
+            if (kind, export_name) in exported_keys:
+                continue
+            exported_objects.append((export_name, kind, relation_name))
+            exported_keys.add((kind, export_name))
 
         for raw_name in relation_tables:
             export_name = _normalize_export_name("raw", raw_name)
