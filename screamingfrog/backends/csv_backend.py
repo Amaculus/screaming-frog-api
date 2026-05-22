@@ -81,6 +81,50 @@ class CSVBackend(CrawlBackend):
                     continue
                 yield row
 
+    def tab_count(self, tab_name: str, filters: Optional[dict[str, Any]] = None) -> int:
+        return sum(1 for _ in self.get_tab(tab_name, filters=filters))
+
+    def tab_counts(
+        self,
+        tab_names: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> dict[str, int]:
+        return {str(tab_name): self.tab_count(str(tab_name), filters=filters) for tab_name in tab_names}
+
+    def tab_rows(
+        self,
+        tab_name: str,
+        limit: int,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        bounded_limit = max(0, int(limit))
+        if bounded_limit <= 0:
+            return []
+        rows: list[dict[str, Any]] = []
+        for row in self.get_tab(tab_name, filters=filters):
+            rows.append(dict(row))
+            if len(rows) >= bounded_limit:
+                break
+        return rows
+
+    def tab_select(
+        self,
+        tab_name: str,
+        columns: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> Iterator[dict[str, Any]]:
+        selected = tuple(str(column) for column in columns)
+        max_rows = None if limit is None else max(0, int(limit))
+        if max_rows == 0:
+            return
+        emitted = 0
+        for row in self.get_tab(tab_name, filters=filters):
+            yield {column: row.get(column) for column in selected}
+            emitted += 1
+            if max_rows is not None and emitted >= max_rows:
+                break
+
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         raise NotImplementedError("Raw access is only available for database backends.")
 

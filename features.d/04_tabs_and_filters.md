@@ -61,6 +61,31 @@ total = crawl.tab("page_titles").count()
 
 # Count with filters
 missing = crawl.tab("page_titles").filter(gui="Missing").count()
+
+# Exact count without collecting rows
+errors = crawl.tab_count("response_codes_internal_client_error_(4xx)")
+
+# Batch counts for dashboards
+counts = crawl.tab_counts([
+    "internal_all",
+    "all_inlinks",
+    "response_codes_internal_client_error_(4xx)",
+])
+```
+
+### Bounded Rows and Projections
+
+```python
+# Fetch a small evidence sample without consuming the full tab
+sample = crawl.tab_rows("all_inlinks", limit=10, filters={"status_code": 404})
+
+# Project only needed columns
+rows = (
+    crawl.tab("all_inlinks")
+    .select("Source", "Address", "Status Code")
+    .filter(status_code=404)
+    .collect()
+)
 ```
 
 ### Chaining

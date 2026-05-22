@@ -373,6 +373,9 @@ Notes:
 - CSV/CLI export backends do not support SQL/query execution.
 - Use `.to_sql()` if you want to inspect the generated SQL + params.
 - `InternalView`, `TabView`, `LinkView`, `QueryView`, and `CrawlDiff` also support `to_pandas()` / `to_polars()` with optional dependencies installed.
+- Use `crawl.tab_count(...)`, `crawl.tab_counts(...)`, and `crawl.tab_rows(...)` for exact counts and small samples without collecting full tabs.
+- Use `crawl.tab("...").select(...)` to project only needed columns from generic tabs.
+- Use `crawl.report_counts()` for dashboard-style rollups.
 
 ## Crawl diff (crawl-over-crawl)
 

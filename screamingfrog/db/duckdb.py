@@ -33,6 +33,16 @@ DEFAULT_DUCKDB_HELPERS: tuple[str, ...] = (
     "canonical_edges",
     "chain_inlinks",
 )
+DUCKDB_HELPER_SCHEMA_VERSION = 2
+DUCKDB_HELPER_SCHEMA_VERSIONS: dict[str, int] = {
+    "internal_basic": DUCKDB_HELPER_SCHEMA_VERSION,
+    "internal_common": DUCKDB_HELPER_SCHEMA_VERSION,
+    "links_core": DUCKDB_HELPER_SCHEMA_VERSION,
+    "chain_url_info": DUCKDB_HELPER_SCHEMA_VERSION,
+    "redirect_edges": DUCKDB_HELPER_SCHEMA_VERSION,
+    "canonical_edges": DUCKDB_HELPER_SCHEMA_VERSION,
+    "chain_inlinks": DUCKDB_HELPER_SCHEMA_VERSION,
+}
 _LINKS_CORE_TABS: frozenset[str] = frozenset({"all_inlinks.csv", "all_outlinks.csv"})
 _CHAIN_TABS: frozenset[str] = frozenset(
     {"redirect_chains.csv", "canonical_chains.csv", "redirect_and_canonical_chains.csv"}
@@ -418,10 +428,7 @@ def export_duckdb_from_backend(
                 return target
             available_keys = {(kind, export_name) for export_name, kind, _ in existing_objects}
             helper_relations_ready = all(
-                _relation_exists(
-                    conn,
-                    _helper_relation_name(helper_name, namespace=normalized_namespace),
-                )
+                _helper_relation_ready(conn, helper_name, namespace=normalized_namespace)
                 for helper_name in requested_helpers
             )
             if requested_keys.issubset(available_keys) and helper_relations_ready:
@@ -502,7 +509,7 @@ def iter_relation_rows(conn: Any, relation_name: str) -> Iterator[dict[str, Any]
 
 def _fast_tab_rows_from_backend(backend: Any, normalized_tab_name: str) -> Iterator[dict[str, Any]] | None:
     tab_name = _normalize_tab_name(normalized_tab_name)
-    if tab_name == "response_codes_all.csv":
+    if tab_name == "response_codes_internal_all.csv":
         projected_internal = getattr(backend, "iter_internal_projection", None)
         if not callable(projected_internal):
             return None
@@ -741,27 +748,33 @@ def _write_helper_relations_from_backend(
 
     for helper_name in normalized:
         relation_name = _helper_relation_name(helper_name, namespace=namespace)
-        if _relation_exists(conn, relation_name):
+        if _helper_relation_ready(conn, helper_name, namespace=namespace):
             continue
+        if _relation_exists(conn, relation_name):
+            _drop_relation(conn, relation_name)
         if helper_name == "internal_basic":
             rows = _iter_internal_basic_rows_from_source(backend)
             if not _write_relation(conn, relation_name, rows):
                 _create_empty_helper_relation(conn, relation_name, basic_schema)
+            _store_helper_metadata(conn, helper_name, relation_name, namespace=namespace)
             continue
         if helper_name == "internal_common":
             rows = _iter_internal_common_rows_from_source(backend)
             if not _write_relation(conn, relation_name, rows):
                 _create_empty_helper_relation(conn, relation_name, common_schema)
+            _store_helper_metadata(conn, helper_name, relation_name, namespace=namespace)
             continue
         if helper_name == "links_core":
             rows = _iter_links_core_rows_from_source(backend)
             if not _write_relation(conn, relation_name, rows):
                 _create_empty_helper_relation(conn, relation_name, links_core_schema)
+            _store_helper_metadata(conn, helper_name, relation_name, namespace=namespace)
             continue
         if helper_name in _CHAIN_HELPER_SCHEMAS:
             rows = iter((chain_bundle or {}).get(helper_name, ()))
             if not _write_relation(conn, relation_name, rows):
                 _create_empty_helper_relation(conn, relation_name, _CHAIN_HELPER_SCHEMAS[helper_name])
+            _store_helper_metadata(conn, helper_name, relation_name, namespace=namespace)
 
 
 def _normalize_export_row(row: Mapping[str, Any]) -> dict[str, Any]:
@@ -898,6 +911,17 @@ def _ensure_metadata_tables(conn: Any) -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS sf_alpha_helpers (
+            namespace VARCHAR,
+            helper_name VARCHAR,
+            relation_name VARCHAR,
+            schema_version BIGINT,
+            created_at TIMESTAMP
+        )
+        """
+    )
     columns = _table_columns(conn, "main", "sf_alpha_imports")
     if "namespace" not in {column.lower() for column in columns}:
         conn.execute("ALTER TABLE sf_alpha_imports ADD COLUMN namespace VARCHAR")
@@ -906,8 +930,17 @@ def _ensure_metadata_tables(conn: Any) -> None:
     export_columns = _table_columns(conn, "main", "sf_alpha_exports")
     if "namespace" not in {column.lower() for column in export_columns}:
         conn.execute("ALTER TABLE sf_alpha_exports ADD COLUMN namespace VARCHAR")
+    helper_columns = _table_columns(conn, "main", "sf_alpha_helpers")
+    helper_column_names = {column.lower() for column in helper_columns}
+    if "namespace" not in helper_column_names:
+        conn.execute("ALTER TABLE sf_alpha_helpers ADD COLUMN namespace VARCHAR")
+    if "schema_version" not in helper_column_names:
+        conn.execute("ALTER TABLE sf_alpha_helpers ADD COLUMN schema_version BIGINT")
+    if "created_at" not in helper_column_names:
+        conn.execute("ALTER TABLE sf_alpha_helpers ADD COLUMN created_at TIMESTAMP")
     conn.execute("UPDATE sf_alpha_imports SET namespace = '' WHERE namespace IS NULL")
     conn.execute("UPDATE sf_alpha_exports SET namespace = '' WHERE namespace IS NULL")
+    conn.execute("UPDATE sf_alpha_helpers SET namespace = '' WHERE namespace IS NULL")
 
 
 def _get_import_metadata(conn: Any, *, namespace: str | None = None) -> dict[str, Any] | None:
@@ -1014,9 +1047,13 @@ def _drop_exported_objects(conn: Any, *, namespace: str | None = None) -> None:
     if _table_has_column(conn, "main", "sf_alpha_exports", "namespace"):
         conn.execute("DELETE FROM sf_alpha_exports WHERE COALESCE(namespace, '') = ?", [normalized_namespace])
         conn.execute("DELETE FROM sf_alpha_imports WHERE COALESCE(namespace, '') = ?", [normalized_namespace])
+        if _relation_exists(conn, "main.sf_alpha_helpers"):
+            conn.execute("DELETE FROM sf_alpha_helpers WHERE COALESCE(namespace, '') = ?", [normalized_namespace])
     else:
         conn.execute("DELETE FROM sf_alpha_exports")
         conn.execute("DELETE FROM sf_alpha_imports")
+        if _relation_exists(conn, "main.sf_alpha_helpers"):
+            conn.execute("DELETE FROM sf_alpha_helpers")
 
 
 def _store_export_metadata(
@@ -1052,6 +1089,70 @@ def _store_export_metadata(
         VALUES (?, ?, ?, ?)
         """,
         [(normalized_namespace, export_name, kind, relation_name) for export_name, kind, relation_name in rows],
+    )
+
+
+def _helper_schema_version(helper_name: str) -> int:
+    return DUCKDB_HELPER_SCHEMA_VERSIONS.get(str(helper_name).strip().lower(), DUCKDB_HELPER_SCHEMA_VERSION)
+
+
+def _helper_relation_ready(conn: Any, helper_name: str, *, namespace: str | None = None) -> bool:
+    relation_name = _helper_relation_name(helper_name, namespace=namespace)
+    if not _relation_exists(conn, relation_name):
+        return False
+    if not _relation_exists(conn, "main.sf_alpha_helpers"):
+        return False
+    normalized_namespace = _normalize_namespace(namespace)
+    normalized_helper = str(helper_name).strip().lower()
+    cursor = conn.execute(
+        """
+        SELECT schema_version
+        FROM sf_alpha_helpers
+        WHERE COALESCE(namespace, '') = ?
+          AND helper_name = ?
+          AND relation_name = ?
+        LIMIT 1
+        """,
+        [normalized_namespace, normalized_helper, relation_name],
+    )
+    row = cursor.fetchone()
+    if not row:
+        return False
+    try:
+        return int(row[0]) == _helper_schema_version(normalized_helper)
+    except (TypeError, ValueError):
+        return False
+
+
+def _store_helper_metadata(
+    conn: Any,
+    helper_name: str,
+    relation_name: str,
+    *,
+    namespace: str | None = None,
+) -> None:
+    normalized_namespace = _normalize_namespace(namespace)
+    normalized_helper = str(helper_name).strip().lower()
+    conn.execute(
+        """
+        DELETE FROM sf_alpha_helpers
+        WHERE COALESCE(namespace, '') = ?
+          AND helper_name = ?
+        """,
+        [normalized_namespace, normalized_helper],
+    )
+    conn.execute(
+        """
+        INSERT INTO sf_alpha_helpers (namespace, helper_name, relation_name, schema_version, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        [
+            normalized_namespace,
+            normalized_helper,
+            relation_name,
+            _helper_schema_version(normalized_helper),
+            datetime.now(timezone.utc),
+        ],
     )
 
 

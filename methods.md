@@ -40,10 +40,15 @@ This file lists the current callable API in `screaming-frog-api`.
 - `crawl.canonical_issues_report() -> list[dict[str, Any]]`
 - `crawl.hreflang_issues_report() -> list[dict[str, Any]]`
 - `crawl.redirect_issues_report() -> list[dict[str, Any]]`
+- `crawl.issue_counts() -> dict[str, int]`
+- `crawl.report_counts() -> dict[str, int]`
 - `crawl.redirect_chain_report(min_hops=None, max_hops=None, loop=None) -> list[dict[str, Any]]`
 - `crawl.tab_filters(name) -> list[str]`
 - `crawl.tab_filter_defs(name) -> list[Any]`
 - `crawl.tab_columns(name) -> list[str]`
+- `crawl.tab_count(name, filters=None, gui_filter=None) -> int`
+- `crawl.tab_counts(names, filters=None, gui_filter=None) -> dict[str, int]`
+- `crawl.tab_rows(name, limit=50, filters=None, gui_filter=None) -> list[dict[str, Any]]`
 - `crawl.describe_tab(name) -> dict[str, Any]`
 - `crawl.query(schema, table) -> QueryView`
 - `crawl.raw(table) -> Iterator[dict[str, Any]]`
@@ -92,6 +97,7 @@ This file lists the current callable API in `screaming-frog-api`.
 - `filter(**kwargs) -> TabView`
   - supports normal column filters
   - supports GUI filter shortcut via `gui="Missing"` or `gui_filters=[...]`
+- `select(*columns) -> ProjectedTabView`
 - `search(term, fields=None, case_sensitive=False) -> SearchRowView`
 - `count() -> int`
 - `collect() -> list[dict[str, Any]]`
@@ -99,6 +105,16 @@ This file lists the current callable API in `screaming-frog-api`.
 - `to_pandas()`
 - `to_polars()`
 - iterable (`for row in crawl.tab("...").filter(...): ...`)
+
+## `ProjectedTabView` (returned by `crawl.tab("...").select(...)`)
+- `filter(**kwargs) -> ProjectedTabView`
+- `search(term, fields=None, case_sensitive=False) -> SearchRowView`
+- `count() -> int`
+- `collect() -> list[dict[str, Any]]`
+- `first() -> dict[str, Any] | None`
+- `to_pandas()`
+- `to_polars()`
+- iterable (`for row in crawl.tab("...").select(...): ...`)
 
 ## `LinkView` (returned by `crawl.links(...)`)
 - `filter(**kwargs) -> LinkView`

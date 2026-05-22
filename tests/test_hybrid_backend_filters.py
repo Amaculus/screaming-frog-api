@@ -7,6 +7,7 @@ from pathlib import Path
 from screamingfrog.backends.hybrid_backend import (
     _gui_filter_supported,
     _mapping_missing_columns,
+    _project_limited_rows,
 )
 
 
@@ -46,3 +47,19 @@ def test_mapping_missing_columns_returns_true_when_base_missing(tmp_path: Path) 
 
 def test_gui_filter_supported_for_jsonld_via_sql_filter() -> None:
     assert _gui_filter_supported("Structured Data", "JSON-LD URLs") is True
+
+
+def test_project_limited_rows_stops_at_limit() -> None:
+    consumed = 0
+
+    def rows():
+        nonlocal consumed
+        for index in range(5):
+            consumed += 1
+            yield {"Address": f"https://example.com/{index}", "Status Code": 200}
+
+    assert list(_project_limited_rows(rows(), ["Address"], 2)) == [
+        {"Address": "https://example.com/0"},
+        {"Address": "https://example.com/1"},
+    ]
+    assert consumed == 2

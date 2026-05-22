@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.2.6 (2026-05-22)
+- Added fast tab primitives: `crawl.tab_count(...)`, `crawl.tab_counts(...)`, `crawl.tab_rows(...)`, and backend-level count/sample/projection hooks.
+- Added `crawl.tab(...).select(...)` for generic tab projections, with backend pushdown where available.
+- Added DuckDB helper-backed lazy paths for common counts, bounded samples, and projections over `internal_basic`, `internal_common`, and `links_core`, reducing full-tab materialization for broad page/link/report workflows.
+- Added helper-cache schema versioning so stale DuckDB helper relations are rebuilt automatically after helper semantics change.
+- Changed source-of-truth link reads to use an explicit backend capability instead of backend class-name checks.
+- Changed `crawl.issue_counts()` and `crawl.report_counts()` to batch tab counts when supported by the backend.
+- Added `crawl.issue_counts()` and `crawl.report_counts()` for dashboard-style rollups.
+- Added `scripts/benchmark_core.py` and documented lazy DuckDB helper-cache policy in `docs/lazy-duckdb-cache-policy.md`.
 
 ## 0.2.5 (2026-04-23)
 - Added a safe Derby SYSCS bulk-export fast path for DuckDB raw-table materialization that restores real column names, validates imported row counts, and falls back per table to the existing row-by-row export when bulk import is not trustworthy.

@@ -4,6 +4,7 @@ import importlib
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
+from itertools import islice
 from urllib.parse import urljoin, urlsplit, urlunsplit
 import re
 
@@ -210,17 +211,92 @@ class TabView:
             case_sensitive,
         )
 
+    def select(self, *columns: str) -> "ProjectedTabView":
+        if not columns:
+            raise ValueError("select() requires at least one column")
+        return ProjectedTabView(self.backend, self.name, tuple(str(column) for column in columns), self.filters)
+
     def __iter__(self) -> Iterator[dict[str, Any]]:
         return self.backend.get_tab(self.name, filters=self.filters)
 
     def count(self) -> int:
+        try:
+            return int(self.backend.tab_count(self.name, filters=self.filters))
+        except NotImplementedError:
+            pass
         return sum(1 for _ in self.__iter__())
 
     def collect(self) -> list[dict[str, Any]]:
         return list(self.__iter__())
 
     def first(self) -> Optional[dict[str, Any]]:
-        return next(iter(self), None)
+        try:
+            rows = self.backend.tab_rows(self.name, 1, filters=self.filters)
+            return rows[0] if rows else None
+        except NotImplementedError:
+            return next(iter(self), None)
+
+    def to_pandas(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "pandas")
+
+    def to_polars(self) -> Any:
+        return _dataframe_from_rows(self.__iter__(), "polars")
+
+
+@dataclass(frozen=True)
+class ProjectedTabView:
+    backend: CrawlBackend
+    name: str
+    columns: tuple[str, ...]
+    filters: dict[str, Any] | None = None
+
+    def filter(self, **kwargs: Any) -> "ProjectedTabView":
+        merged = dict(self.filters or {})
+        gui = kwargs.pop("gui", None)
+        gui_filters = kwargs.pop("gui_filters", None)
+        if gui is not None:
+            merged["__gui__"] = gui
+        if gui_filters is not None:
+            merged["__gui__"] = gui_filters
+        merged.update(kwargs)
+        return ProjectedTabView(self.backend, self.name, self.columns, merged)
+
+    def search(
+        self,
+        term: str,
+        *,
+        fields: Sequence[str] | None = None,
+        case_sensitive: bool = False,
+    ) -> "SearchRowView":
+        return SearchRowView(
+            self,
+            str(term),
+            tuple(fields) if fields is not None else None,
+            case_sensitive,
+        )
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        try:
+            return self.backend.tab_select(self.name, self.columns, filters=self.filters)
+        except NotImplementedError:
+            return (
+                {column: row.get(column) for column in self.columns}
+                for row in self.backend.get_tab(self.name, filters=self.filters)
+            )
+
+    def count(self) -> int:
+        return TabView(self.backend, self.name, self.filters).count()
+
+    def collect(self) -> list[dict[str, Any]]:
+        return list(self.__iter__())
+
+    def first(self) -> Optional[dict[str, Any]]:
+        try:
+            rows = list(self.backend.tab_select(self.name, self.columns, filters=self.filters, limit=1))
+            return rows[0] if rows else None
+        except NotImplementedError:
+            row = TabView(self.backend, self.name, self.filters).first()
+            return {column: row.get(column) for column in self.columns} if row is not None else None
 
     def to_pandas(self) -> Any:
         return _dataframe_from_rows(self.__iter__(), "pandas")
@@ -407,13 +483,16 @@ class ProjectedLinkView:
         )
 
     def count(self) -> int:
-        return sum(1 for _ in self.__iter__())
+        tab_name = "all_inlinks" if _normalize_link_direction(self.direction) == "in" else "all_outlinks"
+        return TabView(self.backend, tab_name, self.filters).count()
 
     def collect(self) -> list[dict[str, Any]]:
         return list(self.__iter__())
 
     def first(self) -> Optional[dict[str, Any]]:
-        return next(iter(self), None)
+        tab_name = "all_inlinks" if _normalize_link_direction(self.direction) == "in" else "all_outlinks"
+        row = TabView(self.backend, tab_name, self.filters).first()
+        return _project_link_row(row, self.fields) if row is not None else None
 
     def to_pandas(self) -> Any:
         return _dataframe_from_rows(self.__iter__(), "pandas")
@@ -514,6 +593,16 @@ class QueryView:
     def collect(self) -> list[dict[str, Any]]:
         return list(self.__iter__())
 
+    def count(self) -> int:
+        sql, params = self.to_sql()
+        rows = list(self.backend.sql(f"SELECT COUNT(*) AS row_count FROM ({sql}) AS sf_query_count", params=params))
+        if not rows:
+            return 0
+        value = rows[0].get("row_count")
+        if value is None:
+            value = next(iter(rows[0].values()), 0)
+        return int(value or 0)
+
     def first(self) -> Optional[dict[str, Any]]:
         query = self if self.limit_rows == 1 else self.limit(1)
         rows = query.collect()
@@ -564,7 +653,7 @@ class SearchInternalView:
 
 @dataclass(frozen=True)
 class SearchRowView:
-    base: PageView | ProjectedPageView | TabView | LinkView | ProjectedLinkView | ScopedRowView
+    base: PageView | ProjectedPageView | TabView | ProjectedTabView | LinkView | ProjectedLinkView | ScopedRowView
     term: str
     fields: tuple[str, ...] | None = None
     case_sensitive: bool = False
@@ -1592,6 +1681,54 @@ class Crawl:
             return duckdb_rows
         return _issue_rows_from_tabs(self, _REDIRECT_ISSUE_TABS)
 
+    def issue_counts(self) -> dict[str, int]:
+        """Return grouped issue-family row counts."""
+        def count_family(issue_tabs: dict[str, str]) -> int:
+            tab_names = list(issue_tabs)
+            try:
+                return sum(self.tab_counts(tab_names).values())
+            except (NotImplementedError, FileNotFoundError, ValueError):
+                pass
+            total = 0
+            for tab_name in tab_names:
+                try:
+                    total += self.tab_count(tab_name)
+                except (NotImplementedError, FileNotFoundError, ValueError):
+                    continue
+            return total
+
+        return {
+            "security_issues": count_family(_SECURITY_ISSUE_TABS),
+            "canonical_issues": count_family(_CANONICAL_ISSUE_TABS),
+            "hreflang_issues": count_family(_HREFLANG_ISSUE_TABS),
+            "redirect_issues": count_family(_REDIRECT_ISSUE_TABS),
+        }
+
+    def report_counts(self) -> dict[str, int]:
+        """Return common report counts for dashboards and monitoring."""
+        counts = self.issue_counts()
+        common_tabs = {
+            "internal_all": "internal_urls",
+            "all_inlinks": "inlinks",
+            "all_outlinks": "outlinks",
+            "response_codes_internal_client_error_(4xx)": "client_error_urls",
+            "response_codes_internal_server_error_(5xx)": "server_error_urls",
+            "redirect_chains": "redirect_chains",
+        }
+        try:
+            batch_counts = self.tab_counts(list(common_tabs))
+        except (NotImplementedError, FileNotFoundError, ValueError):
+            batch_counts = {}
+        for tab_name, label in common_tabs.items():
+            if tab_name in batch_counts:
+                counts[label] = batch_counts[tab_name]
+                continue
+            try:
+                counts[label] = self.tab_count(tab_name)
+            except (NotImplementedError, FileNotFoundError, ValueError):
+                counts[label] = 0
+        return counts
+
     def redirect_chain_report(
         self,
         *,
@@ -1697,6 +1834,67 @@ class Crawl:
                 return []
 
         return []
+
+    def tab_count(
+        self,
+        name: str,
+        *,
+        filters: Optional[dict[str, Any]] = None,
+        gui_filter: Any = None,
+    ) -> int:
+        """Return the exact row count for a tab when supported by the backend."""
+        backend = self._backend
+        payload = dict(filters or {})
+        if gui_filter is not None:
+            payload["__gui__"] = gui_filter
+        try:
+            return int(backend.tab_count(name, filters=payload))
+        except NotImplementedError:
+            pass
+        return sum(1 for _ in self.tab(name).filter(**payload))
+
+    def tab_counts(
+        self,
+        names: Sequence[str],
+        *,
+        filters: Optional[dict[str, Any]] = None,
+        gui_filter: Any = None,
+    ) -> dict[str, int]:
+        """Return exact row counts for multiple tabs."""
+        requested = [str(name) for name in names]
+        payload = dict(filters or {})
+        if gui_filter is not None:
+            payload["__gui__"] = gui_filter
+        try:
+            return {
+                str(name): int(count)
+                for name, count in self._backend.tab_counts(requested, filters=payload).items()
+            }
+        except NotImplementedError:
+            pass
+        return {name: self.tab_count(name, filters=filters, gui_filter=gui_filter) for name in requested}
+
+    def tab_rows(
+        self,
+        name: str,
+        *,
+        limit: int = 50,
+        filters: Optional[dict[str, Any]] = None,
+        gui_filter: Any = None,
+    ) -> list[dict[str, Any]]:
+        """Return the first N rows for a tab when supported by the backend."""
+        backend = self._backend
+        payload = dict(filters or {})
+        if gui_filter is not None:
+            payload["__gui__"] = gui_filter
+        bounded_limit = max(0, int(limit))
+        if bounded_limit <= 0:
+            return []
+        try:
+            return list(backend.tab_rows(name, bounded_limit, filters=payload))
+        except NotImplementedError:
+            pass
+        return [dict(row) for row in islice(self.tab(name).filter(**payload), bounded_limit)]
 
     def describe_tab(self, name: str) -> dict[str, Any]:
         """Return basic metadata for a tab (columns + GUI filters)."""

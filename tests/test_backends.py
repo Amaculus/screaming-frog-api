@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from screamingfrog import Crawl
+from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.backends.derby_backend import _normalize_select_expression
 
 
@@ -79,6 +80,26 @@ def test_generic_tab_access(sample_export_dir: Path) -> None:
     assert rows[0]["Address"] == "https://example.com/missing"
 
 
+def test_tab_count_and_rows_use_csv_backend_fast_paths(sample_export_dir: Path) -> None:
+    crawl = Crawl.load(str(sample_export_dir))
+
+    assert crawl.tab_count("internal_all") == 3
+    assert crawl.tab_count("internal_all", filters={"status_code": "404"}) == 1
+    assert crawl.tab_counts(["internal_all"]) == {"internal_all": 3}
+    assert crawl.tab_rows("internal_all", limit=2) == [
+        {"Address": "https://example.com/", "Status Code": "200"},
+        {"Address": "https://example.com/missing", "Status Code": "404"},
+    ]
+    assert crawl.tab("internal_all").filter(status_code="404").count() == 1
+    assert crawl.tab("internal_all").filter(status_code="404").first() == {
+        "Address": "https://example.com/missing",
+        "Status Code": "404",
+    }
+    assert crawl.tab("internal_all").select("Address").filter(status_code="404").collect() == [
+        {"Address": "https://example.com/missing"}
+    ]
+
+
 def test_sqlite_tab_support(sample_db_path: Path) -> None:
     crawl = Crawl.from_database(str(sample_db_path))
     rows = list(crawl.tab("response_codes_internal_client_error_(4xx)"))
@@ -92,6 +113,101 @@ def test_sqlite_tab_support(sample_db_path: Path) -> None:
     missing_meta = list(crawl.tab("meta_description_missing"))
     assert len(missing_meta) == 1
     assert missing_meta[0]["Address"] == "https://example.com/missing"
+
+
+def test_tab_count_and_rows_use_sqlite_backend_fast_paths(sample_db_path: Path) -> None:
+    crawl = Crawl.from_database(str(sample_db_path))
+
+    assert crawl.tab_count("response_codes_internal_client_error_(4xx)") == 1
+    assert crawl.tab_counts(["response_codes_internal_client_error_(4xx)"]) == {
+        "response_codes_internal_client_error_(4xx)": 1
+    }
+    rows = crawl.tab_rows("response_codes_internal_client_error_(4xx)", limit=1)
+    assert len(rows) == 1
+    assert rows[0]["Address"] == "https://example.com/missing"
+    assert rows[0]["Status Code"] == 404
+    assert crawl.tab("response_codes_internal_client_error_(4xx)").count() == 1
+    assert (
+        crawl.tab("response_codes_internal_client_error_(4xx)").first()["Address"]
+        == "https://example.com/missing"
+    )
+    assert crawl.tab("response_codes_internal_client_error_(4xx)").select("Address").collect() == [
+        {"Address": "https://example.com/missing"}
+    ]
+
+
+def test_report_counts_handles_missing_optional_reports(sample_export_dir: Path) -> None:
+    crawl = Crawl.load(str(sample_export_dir))
+
+    counts = crawl.report_counts()
+
+    assert counts["internal_urls"] == 3
+    assert counts["client_error_urls"] == 0
+    assert counts["security_issues"] == 0
+
+
+def test_report_counts_uses_backend_batch_counts() -> None:
+    class BatchCountBackend(CrawlBackend):
+        def __init__(self) -> None:
+            self.tab_counts_calls: list[list[str]] = []
+            self.tab_count_calls: list[str] = []
+
+        def get_internal(self, filters=None):
+            return iter(())
+
+        def get_inlinks(self, url: str):
+            return iter(())
+
+        def get_outlinks(self, url: str):
+            return iter(())
+
+        def count(self, table: str, filters=None) -> int:
+            return 0
+
+        def aggregate(self, table: str, column: str, func: str):
+            return None
+
+        def tab_counts(self, tab_names, filters=None):
+            names = [str(name) for name in tab_names]
+            self.tab_counts_calls.append(names)
+            return {name: 1 for name in names}
+
+        def tab_count(self, tab_name: str, filters=None) -> int:
+            self.tab_count_calls.append(str(tab_name))
+            return 1
+
+    backend = BatchCountBackend()
+    counts = Crawl(backend).report_counts()
+
+    assert counts["internal_urls"] == 1
+    assert counts["redirect_chains"] == 1
+    assert backend.tab_counts_calls
+    assert backend.tab_count_calls == []
+
+
+def test_fast_tab_helpers_match_iterated_csv_tab(sample_export_dir: Path) -> None:
+    crawl = Crawl.load(str(sample_export_dir))
+    rows = list(crawl.tab("internal_all"))
+
+    assert crawl.tab_count("internal_all") == len(rows)
+    assert crawl.tab_rows("internal_all", limit=2) == rows[:2]
+    assert crawl.tab("internal_all").select("Address", "Status Code").collect() == [
+        {"Address": row.get("Address"), "Status Code": row.get("Status Code")}
+        for row in rows
+    ]
+
+
+def test_fast_tab_helpers_match_iterated_sqlite_tab(sample_db_path: Path) -> None:
+    crawl = Crawl.from_database(str(sample_db_path))
+    tab_name = "response_codes_internal_client_error_(4xx)"
+    rows = list(crawl.tab(tab_name))
+
+    assert crawl.tab_count(tab_name) == len(rows)
+    assert crawl.tab_rows(tab_name, limit=2) == rows[:2]
+    assert crawl.tab(tab_name).select("Address", "Status Code").collect() == [
+        {"Address": row.get("Address"), "Status Code": row.get("Status Code")}
+        for row in rows
+    ]
 
 
 def test_sqlite_internal_view_matches_internal_all_projection(tmp_path: Path) -> None:

@@ -68,6 +68,94 @@ class DatabaseBackend(CrawlBackend):
     def get_tab(
         self, tab_name: str, filters: Optional[dict[str, Any]] = None
     ) -> Iterator[dict[str, Any]]:
+        sql, params = self._build_tab_query(tab_name, filters=filters)
+        cursor = self.conn.execute(sql, params)
+        columns = [desc[0] for desc in cursor.description or []]
+        for row in _iter_cursor_rows(cursor):
+            yield {col: val for col, val in zip(columns, row)}
+
+    def tab_count(self, tab_name: str, filters: Optional[dict[str, Any]] = None) -> int:
+        sql, params = self._build_tab_query(tab_name, filters=filters, count=True)
+        row = self.conn.execute(sql, params).fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+
+    def tab_counts(
+        self,
+        tab_names: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> dict[str, int]:
+        return {str(tab_name): self.tab_count(str(tab_name), filters=filters) for tab_name in tab_names}
+
+    def tab_rows(
+        self,
+        tab_name: str,
+        limit: int,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        bounded_limit = max(0, int(limit))
+        if bounded_limit <= 0:
+            return []
+        sql, params = self._build_tab_query(tab_name, filters=filters, limit=bounded_limit)
+        cursor = self.conn.execute(sql, params)
+        columns = [desc[0] for desc in cursor.description or []]
+        return [
+            {col: val for col, val in zip(columns, row)}
+            for row in _iter_cursor_rows(cursor)
+        ]
+
+    def tab_select(
+        self,
+        tab_name: str,
+        columns: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> Iterator[dict[str, Any]]:
+        sql, params = self._build_tab_query(
+            tab_name,
+            filters=filters,
+            limit=limit,
+            project_columns=tuple(str(column) for column in columns),
+        )
+        cursor = self.conn.execute(sql, params)
+        result_columns = [desc[0] for desc in cursor.description or []]
+        for row in _iter_cursor_rows(cursor):
+            yield {col: val for col, val in zip(result_columns, row)}
+
+    def raw(self, table: str) -> Iterator[dict[str, Any]]:
+        cursor = self.conn.execute(f"SELECT * FROM {table}")
+        columns = [desc[0] for desc in cursor.description or []]
+        for row in _iter_cursor_rows(cursor):
+            yield {col: val for col, val in zip(columns, row)}
+
+    def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
+        cursor = self.conn.execute(query, list(params or []))
+        columns = [desc[0] for desc in cursor.description or []]
+        for row in _iter_cursor_rows(cursor):
+            yield {col: val for col, val in zip(columns, row)}
+
+    def close(self) -> None:
+        conn = getattr(self, "conn", None)
+        if conn is None:
+            return
+        try:
+            conn.close()
+        except Exception:
+            pass
+        self.conn = None
+
+    def _get_table_columns(self, table_name: str) -> list[str]:
+        cursor = self.conn.execute(f"PRAGMA table_info({table_name});")
+        return [row[1] for row in cursor.fetchall()]
+
+    def _build_tab_query(
+        self,
+        tab_name: str,
+        filters: Optional[dict[str, Any]] = None,
+        *,
+        count: bool = False,
+        limit: Optional[int] = None,
+        project_columns: Optional[Sequence[str]] = None,
+    ) -> tuple[str, list[Any]]:
         filters = dict(filters or {})
         gui_filter = filters.pop("__gui__", None)
         if gui_filter and isinstance(gui_filter, (list, tuple, set)):
@@ -79,17 +167,29 @@ class DatabaseBackend(CrawlBackend):
         if not spec:
             raise NotImplementedError(f"Tab not supported for SQLite backend: {tab_name}")
 
-        select_cols: list[str] = []
-        for col in spec.columns:
-            resolved = _resolve_column(self._internal_column_map, col.candidates)
-            if resolved:
-                if col.transform == "length":
-                    select_cols.append(f"LENGTH({resolved}) AS \"{col.csv_column}\"")
+        if count:
+            select_sql = "COUNT(*)"
+        else:
+            select_cols: list[str] = []
+            spec_columns = list(spec.columns)
+            if project_columns is not None:
+                lookup = {col.csv_column: col for col in spec_columns}
+                spec_columns = [
+                    lookup[column] if column in lookup else ColumnSpec(column, _SQLITE_COLUMN_CANDIDATES.get(column, (column,)))
+                    for column in project_columns
+                ]
+            for col in spec_columns:
+                resolved = _resolve_column(self._internal_column_map, col.candidates)
+                if resolved:
+                    if col.transform == "length":
+                        select_cols.append(f'LENGTH({resolved}) AS "{col.csv_column}"')
+                    else:
+                        select_cols.append(f'{resolved} AS "{col.csv_column}"')
                 else:
-                    select_cols.append(f"{resolved} AS \"{col.csv_column}\"")
-            else:
-                select_cols.append(f"NULL AS \"{col.csv_column}\"")
-        sql = f"SELECT {', '.join(select_cols)} FROM internal"
+                    select_cols.append(f'NULL AS "{col.csv_column}"')
+            select_sql = ", ".join(select_cols)
+
+        sql = f"SELECT {select_sql} FROM internal"
         params: list[Any] = []
         where_parts: list[str] = []
         if spec.where_clause:
@@ -127,36 +227,10 @@ class DatabaseBackend(CrawlBackend):
                 params.extend(where_params)
         if where_parts:
             sql = f"{sql} WHERE {' AND '.join(where_parts)}"
-        cursor = self.conn.execute(sql, params)
-        columns = [desc[0] for desc in cursor.description or []]
-        for row in _iter_cursor_rows(cursor):
-            yield {col: val for col, val in zip(columns, row)}
-
-    def raw(self, table: str) -> Iterator[dict[str, Any]]:
-        cursor = self.conn.execute(f"SELECT * FROM {table}")
-        columns = [desc[0] for desc in cursor.description or []]
-        for row in _iter_cursor_rows(cursor):
-            yield {col: val for col, val in zip(columns, row)}
-
-    def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
-        cursor = self.conn.execute(query, list(params or []))
-        columns = [desc[0] for desc in cursor.description or []]
-        for row in _iter_cursor_rows(cursor):
-            yield {col: val for col, val in zip(columns, row)}
-
-    def close(self) -> None:
-        conn = getattr(self, "conn", None)
-        if conn is None:
-            return
-        try:
-            conn.close()
-        except Exception:
-            pass
-        self.conn = None
-
-    def _get_table_columns(self, table_name: str) -> list[str]:
-        cursor = self.conn.execute(f"PRAGMA table_info({table_name});")
-        return [row[1] for row in cursor.fetchall()]
+        if limit is not None:
+            sql = f"{sql} LIMIT ?"
+            params.append(max(0, int(limit)))
+        return sql, params
 
 
 @dataclass(frozen=True)

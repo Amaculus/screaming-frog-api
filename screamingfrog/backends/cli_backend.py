@@ -82,6 +82,33 @@ class CLIExportBackend(CrawlBackend):
     ) -> Iterator[dict[str, Any]]:
         return self._csv.get_tab(tab_name, filters=filters)
 
+    def tab_count(self, tab_name: str, filters: Optional[dict[str, Any]] = None) -> int:
+        return self._csv.tab_count(tab_name, filters=filters)
+
+    def tab_counts(
+        self,
+        tab_names: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> dict[str, int]:
+        return self._csv.tab_counts(tab_names, filters=filters)
+
+    def tab_rows(
+        self,
+        tab_name: str,
+        limit: int,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        return self._csv.tab_rows(tab_name, limit, filters=filters)
+
+    def tab_select(
+        self,
+        tab_name: str,
+        columns: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> Iterator[dict[str, Any]]:
+        return self._csv.tab_select(tab_name, columns, filters=filters, limit=limit)
+
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         raise NotImplementedError("Raw access is only available for database backends.")
 

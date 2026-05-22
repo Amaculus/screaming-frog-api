@@ -39,6 +39,41 @@ class CrawlBackend(ABC):
         """Iterate rows for an export tab (CSV-backed backends)."""
         raise NotImplementedError("Tab access not supported by this backend")
 
+    def tab_count(self, tab_name: str, filters: Optional[dict[str, Any]] = None) -> int:
+        """Count rows for an export tab."""
+        raise NotImplementedError("Tab count not supported by this backend")
+
+    def tab_counts(
+        self,
+        tab_names: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> dict[str, int]:
+        """Count rows for multiple export tabs."""
+        raise NotImplementedError("Batch tab count not supported by this backend")
+
+    def tab_rows(
+        self,
+        tab_name: str,
+        limit: int,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        """Fetch the first N rows for an export tab."""
+        raise NotImplementedError("Tab row sampling not supported by this backend")
+
+    def tab_select(
+        self,
+        tab_name: str,
+        columns: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> Iterator[dict[str, Any]]:
+        """Iterate projected rows for an export tab."""
+        raise NotImplementedError("Tab projection not supported by this backend")
+
+    def prefers_source_link_reads(self) -> bool:
+        """Return true when this backend should remain source-of-truth for link reads."""
+        return False
+
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         """Iterate raw rows from a backend-specific table."""
         raise NotImplementedError("Raw table access not supported by this backend")

@@ -269,6 +269,98 @@ class FakeBackend(CrawlBackend):
         self.closed = True
 
 
+class FastTabBackend(FakeBackend):
+    def __init__(self) -> None:
+        super().__init__()
+        self.tab_count_calls: list[tuple[str, Optional[dict[str, Any]]]] = []
+        self.tab_rows_calls: list[tuple[str, int, Optional[dict[str, Any]]]] = []
+
+    def get_tab(
+        self, tab_name: str, filters: Optional[dict[str, Any]] = None
+    ) -> Iterator[dict[str, Any]]:
+        raise AssertionError("Projected link count/first should use tab fast paths")
+
+    def tab_count(self, tab_name: str, filters: Optional[dict[str, Any]] = None) -> int:
+        self.tab_count_calls.append((tab_name, filters))
+        return 7
+
+    def tab_rows(
+        self,
+        tab_name: str,
+        limit: int,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self.tab_rows_calls.append((tab_name, limit, filters))
+        return [
+            {
+                "Source": "https://example.com/source",
+                "Address": "https://example.com/target",
+                "Status Code": 200,
+            }
+        ][:limit]
+
+    def tab_select(
+        self,
+        tab_name: str,
+        columns: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> Iterator[dict[str, Any]]:
+        row = {
+            "Source": "https://example.com/source",
+            "Address": "https://example.com/target",
+            "Status Code": 200,
+        }
+        yield {column: row.get(column) for column in columns}
+
+
+class CountingSqlBackend(FakeBackend):
+    def __init__(self) -> None:
+        super().__init__()
+        self.sql_calls: list[tuple[str, Optional[Sequence[Any]]]] = []
+
+    def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
+        self.sql_calls.append((query, params))
+        if "COUNT(*) AS row_count" in query:
+            yield {"row_count": 3}
+            return
+        yield {"Address": "https://example.com/query", "Status Code": 202}
+
+
+def test_projected_link_count_and_first_use_tab_fast_paths() -> None:
+    backend = FastTabBackend()
+    crawl = Crawl(backend)
+    view = crawl.links("in").select("Source", "Address").filter(status_code=200)
+
+    assert view.count() == 7
+    assert view.first() == {
+        "Source": "https://example.com/source",
+        "Address": "https://example.com/target",
+    }
+    assert backend.tab_count_calls == [("all_inlinks", {"status_code": 200})]
+    assert backend.tab_rows_calls == [("all_inlinks", 1, {"status_code": 200})]
+
+
+def test_query_view_count_pushes_count_to_backend_sql() -> None:
+    backend = CountingSqlBackend()
+    crawl = Crawl(backend)
+
+    assert crawl.query("APP", "URLS").where("RESPONSE_CODE = ?", 404).count() == 3
+    assert len(backend.sql_calls) == 1
+    assert "SELECT COUNT(*) AS row_count FROM" in backend.sql_calls[0][0]
+    assert backend.sql_calls[0][1] == [404]
+
+
+def test_projected_tab_view_uses_backend_projection() -> None:
+    backend = FastTabBackend()
+    crawl = Crawl(backend)
+
+    assert crawl.tab("all_inlinks").select("Source").filter(status_code=200).first() == {
+        "Source": "https://example.com/source"
+    }
+    assert backend.tab_rows_calls == []
+
+
 def test_view_dataframe_exports(monkeypatch) -> None:
     fake_pandas = SimpleNamespace(DataFrame=lambda rows: {"engine": "pandas", "rows": rows})
     fake_polars = SimpleNamespace(DataFrame=lambda rows: {"engine": "polars", "rows": rows})

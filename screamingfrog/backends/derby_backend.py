@@ -413,6 +413,9 @@ class DerbyBackend(CrawlBackend):
         sql = _LINKS_BASE_SELECT + " WHERE l.SRC_ID = ?"
         return self._iter_links(sql, [url_id])
 
+    def prefers_source_link_reads(self) -> bool:
+        return True
+
     def iter_internal_projection(
         self,
         fields: Sequence[str],
@@ -720,6 +723,7 @@ class DerbyBackend(CrawlBackend):
     ) -> Iterator[dict[str, Any]]:
         filters = dict(filters or {})
         gui_filter = filters.pop("__gui__", None)
+        row_limit = filters.pop("__limit__", None)
         normalized = _normalize_tab_name(tab_name)
         if normalized in _CHAIN_TAB_KEYS:
             yield from self._get_chain_tab(normalized, filters)
@@ -914,6 +918,12 @@ class DerbyBackend(CrawlBackend):
 
         if where_parts:
             sql = f"{sql} WHERE {' AND '.join(where_parts)}"
+        if row_limit is not None:
+            try:
+                bounded_limit = max(0, int(row_limit))
+            except (TypeError, ValueError):
+                bounded_limit = 0
+            sql = f"{sql} FETCH FIRST {bounded_limit} ROWS ONLY"
 
         supplementary_specs = {
             table_name: specs
@@ -1047,6 +1057,176 @@ class DerbyBackend(CrawlBackend):
             if post_filters and not _row_matches_filters(output, post_filters):
                 continue
             yield output
+
+    def tab_count(self, tab_name: str, filters: Optional[dict[str, Any]] = None) -> int:
+        active_filters = dict(filters or {})
+        gui_filter = active_filters.pop("__gui__", None)
+        normalized = _normalize_tab_name(tab_name)
+
+        if normalized in _HREFLANG_MULTIMAP_TAB_KEYS:
+            norm_filters = _normalize_filters(active_filters)
+            allowed_filter_keys = {
+                "address",
+                "url",
+                "url_missing_return_link",
+                "url_with_inconsistent_language_return_link",
+            }
+            if set(norm_filters).issubset(allowed_filter_keys):
+                table_by_tab = {
+                    "hreflang_missing_return_links.csv": "APP.MULTIMAP_HREF_LANG_MISSING_CONFIRMATION",
+                    "hreflang_inconsistent_language_return_links.csv": "APP.MULTIMAP_HREF_LANG_INCONSISTENT_LANGUAGE_CONFIRMATION",
+                    "hreflang_non_canonical_return_links.csv": "APP.MULTIMAP_HREF_LANG_CANONICAL_CONFIRMATION",
+                    "hreflang_no_index_return_links.csv": "APP.MULTIMAP_HREF_LANG_NO_INDEX_CONFIRMATION",
+                }
+                table_name = table_by_tab.get(normalized)
+                if not table_name or _table_references_absent(
+                    table_name, getattr(self, "_existing_tables", frozenset())
+                ):
+                    return 0
+                address_values = _filter_values(
+                    norm_filters,
+                    "address",
+                    "url",
+                    "url_missing_return_link",
+                    "url_with_inconsistent_language_return_link",
+                )
+                cursor = self._conn.cursor()
+                sql = f"SELECT COUNT(*) FROM {table_name}"
+                params: list[Any] = []
+                if address_values:
+                    placeholders = ", ".join(["?"] * len(address_values))
+                    sql += f" WHERE MULTIMAP_KEY IN ({placeholders})"
+                    params.extend(address_values)
+                cursor.execute(sql, params)
+                row = cursor.fetchone()
+                return int(row[0]) if row and row[0] is not None else 0
+
+        if normalized in (
+            _CHAIN_TAB_KEYS
+            | _COOKIE_TAB_KEYS
+            | _HTTP_HEADER_TAB_KEYS
+            | _LANGUAGE_TAB_KEYS
+            | _STRUCTURED_DATA_TAB_KEYS
+            | _ACCESSIBILITY_TAB_KEYS
+            | _PAGESPEED_TAB_KEYS
+            | _RICH_RESULTS_TAB_KEYS
+            | _URL_INSPECTION_TAB_KEYS
+            | {"mobile_all.csv"}
+        ):
+            fallback_filters = dict(active_filters)
+            if gui_filter is not None:
+                fallback_filters["__gui__"] = gui_filter
+            return sum(1 for _ in self.get_tab(tab_name, filters=fallback_filters))
+
+        table, entries, gui_defs, supplementary = _resolve_tab_entries(
+            self._mapping, tab_name, gui_filter
+        )
+        existing_tables = getattr(self, "_existing_tables", frozenset())
+        if _table_references_absent(table, existing_tables):
+            return 0
+        if not entries:
+            raise ValueError(f"No columns mapped for tab: {tab_name}")
+
+        known_columns = getattr(self, "_known_table_columns", {})
+        where_parts: list[str] = []
+        params: list[Any] = []
+        where, params, post_filters = _build_where_from_entries(
+            active_filters,
+            entries,
+            supplementary,
+            existing_tables,
+            known_columns,
+        )
+        if where:
+            where_parts.append(where)
+        for filt in gui_defs:
+            if filt.sql_where:
+                where_parts.append(_normalize_gui_where_sql(filt.sql_where))
+
+        join_table, join_on, join_type = _resolve_join(gui_defs)
+        if join_table and _table_references_absent(join_table, existing_tables):
+            return 0
+        join_sql = ""
+        if join_table and join_on:
+            join_sql = f" {join_type} JOIN {join_table} j ON {join_on}"
+
+        blob_checks = _resolve_blob_checks(gui_defs)
+        if post_filters or blob_checks:
+            fallback_filters = dict(active_filters)
+            if gui_filter is not None:
+                fallback_filters["__gui__"] = gui_filter
+            return sum(1 for _ in self.get_tab(tab_name, filters=fallback_filters))
+
+        sql = f"SELECT COUNT(*) FROM {table}{join_sql}"
+        if where_parts:
+            sql = f"{sql} WHERE {' AND '.join(where_parts)}"
+        cursor = self._conn.cursor()
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        return int(row[0]) if row and row[0] is not None else 0
+
+    def tab_rows(
+        self,
+        tab_name: str,
+        limit: int,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        bounded_limit = max(0, int(limit))
+        if bounded_limit <= 0:
+            return []
+        active_filters = dict(filters or {})
+        gui_filter = active_filters.pop("__gui__", None)
+        normalized = _normalize_tab_name(tab_name)
+        special_tabs = (
+            _CHAIN_TAB_KEYS
+            | _COOKIE_TAB_KEYS
+            | _HTTP_HEADER_TAB_KEYS
+            | _HREFLANG_MULTIMAP_TAB_KEYS
+            | _LANGUAGE_TAB_KEYS
+            | _STRUCTURED_DATA_TAB_KEYS
+            | _ACCESSIBILITY_TAB_KEYS
+            | _PAGESPEED_TAB_KEYS
+            | _RICH_RESULTS_TAB_KEYS
+            | _URL_INSPECTION_TAB_KEYS
+            | {"mobile_all.csv"}
+        )
+        if normalized in special_tabs:
+            fallback_filters = dict(active_filters)
+            if gui_filter is not None:
+                fallback_filters["__gui__"] = gui_filter
+            rows: list[dict[str, Any]] = []
+            for row in self.get_tab(tab_name, filters=fallback_filters):
+                rows.append(dict(row))
+                if len(rows) >= bounded_limit:
+                    break
+            return rows
+
+        query_filters = dict(active_filters)
+        if gui_filter is not None:
+            query_filters["__gui__"] = gui_filter
+        query_filters["__limit__"] = bounded_limit
+        return [dict(row) for row in self.get_tab(tab_name, filters=query_filters)]
+
+    def tab_counts(
+        self,
+        tab_names: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> dict[str, int]:
+        return {str(tab_name): self.tab_count(str(tab_name), filters=filters) for tab_name in tab_names}
+
+    def tab_select(
+        self,
+        tab_name: str,
+        columns: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> Iterator[dict[str, Any]]:
+        selected = tuple(str(column) for column in columns)
+        active_filters = dict(filters or {})
+        if limit is not None:
+            active_filters["__limit__"] = max(0, int(limit))
+        for row in self.get_tab(tab_name, filters=active_filters):
+            yield {column: row.get(column) for column in selected}
 
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         cursor = self._conn.cursor()

@@ -11,6 +11,7 @@ from screamingfrog import Crawl
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.duckdb import (
     _bulk_load_syscs_csvs_to_duckdb,
+    _helper_relation_ready,
     _helper_relation_name,
     _import_duckdb,
     _relation_exists,
@@ -19,7 +20,7 @@ from screamingfrog.db.duckdb import (
     export_duckdb_from_backend,
     resolve_relation_name,
 )
-from screamingfrog.models import InternalPage
+from screamingfrog.models import InternalPage, Link
 
 
 class FakeDuckExportBackend(CrawlBackend):
@@ -307,6 +308,33 @@ class MinimalDuckReportBackend(CrawlBackend):
         raise NotImplementedError
 
 
+class SourcePreferredLinksBackend(MinimalDuckReportBackend):
+    def prefers_source_link_reads(self) -> bool:
+        return True
+
+    def get_outlinks(self, url: str):
+        return iter(
+            [
+                Link(
+                    source=url,
+                    destination="https://example.com/preferred-source-link",
+                    anchor_text="Preferred",
+                )
+            ]
+        )
+
+    def get_inlinks(self, url: str):
+        return iter(
+            [
+                Link(
+                    source="https://example.com/preferred-referrer",
+                    destination=url,
+                    anchor_text="Preferred",
+                )
+            ]
+        )
+
+
 class FakeDuckCompareBackend(CrawlBackend):
     def __init__(self, rows: list[dict[str, Any]]) -> None:
         self._tabs = {"internal_all.csv": rows}
@@ -423,12 +451,15 @@ class ProjectedOnlyResponseCodesBackend(CrawlBackend):
         return None
 
     def list_tabs(self) -> list[str]:
-        return ["response_codes_all.csv"]
+        return ["response_codes_all.csv", "response_codes_internal_all.csv"]
 
     def get_tab(
         self, tab_name: str, filters: Optional[dict[str, Any]] = None
     ) -> Iterator[dict[str, Any]]:
-        raise AssertionError("response_codes_all should use the projected DuckDB fast path")
+        name = tab_name if str(tab_name).endswith(".csv") else f"{tab_name}.csv"
+        if name != "response_codes_all.csv":
+            raise AssertionError(f"{name} should use the projected DuckDB fast path")
+        yield from (dict(row) for row in self._rows)
 
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         return iter(())
@@ -856,6 +887,47 @@ def test_export_duckdb_can_materialize_response_codes_all_without_raw_exports(tm
     assert resolve_relation_name(duck._backend.conn, "raw", "APP.URLS") is None
 
 
+def test_export_duckdb_can_materialize_response_codes_internal_all_from_projection(tmp_path: Path) -> None:
+    target = tmp_path / "response-codes-internal-only.duckdb"
+
+    export_duckdb_from_backend(
+        ProjectedOnlyResponseCodesBackend(),
+        target,
+        tables=(),
+        tabs=("response_codes_internal_all",),
+        source_label="projected-response-codes-internal",
+    )
+    duck = Crawl.from_duckdb(str(target))
+
+    assert duck.tab("response_codes_internal_all").collect() == [
+        {
+            "Address": "https://example.com/ok",
+            "Content Type": "text/html",
+            "Status Code": 200,
+            "Status": "OK",
+            "Indexability": "Indexable",
+            "Indexability Status": None,
+            "Inlinks": 4,
+            "Response Time": 123,
+            "Redirect URL": None,
+            "Redirect Type": None,
+        },
+        {
+            "Address": "https://example.com/redirect",
+            "Content Type": "text/html",
+            "Status Code": 301,
+            "Status": "Moved Permanently",
+            "Indexability": "Indexable",
+            "Indexability Status": None,
+            "Inlinks": 2,
+            "Response Time": 45,
+            "Redirect URL": "https://example.com/final",
+            "Redirect Type": "HTTP Redirect",
+        },
+    ]
+    assert resolve_relation_name(duck._backend.conn, "raw", "APP.URLS") is None
+
+
 def test_single_crawl_duckdb_defaults_to_empty_namespace(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "single.duckdb"
@@ -1056,6 +1128,38 @@ def test_ensure_duckdb_cache_reuses_existing_db_while_read_only_connection_is_op
     assert duck.tabs == []
 
 
+def test_export_duckdb_rebuilds_stale_helper_relation(tmp_path: Path) -> None:
+    target = tmp_path / "stale-helper.duckdb"
+    duckdb = _import_duckdb()
+    conn = duckdb.connect(str(target))
+    try:
+        conn.execute('CREATE TABLE main.sf_helper_links_core ("Source" VARCHAR, "Address" VARCHAR)')
+        conn.execute("INSERT INTO main.sf_helper_links_core VALUES (NULL, NULL)")
+    finally:
+        conn.close()
+
+    export_duckdb_from_backend(
+        MinimalDuckReportBackend(),
+        target,
+        tables=(),
+        tabs=(),
+        helpers=("links_core",),
+        if_exists="auto",
+        source_label="minimal-links",
+    )
+
+    conn = duckdb.connect(str(target), read_only=True)
+    try:
+        assert _helper_relation_ready(conn, "links_core")
+        rows = list(iter_relation_rows(conn, _helper_relation_name("links_core")))
+    finally:
+        conn.close()
+
+    assert rows
+    assert rows[0]["Source"] == "https://example.com/nav"
+    assert rows[0]["Address"] == "https://example.com/home"
+
+
 def test_duckdb_backend_lazy_materializes_tabs_from_source(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl-lazy-tab.duckdb"
@@ -1115,6 +1219,263 @@ def test_duckdb_projected_link_view_uses_links_core_without_link_tabs(tmp_path: 
     assert resolve_relation_name(duck._backend.conn, "tab", "all_inlinks") is None  # type: ignore[attr-defined]
     assert resolve_relation_name(duck._backend.conn, "tab", "all_outlinks") is None  # type: ignore[attr-defined]
     assert not _relation_exists(duck._backend.conn, _helper_relation_name("links_core"))  # type: ignore[attr-defined]
+
+
+def test_duckdb_links_core_shapes_uppercase_sql_aliases() -> None:
+    from screamingfrog.backends.duckdb_backend import _shape_raw_link_row
+
+    row = _shape_raw_link_row(
+        {
+            "SOURCE_URL": "https://example.com/source",
+            "DESTINATION_URL": "https://example.com/target",
+            "ANCHOR_TEXT": "Target",
+            "DESTINATION_STATUS_CODE": 200,
+            "DESTINATION_STATUS": "OK",
+            "LINK_TYPE": 1,
+            "NOFOLLOW": False,
+            "UGC": False,
+            "SPONSORED": False,
+            "NOOPENER": False,
+            "NOREFERRER": False,
+        }
+    )
+
+    assert row["Source"] == "https://example.com/source"
+    assert row["Address"] == "https://example.com/target"
+    assert row["Anchor"] == "Target"
+    assert row["Status Code"] == 200
+
+
+def test_duckdb_uses_explicit_source_link_read_capability(tmp_path: Path) -> None:
+    crawl = Crawl(MinimalDuckReportBackend())
+    target = tmp_path / "source-link-capability.duckdb"
+    crawl.export_duckdb(
+        str(target),
+        source_label="minimal-links",
+        tables=(),
+        tabs=(),
+        helpers=("links_core",),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        SourcePreferredLinksBackend(),
+        source_label="minimal-links",
+        available_tabs=("all_inlinks.csv", "all_outlinks.csv"),
+    )
+
+    outlinks = list(duck.outlinks("https://example.com/nav"))
+    inlinks = list(duck.inlinks("https://example.com/home"))
+
+    assert outlinks[0].destination == "https://example.com/preferred-source-link"
+    assert inlinks[0].source == "https://example.com/preferred-referrer"
+
+
+def test_duckdb_tab_count_and_rows_use_links_core_without_link_tabs(tmp_path: Path) -> None:
+    crawl = Crawl(MinimalDuckReportBackend())
+    target = tmp_path / "crawl-links-tab-fast.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="minimal-links",
+        tables=(),
+        tabs=("internal_all",),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        MinimalDuckReportBackend(),
+        source_label="minimal-links",
+        available_tabs=("internal_all.csv", "all_inlinks.csv", "all_outlinks.csv"),
+    )
+
+    assert duck.tab_count("all_inlinks", filters={"status_code": 404}) == 2
+    rows = duck.tab_rows("all_inlinks", filters={"status_code": 404}, limit=1)
+
+    assert len(rows) == 1
+    assert rows[0]["Source"] == "https://example.com/nav"
+    assert rows[0]["Address"] == "https://example.com/broken-target"
+    assert rows[0]["Anchor"] == "Broken"
+    assert rows[0]["Status Code"] == 404
+    assert resolve_relation_name(duck._backend.conn, "tab", "all_inlinks") is None  # type: ignore[attr-defined]
+    assert _relation_exists(duck._backend.conn, _helper_relation_name("links_core"))  # type: ignore[attr-defined]
+
+
+def test_duckdb_link_tab_collect_uses_links_core_without_link_tabs(tmp_path: Path) -> None:
+    crawl = Crawl(MinimalDuckReportBackend())
+    target = tmp_path / "crawl-links-tab-collect-fast.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="minimal-links",
+        tables=(),
+        tabs=("internal_all",),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        MinimalDuckReportBackend(),
+        source_label="minimal-links",
+        available_tabs=("internal_all.csv", "all_inlinks.csv", "all_outlinks.csv"),
+    )
+
+    rows = duck.tab("all_inlinks").filter(status_code=404).collect()
+
+    assert [row["Address"] for row in rows] == [
+        "https://example.com/broken-target",
+        "https://example.com/broken-page",
+    ]
+    assert resolve_relation_name(duck._backend.conn, "tab", "all_inlinks") is None  # type: ignore[attr-defined]
+    assert _relation_exists(duck._backend.conn, _helper_relation_name("links_core"))  # type: ignore[attr-defined]
+
+
+def test_duckdb_tab_select_uses_links_core_without_link_tabs(tmp_path: Path) -> None:
+    crawl = Crawl(MinimalDuckReportBackend())
+    target = tmp_path / "crawl-links-tab-select-fast.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="minimal-links",
+        tables=(),
+        tabs=("internal_all",),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        MinimalDuckReportBackend(),
+        source_label="minimal-links",
+        available_tabs=("internal_all.csv", "all_inlinks.csv"),
+    )
+
+    rows = duck.tab("all_inlinks").select("Source", "Address").filter(status_code=404).collect()
+
+    assert rows == [
+        {"Source": "https://example.com/nav", "Address": "https://example.com/broken-target"},
+        {"Source": "https://example.com/nav", "Address": "https://example.com/broken-page"},
+    ]
+    assert resolve_relation_name(duck._backend.conn, "tab", "all_inlinks") is None  # type: ignore[attr-defined]
+    assert _relation_exists(duck._backend.conn, _helper_relation_name("links_core"))  # type: ignore[attr-defined]
+
+
+def test_duckdb_fast_tab_helpers_match_materialized_tab_iteration(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-parity.duckdb"
+    crawl.export_duckdb(str(target), source_label="parity", tables=(), tabs=("internal_all", "all_inlinks"))
+    duck = Crawl.from_duckdb(str(target))
+
+    rows = list(duck.tab("all_inlinks"))
+
+    assert duck.tab_count("all_inlinks") == len(rows)
+    assert duck.tab_rows("all_inlinks", limit=1) == rows[:1]
+    assert duck.tab("all_inlinks").select("Source", "Address").collect() == [
+        {"Source": row.get("Source"), "Address": row.get("Address")}
+        for row in rows
+    ]
+
+
+def test_duckdb_tab_counts_batches_materialized_and_helper_counts(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "crawl-tab-counts-batch.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="fake-counts",
+        tables=(),
+        tabs=("internal_all",),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        FakeDuckExportBackend(),
+        source_label="fake-counts",
+        available_tabs=("internal_all.csv", "all_inlinks.csv"),
+    )
+
+    assert duck.tab_counts(["internal_all", "all_inlinks"]) == {
+        "internal_all": 2,
+        "all_inlinks": 1,
+    }
+    assert resolve_relation_name(duck._backend.conn, "tab", "all_inlinks") is None  # type: ignore[attr-defined]
+    assert _relation_exists(duck._backend.conn, _helper_relation_name("links_core"))  # type: ignore[attr-defined]
+
+
+def test_duckdb_internal_tab_count_uses_internal_basic_without_internal_all(tmp_path: Path) -> None:
+    crawl = Crawl(MinimalDuckReportBackend())
+    target = tmp_path / "crawl-internal-count-fast.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="minimal-internal",
+        tables=(),
+        tabs=(),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        MinimalDuckReportBackend(),
+        source_label="minimal-internal",
+        available_tabs=("internal_all.csv",),
+    )
+
+    assert duck.tab_count("internal_all", filters={"status_code": 404}) == 1
+    assert resolve_relation_name(duck._backend.conn, "tab", "internal_all") is None  # type: ignore[attr-defined]
+    assert _relation_exists(duck._backend.conn, _helper_relation_name("internal_basic"))  # type: ignore[attr-defined]
+
+
+def test_duckdb_response_code_tab_count_uses_internal_basic_without_tab(tmp_path: Path) -> None:
+    crawl = Crawl(MinimalDuckReportBackend())
+    target = tmp_path / "crawl-response-count-fast.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="minimal-response-count",
+        tables=(),
+        tabs=(),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        MinimalDuckReportBackend(),
+        source_label="minimal-response-count",
+        available_tabs=("response_codes_internal_client_error_(4xx).csv",),
+    )
+
+    assert duck.tab_count("response_codes_internal_client_error_(4xx)") == 1
+    assert (
+        resolve_relation_name(
+            duck._backend.conn,  # type: ignore[attr-defined]
+            "tab",
+            "response_codes_internal_client_error_(4xx)",
+        )
+        is None
+    )
+    assert _relation_exists(duck._backend.conn, _helper_relation_name("internal_basic"))  # type: ignore[attr-defined]
+
+
+def test_duckdb_response_code_tab_rows_use_internal_common_without_tab(tmp_path: Path) -> None:
+    crawl = Crawl(MinimalDuckReportBackend())
+    target = tmp_path / "crawl-response-rows-fast.duckdb"
+
+    crawl.export_duckdb(
+        str(target),
+        source_label="minimal-response-rows",
+        tables=(),
+        tabs=(),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        MinimalDuckReportBackend(),
+        source_label="minimal-response-rows",
+        available_tabs=("response_codes_internal_client_error_(4xx).csv",),
+    )
+
+    rows = duck.tab_rows("response_codes_internal_client_error_(4xx)", limit=1)
+
+    assert len(rows) == 1
+    assert rows[0]["Address"] == "https://example.com/broken-page"
+    assert rows[0]["Status Code"] == 404
+    assert (
+        resolve_relation_name(
+            duck._backend.conn,  # type: ignore[attr-defined]
+            "tab",
+            "response_codes_internal_client_error_(4xx)",
+        )
+        is None
+    )
+    assert _relation_exists(duck._backend.conn, _helper_relation_name("internal_common"))  # type: ignore[attr-defined]
 
 
 def test_duckdb_backend_supports_links_and_chain_reports(tmp_path: Path) -> None:

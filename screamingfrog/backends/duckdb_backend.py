@@ -7,8 +7,12 @@ from urllib.parse import urljoin
 
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.duckdb import (
+    _drop_relation,
+    _ensure_metadata_tables,
     _helper_relation_name,
+    _helper_relation_ready,
     _relation_exists,
+    _store_helper_metadata,
     _write_relation,
     export_duckdb_from_backend,
     iter_cursor_rows,
@@ -76,6 +80,7 @@ _INTERNAL_COMMON_FIELD_CANDIDATES: tuple[tuple[str, tuple[str, ...]], ...] = (
 _INTERNAL_COMMON_FIELD_NAMES = {
     field_name for field_name, _ in _INTERNAL_COMMON_FIELD_CANDIDATES
 }
+_LINKS_CORE_TAB_NAMES = {"all_inlinks.csv", "all_outlinks.csv"}
 
 
 class DuckDBBackend(CrawlBackend):
@@ -135,14 +140,17 @@ class DuckDBBackend(CrawlBackend):
             yield InternalPage.from_data(row, copy_data=False)
 
     def get_inlinks(self, url: str) -> Iterator[Link]:
+        source_backend = self.get_lazy_source_backend()
+        if self._prefer_source_link_reads(source_backend):
+            try:
+                yield from source_backend.get_inlinks(url)
+                return
+            except Exception:
+                pass
         relation = self.ensure_helper_relation("links_core")
         if relation:
             for row in self._iter_relation(relation, filters={"Destination": url}):
                 yield Link.from_row(row)
-            return
-        source_backend = self.get_lazy_source_backend()
-        if source_backend is not None:
-            yield from source_backend.get_inlinks(url)
             return
         relation = resolve_relation_name(self.conn, "tab", "all_inlinks", namespace=self.namespace)
         if not relation and self.ensure_tab("all_inlinks"):
@@ -157,14 +165,17 @@ class DuckDBBackend(CrawlBackend):
             yield Link.from_row(row)
 
     def get_outlinks(self, url: str) -> Iterator[Link]:
+        source_backend = self.get_lazy_source_backend()
+        if self._prefer_source_link_reads(source_backend):
+            try:
+                yield from source_backend.get_outlinks(url)
+                return
+            except Exception:
+                pass
         relation = self.ensure_helper_relation("links_core")
         if relation:
             for row in self._iter_relation(relation, filters={"Source": url}):
                 yield Link.from_row(row)
-            return
-        source_backend = self.get_lazy_source_backend()
-        if source_backend is not None:
-            yield from source_backend.get_outlinks(url)
             return
         relation = resolve_relation_name(self.conn, "tab", "all_outlinks", namespace=self.namespace)
         if not relation and self.ensure_tab("all_outlinks"):
@@ -261,7 +272,19 @@ class DuckDBBackend(CrawlBackend):
     ) -> Iterator[dict[str, Any]]:
         filters = dict(filters or {})
         gui_filter = filters.pop("__gui__", None)
-        relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
+        if self._is_links_core_tab(tab_name, gui_filter):
+            source_backend = self.get_lazy_source_backend()
+            if self._prefer_source_link_reads(source_backend):
+                source_filters = dict(filters)
+                if gui_filter is not None:
+                    source_filters["__gui__"] = gui_filter
+                try:
+                    return source_backend.get_tab(tab_name, filters=source_filters)
+                except (AttributeError, NotImplementedError, ValueError):
+                    pass
+        relation = self._link_core_relation_for_tab(tab_name, gui_filter)
+        if not relation:
+            relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
         if not relation:
             source_backend = self.get_lazy_source_backend()
             if source_backend is not None:
@@ -282,6 +305,233 @@ class DuckDBBackend(CrawlBackend):
             raise NotImplementedError(f"Tab not available in DuckDB cache: {tab_name}")
         return self._iter_relation(relation, filters=filters)
 
+    def tab_count(self, tab_name: str, filters: Optional[dict[str, Any]] = None) -> int:
+        filters = dict(filters or {})
+        gui_filter = filters.pop("__gui__", None)
+        if self._is_links_core_tab(tab_name, gui_filter):
+            source_backend = self.get_lazy_source_backend()
+            if self._prefer_source_link_reads(source_backend) and hasattr(source_backend, "tab_count"):
+                try:
+                    source_filters = dict(filters)
+                    if gui_filter is not None:
+                        source_filters["__gui__"] = gui_filter
+                    return int(source_backend.tab_count(tab_name, filters=source_filters))
+                except (AttributeError, NotImplementedError, ValueError):
+                    pass
+        relation = self._link_core_relation_for_tab(tab_name, gui_filter)
+        if not relation:
+            relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
+        if not relation:
+            fast_count = self._internal_basic_count_for_response_tab(tab_name, gui_filter, filters)
+            if fast_count is not None:
+                return fast_count
+        if not relation:
+            relation = self._internal_basic_relation_for_tab_count(tab_name, gui_filter, filters)
+        if not relation:
+            relation = self._link_core_relation_for_tab(tab_name, gui_filter)
+        if not relation:
+            source_backend = self.get_lazy_source_backend()
+            if source_backend is not None and hasattr(source_backend, "tab_count"):
+                try:
+                    source_filters = dict(filters)
+                    if gui_filter is not None:
+                        source_filters["__gui__"] = gui_filter
+                    return int(source_backend.tab_count(tab_name, filters=source_filters))
+                except (AttributeError, NotImplementedError, ValueError):
+                    pass
+            self.ensure_tab(tab_name, gui_filter=gui_filter)
+            relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
+        if not relation:
+            if gui_filter:
+                raise NotImplementedError(
+                    f"Tab not available in DuckDB cache: {make_tab_filename(str(tab_name), str(gui_filter))}"
+                )
+            raise NotImplementedError(f"Tab not available in DuckDB cache: {tab_name}")
+        columns = self._get_relation_columns(relation)
+        sql, params, post_filters = _build_relation_query(relation, columns, filters)
+        if post_filters:
+            return sum(1 for _ in self._iter_relation(relation, filters=filters))
+        row = self.conn.execute(f"SELECT COUNT(*) FROM ({sql}) AS sf_count", params).fetchone()
+        return int(row[0]) if row else 0
+
+    def tab_counts(
+        self,
+        tab_names: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> dict[str, int]:
+        requested = [str(tab_name) for tab_name in tab_names]
+        results: dict[str, int] = {}
+        batch_parts: list[str] = []
+        batch_params: list[Any] = []
+        batch_names: list[str] = []
+
+        for tab_name in requested:
+            query = self._tab_count_query(tab_name, filters=filters)
+            if query is None:
+                results[tab_name] = self.tab_count(tab_name, filters=filters)
+                continue
+            sql, params = query
+            batch_parts.append(f"SELECT ? AS tab_name, COUNT(*) AS row_count FROM ({sql}) AS sf_count_{len(batch_parts)}")
+            batch_params.append(tab_name)
+            batch_params.extend(params)
+            batch_names.append(tab_name)
+
+        if batch_parts:
+            cursor = self.conn.execute(" UNION ALL ".join(batch_parts), batch_params)
+            for row in cursor.fetchall():
+                results[str(row[0])] = int(row[1] or 0)
+
+        return {tab_name: results[tab_name] for tab_name in requested}
+
+    def tab_rows(
+        self,
+        tab_name: str,
+        limit: int,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        bounded_limit = max(0, int(limit))
+        if bounded_limit <= 0:
+            return []
+        filters = dict(filters or {})
+        gui_filter = filters.pop("__gui__", None)
+        if self._is_links_core_tab(tab_name, gui_filter):
+            source_backend = self.get_lazy_source_backend()
+            if self._prefer_source_link_reads(source_backend) and hasattr(source_backend, "tab_rows"):
+                try:
+                    source_filters = dict(filters)
+                    if gui_filter is not None:
+                        source_filters["__gui__"] = gui_filter
+                    return list(source_backend.tab_rows(tab_name, bounded_limit, filters=source_filters))
+                except (AttributeError, NotImplementedError, ValueError):
+                    pass
+        relation = self._link_core_relation_for_tab(tab_name, gui_filter)
+        if not relation:
+            relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
+        if not relation:
+            response_rows = self._response_code_tab_rows(
+                tab_name,
+                gui_filter,
+                filters,
+                limit=bounded_limit,
+            )
+            if response_rows is not None:
+                return response_rows
+        if not relation:
+            relation = self._link_core_relation_for_tab(tab_name, gui_filter)
+        if not relation:
+            source_backend = self.get_lazy_source_backend()
+            if source_backend is not None and hasattr(source_backend, "tab_rows"):
+                try:
+                    source_filters = dict(filters)
+                    if gui_filter is not None:
+                        source_filters["__gui__"] = gui_filter
+                    return list(source_backend.tab_rows(tab_name, bounded_limit, filters=source_filters))
+                except (AttributeError, NotImplementedError, ValueError):
+                    pass
+            self.ensure_tab(tab_name, gui_filter=gui_filter)
+            relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
+        if not relation:
+            if gui_filter:
+                raise NotImplementedError(
+                    f"Tab not available in DuckDB cache: {make_tab_filename(str(tab_name), str(gui_filter))}"
+                )
+            raise NotImplementedError(f"Tab not available in DuckDB cache: {tab_name}")
+        columns = self._get_relation_columns(relation)
+        sql, params, post_filters = _build_relation_query(relation, columns, filters)
+        if post_filters:
+            rows: list[dict[str, Any]] = []
+            for row in self._iter_relation(relation, filters=filters):
+                rows.append(dict(row))
+                if len(rows) >= bounded_limit:
+                    break
+            return rows
+        cursor = self.conn.execute(f"SELECT * FROM ({sql}) AS sf_rows LIMIT ?", [*params, bounded_limit])
+        result_columns = [desc[0] for desc in cursor.description or []]
+        return [
+            {col: val for col, val in zip(result_columns, row)}
+            for row in iter_cursor_rows(cursor)
+        ]
+
+    def tab_select(
+        self,
+        tab_name: str,
+        columns: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> Iterator[dict[str, Any]]:
+        selected = tuple(dict.fromkeys(str(column) for column in columns if str(column).strip()))
+        if not selected:
+            return iter(())
+        bounded_limit = None if limit is None else max(0, int(limit))
+        if bounded_limit == 0:
+            return iter(())
+
+        active_filters = dict(filters or {})
+        gui_filter = active_filters.pop("__gui__", None)
+        if self._is_links_core_tab(tab_name, gui_filter):
+            source_backend = self.get_lazy_source_backend()
+            if self._prefer_source_link_reads(source_backend) and hasattr(source_backend, "tab_select"):
+                try:
+                    source_filters = dict(active_filters)
+                    if gui_filter is not None:
+                        source_filters["__gui__"] = gui_filter
+                    return source_backend.tab_select(tab_name, selected, filters=source_filters, limit=bounded_limit)
+                except (AttributeError, NotImplementedError, ValueError):
+                    pass
+        relation = self._link_core_relation_for_tab(tab_name, gui_filter)
+        if not relation:
+            relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
+        if not relation:
+            response_rows = self._response_code_tab_rows(
+                tab_name,
+                gui_filter,
+                active_filters,
+                limit=bounded_limit,
+                columns=selected,
+            )
+            if response_rows is not None:
+                return iter(response_rows)
+        if not relation:
+            relation = self._link_core_relation_for_tab(tab_name, gui_filter)
+        if relation:
+            relation_columns = self._get_relation_columns(relation)
+            column_map = {_normalize_key(column): column for column in relation_columns}
+            resolved_columns = [column_map.get(_normalize_key(column)) for column in selected]
+            if all(resolved_columns):
+                sql, params, post_filters = _build_relation_query(relation, relation_columns, active_filters)
+                if not post_filters:
+                    select_sql = ", ".join(
+                        f"{_quote_identifier(resolved)} AS {_quote_identifier(requested)}"
+                        for requested, resolved in zip(selected, resolved_columns)
+                        if resolved is not None
+                    )
+                    sql = f"SELECT {select_sql} FROM ({sql}) AS sf_projected_tab"
+                    if bounded_limit is not None:
+                        sql = f"{sql} LIMIT ?"
+                        params = [*params, bounded_limit]
+                    cursor = self.conn.execute(sql, params)
+                    result_columns = [desc[0] for desc in cursor.description or []]
+                    return (
+                        {col: val for col, val in zip(result_columns, row)}
+                        for row in iter_cursor_rows(cursor)
+                    )
+
+        source_backend = self.get_lazy_source_backend()
+        if source_backend is not None and hasattr(source_backend, "tab_select"):
+            try:
+                source_filters = dict(active_filters)
+                if gui_filter is not None:
+                    source_filters["__gui__"] = gui_filter
+                return source_backend.tab_select(tab_name, selected, filters=source_filters, limit=bounded_limit)
+            except (AttributeError, NotImplementedError, ValueError):
+                pass
+
+        fallback_filters = dict(active_filters)
+        if gui_filter is not None:
+            fallback_filters["__gui__"] = gui_filter
+        rows = self.tab_rows(tab_name, bounded_limit or 50, filters=fallback_filters) if bounded_limit is not None else self.get_tab(tab_name, filters=fallback_filters)
+        return ({column: row.get(column) for column in selected} for row in rows)
+
     def raw(self, table: str) -> Iterator[dict[str, Any]]:
         relation = resolve_relation_name(self.conn, "raw", table, namespace=self.namespace)
         if not relation:
@@ -299,7 +549,16 @@ class DuckDBBackend(CrawlBackend):
             yield {col: val for col, val in zip(columns, row)}
 
     def tab_columns(self, tab_name: str) -> list[str]:
-        relation = _resolve_tab_relation(self.conn, tab_name, None, namespace=self.namespace)
+        if self._is_links_core_tab(tab_name, None):
+            source_backend = self.get_lazy_source_backend()
+            if source_backend is not None and hasattr(source_backend, "tab_columns"):
+                try:
+                    return list(source_backend.tab_columns(tab_name))
+                except (AttributeError, NotImplementedError, ValueError):
+                    pass
+        relation = self._link_core_relation_for_tab(tab_name, None)
+        if not relation:
+            relation = _resolve_tab_relation(self.conn, tab_name, None, namespace=self.namespace)
         if not relation:
             source_backend = self.get_lazy_source_backend()
             if source_backend is not None and hasattr(source_backend, "tab_columns"):
@@ -328,7 +587,7 @@ class DuckDBBackend(CrawlBackend):
 
     def ensure_helper_relation(self, helper_name: str) -> str | None:
         relation = _helper_relation_name(helper_name, namespace=self.namespace)
-        if _relation_exists(self.conn, relation):
+        if _helper_relation_ready(self.conn, helper_name, namespace=self.namespace):
             return relation
         rows = self._helper_rows(helper_name)
         if rows is None:
@@ -337,8 +596,12 @@ class DuckDBBackend(CrawlBackend):
         try:
             conn = self._duckdb.connect(str(self.db_path))
             try:
+                _ensure_metadata_tables(conn)
+                if _relation_exists(conn, relation):
+                    _drop_relation(conn, relation)
                 if not _write_relation(conn, relation, rows):
                     return None
+                _store_helper_metadata(conn, helper_name, relation, namespace=self.namespace)
             finally:
                 conn.close()
         finally:
@@ -366,7 +629,7 @@ class DuckDBBackend(CrawlBackend):
             "chain_inlinks",
         )
         if all(
-            _relation_exists(self.conn, _helper_relation_name(name, namespace=self.namespace))
+            _helper_relation_ready(self.conn, name, namespace=self.namespace)
             for name in helper_names
         ):
             return True
@@ -384,22 +647,26 @@ class DuckDBBackend(CrawlBackend):
         try:
             conn = self._duckdb.connect(str(self.db_path))
             try:
+                _ensure_metadata_tables(conn)
                 for helper_name in helper_names:
                     relation = _helper_relation_name(helper_name, namespace=self.namespace)
-                    if _relation_exists(conn, relation):
+                    if _helper_relation_ready(conn, helper_name, namespace=self.namespace):
                         continue
+                    if _relation_exists(conn, relation):
+                        _drop_relation(conn, relation)
                     rows = helper_rows.get(helper_name, [])
                     if rows:
                         _write_relation(conn, relation, rows)
                     else:
                         _create_empty_helper_relation(conn, relation, _CHAIN_HELPER_SCHEMAS[helper_name])
+                    _store_helper_metadata(conn, helper_name, relation, namespace=self.namespace)
             finally:
                 conn.close()
         finally:
             self._open_connection()
 
         return all(
-            _relation_exists(self.conn, _helper_relation_name(name, namespace=self.namespace))
+            _helper_relation_ready(self.conn, name, namespace=self.namespace)
             for name in helper_names
         )
 
@@ -490,6 +757,165 @@ class DuckDBBackend(CrawlBackend):
             [schema_name, table_name],
         )
         return [str(row[0]) for row in cursor.fetchall()]
+
+    def _link_core_relation_for_tab(self, tab_name: str, gui_filter: Any = None) -> Optional[str]:
+        if not self._is_links_core_tab(tab_name, gui_filter):
+            return None
+        return self.ensure_helper_relation("links_core")
+
+    def _is_links_core_tab(self, tab_name: str, gui_filter: Any = None) -> bool:
+        if gui_filter is not None:
+            return False
+        normalized = normalize_name(tab_name)
+        if normalized and not normalized.endswith(".csv"):
+            normalized = f"{normalized}.csv"
+        return normalized in _LINKS_CORE_TAB_NAMES
+
+    def _prefer_source_link_reads(self, source_backend: Any) -> bool:
+        if source_backend is None:
+            return False
+        preference = getattr(source_backend, "prefers_source_link_reads", None)
+        if callable(preference):
+            return bool(preference())
+        return bool(preference)
+
+    def _tab_count_query(
+        self,
+        tab_name: str,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> Optional[tuple[str, list[Any]]]:
+        active_filters = dict(filters or {})
+        gui_filter = active_filters.pop("__gui__", None)
+        relation = _resolve_tab_relation(self.conn, tab_name, gui_filter, namespace=self.namespace)
+        if not relation:
+            relation = self._internal_basic_relation_for_tab_count(tab_name, gui_filter, active_filters)
+        if not relation:
+            relation = self._link_core_relation_for_tab(tab_name, gui_filter)
+        if not relation:
+            return None
+        columns = self._get_relation_columns(relation)
+        sql, params, post_filters = _build_relation_query(relation, columns, active_filters)
+        if post_filters:
+            return None
+        return sql, params
+
+    def _internal_basic_relation_for_tab_count(
+        self,
+        tab_name: str,
+        gui_filter: Any,
+        filters: Optional[dict[str, Any]],
+    ) -> Optional[str]:
+        if gui_filter is not None:
+            return None
+        normalized = normalize_name(tab_name)
+        if normalized and not normalized.endswith(".csv"):
+            normalized = f"{normalized}.csv"
+        if normalized != "internal_all.csv":
+            return None
+        return self._basic_internal_relation(filters)
+
+    def _internal_basic_count_for_response_tab(
+        self,
+        tab_name: str,
+        gui_filter: Any,
+        filters: Optional[dict[str, Any]],
+    ) -> Optional[int]:
+        if gui_filter is not None:
+            return None
+        normalized = normalize_name(tab_name)
+        if normalized and not normalized.endswith(".csv"):
+            normalized = f"{normalized}.csv"
+        status_predicate = {
+            "response_codes_internal_all.csv": None,
+            "response_codes_internal_success_(2xx).csv": '"Status Code" BETWEEN 200 AND 299',
+            "response_codes_internal_redirection_(3xx).csv": '"Status Code" BETWEEN 300 AND 399',
+            "response_codes_internal_client_error_(4xx).csv": '"Status Code" BETWEEN 400 AND 499',
+            "response_codes_internal_server_error_(5xx).csv": '"Status Code" BETWEEN 500 AND 599',
+            "response_codes_internal_no_response.csv": '"Status Code" IS NULL',
+        }.get(normalized)
+        if normalized not in {
+            "response_codes_internal_all.csv",
+            "response_codes_internal_success_(2xx).csv",
+            "response_codes_internal_redirection_(3xx).csv",
+            "response_codes_internal_client_error_(4xx).csv",
+            "response_codes_internal_server_error_(5xx).csv",
+            "response_codes_internal_no_response.csv",
+        }:
+            return None
+        relation = self._basic_internal_relation(filters)
+        if not relation:
+            return None
+        columns = self._get_relation_columns(relation)
+        sql, params, post_filters = _build_relation_query(relation, columns, filters)
+        if post_filters:
+            return None
+        if status_predicate:
+            sql = f"SELECT * FROM ({sql}) AS sf_response_tab WHERE {status_predicate}"
+        row = self.conn.execute(f"SELECT COUNT(*) FROM ({sql}) AS sf_count", params).fetchone()
+        return int(row[0]) if row else 0
+
+    def _response_code_tab_rows(
+        self,
+        tab_name: str,
+        gui_filter: Any,
+        filters: Optional[dict[str, Any]],
+        *,
+        limit: Optional[int] = None,
+        columns: Optional[Sequence[str]] = None,
+    ) -> Optional[list[dict[str, Any]]]:
+        if gui_filter is not None:
+            return None
+        normalized = normalize_name(tab_name)
+        if normalized and not normalized.endswith(".csv"):
+            normalized = f"{normalized}.csv"
+        status_predicate = {
+            "response_codes_internal_all.csv": None,
+            "response_codes_internal_success_(2xx).csv": '"Status Code" BETWEEN 200 AND 299',
+            "response_codes_internal_redirection_(3xx).csv": '"Status Code" BETWEEN 300 AND 399',
+            "response_codes_internal_client_error_(4xx).csv": '"Status Code" BETWEEN 400 AND 499',
+            "response_codes_internal_server_error_(5xx).csv": '"Status Code" BETWEEN 500 AND 599',
+            "response_codes_internal_no_response.csv": '"Status Code" IS NULL',
+        }.get(normalized)
+        if normalized not in {
+            "response_codes_internal_all.csv",
+            "response_codes_internal_success_(2xx).csv",
+            "response_codes_internal_redirection_(3xx).csv",
+            "response_codes_internal_client_error_(4xx).csv",
+            "response_codes_internal_server_error_(5xx).csv",
+            "response_codes_internal_no_response.csv",
+        }:
+            return None
+        relation = self.ensure_helper_relation("internal_common")
+        if not relation:
+            return None
+        relation_columns = self._get_relation_columns(relation)
+        sql, params, post_filters = _build_relation_query(relation, relation_columns, filters)
+        if post_filters:
+            return None
+        if status_predicate:
+            sql = f"SELECT * FROM ({sql}) AS sf_response_tab WHERE {status_predicate}"
+        selected_columns = list(columns) if columns is not None else [
+            "Address",
+            "Status Code",
+            "Indexability",
+            "Indexability Status",
+            "Redirect URL",
+            "Redirect Type",
+        ]
+        available = [column for column in selected_columns if column in relation_columns]
+        if not available:
+            return []
+        select_sql = ", ".join(_quote_identifier(column) for column in available)
+        sql = f"SELECT {select_sql} FROM ({sql}) AS sf_response_rows"
+        if limit is not None:
+            sql = f"{sql} LIMIT ?"
+            params = [*params, max(0, int(limit))]
+        cursor = self.conn.execute(sql, params)
+        result_columns = [desc[0] for desc in cursor.description or []]
+        return [
+            {col: val for col, val in zip(result_columns, row)}
+            for row in iter_cursor_rows(cursor)
+        ]
 
     def _basic_internal_relation(self, filters: Optional[dict[str, Any]]) -> str | None:
         if self._internal_relation:
@@ -678,32 +1104,32 @@ def _row_matches(row: dict[str, Any], filters: dict[str, Any]) -> bool:
 
 
 def _shape_raw_link_row(row: dict[str, Any]) -> dict[str, Any]:
-    nofollow = _to_bool(row.get("nofollow"))
-    ugc = _to_bool(row.get("ugc"))
-    sponsored = _to_bool(row.get("sponsored"))
-    noopener = _to_bool(row.get("noopener"))
-    noreferrer = _to_bool(row.get("noreferrer"))
+    nofollow = _to_bool(_row_value(row, "nofollow"))
+    ugc = _to_bool(_row_value(row, "ugc"))
+    sponsored = _to_bool(_row_value(row, "sponsored"))
+    noopener = _to_bool(_row_value(row, "noopener"))
+    noreferrer = _to_bool(_row_value(row, "noreferrer"))
     follow = None if nofollow is None else not nofollow
-    destination = row.get("destination_url")
+    destination = _row_value(row, "destination_url")
     return {
-        "Type": _link_type_name(row.get("link_type")),
-        "Source": row.get("source_url"),
+        "Type": _link_type_name(_row_value(row, "link_type")),
+        "Source": _row_value(row, "source_url"),
         "Address": destination,
         "Destination": destination,
-        "Alt Text": row.get("alt_text"),
-        "Anchor": row.get("anchor_text"),
-        "Status Code": row.get("destination_status_code"),
-        "Status": row.get("destination_status"),
+        "Alt Text": _row_value(row, "alt_text"),
+        "Anchor": _row_value(row, "anchor_text"),
+        "Status Code": _row_value(row, "destination_status_code"),
+        "Status": _row_value(row, "destination_status"),
         "Follow": follow,
-        "Target": row.get("target_value"),
+        "Target": _row_value(row, "target_value"),
         "Rel": _rel_value(nofollow, ugc, sponsored, noopener, noreferrer),
-        "Path Type": row.get("path_type"),
-        "Link Path": row.get("element_path"),
-        "Link Position": row.get("element_position"),
-        "hreflang": row.get("href_lang"),
-        "Link Type": row.get("link_type"),
-        "Scope": row.get("scope_value"),
-        "Origin": row.get("origin_value"),
+        "Path Type": _row_value(row, "path_type"),
+        "Link Path": _row_value(row, "element_path"),
+        "Link Position": _row_value(row, "element_position"),
+        "hreflang": _row_value(row, "href_lang"),
+        "Link Type": _row_value(row, "link_type"),
+        "Scope": _row_value(row, "scope_value"),
+        "Origin": _row_value(row, "origin_value"),
         "NoFollow": nofollow,
         "UGC": ugc,
         "Sponsored": sponsored,
@@ -1177,7 +1603,7 @@ def _iter_chain_source_url_rows(source_backend: Any) -> Iterator[dict[str, Any]]
     if hasattr(source_backend, "sql"):
         try:
             for row in source_backend.sql(sql):
-                yield dict(row)
+                yield _normalize_row_keys(dict(row))
             return
         except Exception:
             pass
@@ -1216,7 +1642,7 @@ def _iter_chain_source_link_rows(source_backend: Any) -> Iterator[dict[str, Any]
     if hasattr(source_backend, "sql"):
         try:
             for row in source_backend.sql(sql):
-                yield dict(row)
+                yield _normalize_row_keys(dict(row))
             return
         except Exception:
             pass
@@ -1317,6 +1743,31 @@ def _to_int(value: Any) -> Optional[int]:
 
 def _normalize_key(value: str) -> str:
     return str(value).strip().lower().replace(" ", "_")
+
+
+def _normalize_row_keys(row: Mapping[str, Any]) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
+    for key, value in row.items():
+        text = str(key)
+        normalized[text] = value
+        normalized.setdefault(text.lower(), value)
+        normalized.setdefault(_normalize_key(text), value)
+    return normalized
+
+
+def _row_value(row: Mapping[str, Any], key: str) -> Any:
+    if key in row:
+        return row.get(key)
+    lowered = key.lower()
+    if lowered in row:
+        return row.get(lowered)
+    normalized = _normalize_key(key)
+    if normalized in row:
+        return row.get(normalized)
+    upper = key.upper()
+    if upper in row:
+        return row.get(upper)
+    return None
 
 
 def _resolve_tab_relation(

@@ -49,6 +49,9 @@ class HybridBackend(CrawlBackend):
     def get_outlinks(self, url: str):
         return self._primary.get_outlinks(url)
 
+    def prefers_source_link_reads(self) -> bool:
+        return True
+
     def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
         return self._primary.count(table, filters=filters)
 
@@ -80,6 +83,57 @@ class HybridBackend(CrawlBackend):
         if self._should_fallback(tab_name, gui_filter):
             return self._fallback_tab(tab_name, filters)
         return self._primary.get_tab(tab_name, filters=filters)
+
+    def tab_count(self, tab_name: str, filters: Optional[dict[str, Any]] = None) -> int:
+        filters = dict(filters or {})
+        gui_filter = filters.get("__gui__")
+        if self._should_fallback(tab_name, gui_filter):
+            return sum(1 for _ in self._fallback_tab(tab_name, filters))
+        return self._primary.tab_count(tab_name, filters=filters)
+
+    def tab_counts(
+        self,
+        tab_names: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+    ) -> dict[str, int]:
+        return {str(tab_name): self.tab_count(str(tab_name), filters=filters) for tab_name in tab_names}
+
+    def tab_rows(
+        self,
+        tab_name: str,
+        limit: int,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        bounded_limit = max(0, int(limit))
+        if bounded_limit <= 0:
+            return []
+        filters = dict(filters or {})
+        gui_filter = filters.get("__gui__")
+        if self._should_fallback(tab_name, gui_filter):
+            rows: list[dict[str, Any]] = []
+            for row in self._fallback_tab(tab_name, filters):
+                rows.append(dict(row))
+                if len(rows) >= bounded_limit:
+                    break
+            return rows
+        return self._primary.tab_rows(tab_name, bounded_limit, filters=filters)
+
+    def tab_select(
+        self,
+        tab_name: str,
+        columns: Sequence[str],
+        filters: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> Iterable[dict[str, Any]]:
+        filters = dict(filters or {})
+        gui_filter = filters.get("__gui__")
+        if self._should_fallback(tab_name, gui_filter):
+            return _project_limited_rows(self._fallback_tab(tab_name, filters), columns, limit)
+        selected = tuple(str(column) for column in columns)
+        max_rows = None if limit is None else max(0, int(limit))
+        if max_rows == 0:
+            return iter(())
+        return _project_limited_rows(self._primary.get_tab(tab_name, filters=filters), selected, limit)
 
     def _should_fallback(self, tab_name: str, gui_filter: Any) -> bool:
         if not self._fallback:
@@ -224,6 +278,23 @@ def _gui_filter_supported(tab_name: str, gui_filter: Any) -> bool:
     if filt.sql_where or filt.join_table:
         return True
     return normalize_name(filt.name) == "all"
+
+
+def _project_limited_rows(
+    rows: Iterable[dict[str, Any]],
+    columns: Sequence[str],
+    limit: Optional[int],
+) -> Iterable[dict[str, Any]]:
+    selected = tuple(str(column) for column in columns)
+    max_rows = None if limit is None else max(0, int(limit))
+    if max_rows == 0:
+        return
+    emitted = 0
+    for row in rows:
+        yield {column: row.get(column) for column in selected}
+        emitted += 1
+        if max_rows is not None and emitted >= max_rows:
+            break
 
 
 def _resolve_export_label(
