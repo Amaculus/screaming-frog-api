@@ -115,23 +115,28 @@ DuckDB is the default analysis layer for DB-backed crawl workflows. Derby remain
 ```python
 from screamingfrog import Crawl
 
-derby_crawl = Crawl.load("./crawl.dbseospider", dbseospider_backend="derby", csv_fallback=False)
-derby_crawl.export_duckdb("./crawl.duckdb", if_exists="auto")
+# Recommended: lazy DuckDB-backed analysis.
+# This creates a lightweight sidecar cache and materializes heavier data only when needed.
+crawl = Crawl.load("./crawl.dbseospider")
 
+pages_404 = crawl.pages().filter(status_code=404).collect()
+lightweight = crawl.pages().select("Address", "Status Code", "Title 1").collect()
+broken_inlinks = crawl.links("in").select("Source", "Address", "Status Code").filter(status_code=404).collect()
+matching_pages = crawl.search("canonical", fields=["Address", "Title 1"]).collect()
+links = crawl.links("in").filter(status_code=404).collect()
+
+# Optional: prebuild a portable helper cache for sharing/offline reuse.
+crawl.export_duckdb("./crawl.duckdb", if_exists="auto")
 fast = Crawl.load("./crawl.duckdb")
 
-# one DuckDB file can also hold multiple crawls under separate namespaces
+# Optional: one DuckDB file can hold multiple crawls under separate namespaces.
+derby_crawl = Crawl.load("./crawl.dbseospider", dbseospider_backend="derby", csv_fallback=False)
 derby_crawl.export_duckdb("./portfolio.duckdb", namespace="client-a", if_exists="auto")
 other_crawl.export_duckdb("./portfolio.duckdb", namespace="client-b", if_exists="auto")
 
 namespaces = Crawl.duckdb_namespaces("./portfolio.duckdb")
 client_a = Crawl.from_duckdb("./portfolio.duckdb", namespace="client-a")
 
-pages_404 = fast.pages().filter(status_code=404).collect()
-lightweight = fast.pages().select("Address", "Status Code", "Title 1").collect()
-broken_inlinks = fast.links("in").select("Source", "Address", "Status Code").filter(status_code=404).collect()
-matching_pages = fast.search("canonical", fields=["Address", "Title 1"]).collect()
-links = fast.links("in").filter(status_code=404).collect()
 rows = (
     fast.query("APP", "URLS")
     .select("ENCODED_URL", "RESPONSE_CODE")
@@ -139,16 +144,17 @@ rows = (
     .collect()
 )
 
-# if you want the old wide export (raw APP tables + default tabs), opt in explicitly
+# Optional: old wide export shape with raw APP tables + default materialized tabs.
 derby_crawl.export_duckdb("./crawl-full.duckdb", profile="full", if_exists="replace")
 ```
 
 Notes:
 - Derby remains the source-of-truth crawl store.
-- DuckDB is the default analysis engine for DB-backed workflows.
-- `crawl.export_duckdb()` now defaults to a portable helper cache instead of a full raw mirror, so exported `.duckdb` files open much faster and still support the main page/link/diff/report workflows.
-- Use `profile="full"` when you explicitly want raw `APP.*` tables plus the default materialized tabs inside the exported `.duckdb`.
-- Default DB-backed loads now create a tiny sidecar DuckDB cache first, keep Derby prewarmed as the lazy source backend, and only materialize heavier relations if you actually ask for them.
+- DuckDB is the default analysis engine for DB-backed workflows; prefer `Crawl.load("./crawl.dbseospider")` for normal use.
+- Default DB-backed loads create a tiny sidecar DuckDB cache first, keep Derby prewarmed as the lazy source backend, and only materialize heavier relations if you ask for them.
+- `crawl.export_duckdb()` defaults to a portable helper cache for sharing or offline reuse, not a full raw mirror.
+- Use `profile="full"` only when you explicitly need raw `APP.*` tables plus default materialized tabs inside the exported `.duckdb`.
+- Use `tabs="all"` only when you intentionally want to materialize every currently available mapped tab into the DuckDB cache.
 - DuckDB caches can now store multiple crawls in one `.duckdb` file via namespaces; pass `namespace=...` on export and `Crawl.from_duckdb(..., namespace=...)` on load.
 - Repeated DB-backed loads in the same Python process now reuse the cached Derby source backend for the same crawl fingerprint, so reopening the same crawl avoids paying Derby startup again.
 - High-level page workflows (`crawl.pages()`, page counts, page iteration) now read from the internal model directly instead of forcing `internal_all` tab materialization on a cold cache.
@@ -167,7 +173,6 @@ Notes:
 - `summary()` keeps the core crawl counts fast on cold caches; issue-family and chain counts are `None` until those tab families are materialized.
 - You can also export directly from a DB crawl id with `export_duckdb_from_db_id(...)`.
 - `.dbseospider`, `.seospider`, and DB crawl ID loaders can all auto-promote to DuckDB.
-- Use `tabs="all"` if you want to materialize every currently available mapped tab into the DuckDB cache.
 
 ## Search and scoped workflows
 
