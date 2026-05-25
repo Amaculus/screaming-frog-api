@@ -21,6 +21,11 @@ class DatabaseBackend(CrawlBackend):
         self.db_path = Path(db_path)
         if not self.db_path.exists():
             raise FileNotFoundError(f"Database not found: {self.db_path}")
+        if self.db_path.suffix.lower() == ".dbseospider" and not _looks_like_sqlite(self.db_path):
+            raise ValueError(
+                ".dbseospider files are Screaming Frog Derby crawl archives, not SQLite databases. "
+                "Use Crawl.load(path) or Crawl.from_derby(path) instead of Crawl.from_database(path)."
+            )
         self.conn = connect(self.db_path)
         self._internal_columns = self._get_table_columns("internal")
         self._internal_column_map = {col.lower(): col for col in self._internal_columns}
@@ -448,3 +453,11 @@ def _iter_cursor_rows(cursor: Any, batch_size: int = _FETCH_BATCH_SIZE) -> Itera
             break
         for row in rows:
             yield row
+
+
+def _looks_like_sqlite(path: Path) -> bool:
+    try:
+        with path.open("rb") as handle:
+            return handle.read(16).startswith(b"SQLite format 3")
+    except OSError:
+        return False

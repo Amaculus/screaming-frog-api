@@ -21,6 +21,12 @@ See `methods.md` for a complete method-level API reference.
 - Some hreflang edge cases still do not have exact Derby parity (`incorrect language-code` cases).
 - `.seospider` conversion requires a local Screaming Frog CLI install.
 
+## File Compatibility
+- `.dbseospider` files are Screaming Frog DB-mode crawl archives backed by Apache Derby. They are ZIP archives containing a Derby database, not SQLite files, so SQLite tools will report that they are not valid databases.
+- `.db` / `.sqlite` files are loaded with the legacy SQLite backend. Screaming Frog's current DB-mode crawls should generally be loaded as `.dbseospider`, DB crawl IDs, or ProjectInstanceData Derby directories instead.
+- `.seospider` files are desktop crawl files. This library loads them by asking the local Screaming Frog CLI to convert/export them; it does not parse `.seospider` directly.
+- The library is developed against modern DB-mode Screaming Frog crawls, including version 20.x-era `.dbseospider` / ProjectInstanceData Derby stores. Very old crawl formats or manually extracted partial folders may be missing tables or columns; in those cases use `csv_fallback=True` or export CSVs from the desktop app.
+
 ## Quick start
 
 ```python
@@ -39,13 +45,13 @@ from screamingfrog import Crawl, list_crawls
 # CSV exports directory
 crawl = Crawl.load("./exports")
 
-# SQLite database
+# Legacy SQLite database
 crawl = Crawl.load("./crawl.db")
 
 # DuckDB analytics cache
 crawl = Crawl.load("./crawl.duckdb")
 
-# Derby .dbseospider file -> auto-promotes into a sibling DuckDB cache by default
+# Derby .dbseospider archive -> auto-promotes into a sibling DuckDB cache by default
 crawl = Crawl.load("./crawl.dbseospider")
 
 # Screaming Frog .seospider crawl (default: convert to DB + DuckDB-backed analysis)

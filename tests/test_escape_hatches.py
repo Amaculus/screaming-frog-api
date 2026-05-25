@@ -70,6 +70,14 @@ def test_escape_hatches_sqlite(tmp_path: Path) -> None:
     assert params == [200]
 
 
+def test_from_database_rejects_derby_dbseospider_archive(tmp_path: Path) -> None:
+    dbseospider = tmp_path / "crawl.dbseospider"
+    dbseospider.write_bytes(b"PK\x03\x04not-a-sqlite-database")
+
+    with pytest.raises(ValueError, match="Derby crawl archives, not SQLite"):
+        Crawl.from_database(str(dbseospider))
+
+
 def test_escape_hatches_csv_not_supported(tmp_path: Path) -> None:
     export_dir = _make_export_dir(tmp_path)
     crawl = Crawl.load(str(export_dir))
