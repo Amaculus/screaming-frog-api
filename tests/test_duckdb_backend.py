@@ -11,6 +11,7 @@ from screamingfrog import Crawl
 from screamingfrog.backends.base import CrawlBackend
 from screamingfrog.db.duckdb import (
     _bulk_load_syscs_csvs_to_duckdb,
+    _fetch_derby_column_names,
     _helper_relation_ready,
     _helper_relation_name,
     _import_duckdb,
@@ -1268,6 +1269,67 @@ def test_duckdb_uses_explicit_source_link_read_capability(tmp_path: Path) -> Non
 
     assert outlinks[0].destination == "https://example.com/preferred-source-link"
     assert inlinks[0].source == "https://example.com/preferred-referrer"
+
+
+def test_export_duckdb_builds_links_core_from_raw_relations(tmp_path: Path) -> None:
+    target = tmp_path / "raw-links-core.duckdb"
+
+    export_duckdb_from_backend(
+        MinimalDuckReportBackend(),
+        target,
+        tables=("APP.URLS", "APP.LINKS", "APP.UNIQUE_URLS"),
+        tabs=(),
+        helpers=("links_core",),
+        source_label="minimal-links",
+    )
+
+    duckdb = _import_duckdb()
+    conn = duckdb.connect(str(target), read_only=True)
+    try:
+        assert _helper_relation_ready(conn, "links_core")
+        rows = list(iter_relation_rows(conn, _helper_relation_name("links_core")))
+    finally:
+        conn.close()
+
+    assert rows[0]["Source"] == "https://example.com/nav"
+    assert rows[0]["Address"] == "https://example.com/home"
+    assert rows[0]["Status Code"] == 200
+    assert rows[0]["Anchor"] == "Home"
+    assert rows[3]["Rel"] == "nofollow sponsored"
+
+
+class ColumnMetadataCursor:
+    def __init__(self) -> None:
+        self.description: list[tuple[str]] = []
+        self.executed: str | None = None
+        self.closed = False
+
+    def execute(self, sql: str) -> None:
+        self.executed = sql
+        if "FETCH FIRST 0 ROWS ONLY" in sql:
+            raise AssertionError("Derby rejects FETCH FIRST 0 ROWS ONLY")
+        self.description = [("ID",), ("ENCODED_URL",)]
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class ColumnMetadataConnection:
+    def __init__(self) -> None:
+        self.cursor_instance = ColumnMetadataCursor()
+
+    def cursor(self) -> ColumnMetadataCursor:
+        return self.cursor_instance
+
+
+def test_fetch_derby_column_names_uses_where_false_metadata_query() -> None:
+    conn = ColumnMetadataConnection()
+
+    columns = _fetch_derby_column_names(conn, "APP.URLS")
+
+    assert columns == ["ID", "ENCODED_URL"]
+    assert conn.cursor_instance.executed == "SELECT * FROM APP.URLS WHERE 1 = 0"
+    assert conn.cursor_instance.closed is True
 
 
 def test_duckdb_tab_count_and_rows_use_links_core_without_link_tabs(tmp_path: Path) -> None:

@@ -48,6 +48,8 @@ _CHAIN_TABS: frozenset[str] = frozenset(
     {"redirect_chains.csv", "canonical_chains.csv", "redirect_and_canonical_chains.csv"}
 )
 _FETCH_BATCH_SIZE = 1000
+_DEFAULT_SYSCS_CSV_SAMPLE_SIZE = 20480
+_DEFAULT_INSERT_BATCH_SIZE = 10000
 _RESPONSE_CODES_FAST_FIELDS: tuple[str, ...] = (
     "Address",
     "Content Type",
@@ -143,6 +145,17 @@ def _syscs_fast_export_enabled() -> bool:
     return os.environ.get("SF_DUCKDB_SYSCS_FAST_EXPORT", "1") != "0"
 
 
+def _positive_int_from_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return default
+    return parsed if parsed > 0 else default
+
+
 def _is_derby_backend(backend: Any) -> bool:
     cls = type(backend)
     return cls.__name__ == "DerbyBackend" and cls.__module__ == "screamingfrog.backends.derby_backend"
@@ -152,7 +165,7 @@ def _fetch_derby_column_names(derby_conn: Any, qualified_name: str) -> list[str]
     _assert_safe_relation(qualified_name)
     cursor = derby_conn.cursor()
     try:
-        cursor.execute(f"SELECT * FROM {qualified_name} FETCH FIRST 0 ROWS ONLY")
+        cursor.execute(f"SELECT * FROM {qualified_name} WHERE 1 = 0")
         return [str(desc[0]) for desc in (cursor.description or []) if desc and desc[0]]
     finally:
         try:
@@ -247,10 +260,15 @@ def _bulk_load_syscs_csvs_to_duckdb(
         _drop_relation(duckdb_conn, relation_name)
         _assert_safe_relation(relation_name)
         escaped_path = str(csv_path).replace("'", "''")
+        sample_size = _positive_int_from_env(
+            "SF_DUCKDB_SYSCS_CSV_SAMPLE_SIZE",
+            _DEFAULT_SYSCS_CSV_SAMPLE_SIZE,
+        )
         try:
             duckdb_conn.execute(
                 f"CREATE TABLE {relation_name} AS "
-                f"SELECT * FROM read_csv_auto('{escaped_path}', header=false, sample_size=-1, ignore_errors=false)"
+                f"SELECT * FROM read_csv_auto("
+                f"'{escaped_path}', header=false, sample_size={sample_size}, ignore_errors=false)"
             )
             if columns:
                 _rename_loaded_columns(duckdb_conn, relation_name, columns)
@@ -443,14 +461,6 @@ def export_duckdb_from_backend(
         exported_objects: list[tuple[str, str, str]] = list(existing_objects)
         exported_keys = {(kind, export_name) for export_name, kind, _ in exported_objects}
 
-        if materialization_helpers:
-            _write_helper_relations_from_backend(
-                conn,
-                backend,
-                materialization_helpers,
-                namespace=normalized_namespace,
-            )
-
         fast_raw_objects = _try_syscs_fast_export_raw_tables(
             conn,
             backend,
@@ -472,6 +482,14 @@ def export_duckdb_from_backend(
             if _write_relation(conn, relation_name, rows):
                 exported_objects.append((export_name, "raw", relation_name))
                 exported_keys.add(("raw", export_name))
+
+        if materialization_helpers:
+            _write_helper_relations_from_backend(
+                conn,
+                backend,
+                materialization_helpers,
+                namespace=normalized_namespace,
+            )
 
         for tab_name in materialized_tabs:
             normalized = _normalize_export_name("tab", tab_name)
@@ -509,6 +527,22 @@ def iter_relation_rows(conn: Any, relation_name: str) -> Iterator[dict[str, Any]
 
 def _fast_tab_rows_from_backend(backend: Any, normalized_tab_name: str) -> Iterator[dict[str, Any]] | None:
     tab_name = _normalize_tab_name(normalized_tab_name)
+    if tab_name == "internal_all.csv":
+        projected_internal = getattr(backend, "iter_internal_projection", None)
+        tab_columns = getattr(backend, "tab_columns", None)
+        if not callable(projected_internal) or not callable(tab_columns):
+            return None
+        try:
+            columns = tuple(str(column) for column in tab_columns("internal_all") if str(column).strip())
+            if not columns:
+                return None
+            iterator = iter(projected_internal(columns))
+            first_row = next(iterator)
+        except StopIteration:
+            return iter(())
+        except Exception:
+            return None
+        return _iter_buffered_projected_rows(columns, first_row, iterator)
     if tab_name == "response_codes_internal_all.csv":
         projected_internal = getattr(backend, "iter_internal_projection", None)
         if not callable(projected_internal):
@@ -531,12 +565,230 @@ def _fast_tab_rows_from_helper_relations(
     namespace: str | None = None,
 ) -> Iterator[dict[str, Any]] | None:
     tab_name = _normalize_tab_name(normalized_tab_name)
-    if tab_name not in _LINKS_CORE_TABS:
+    if tab_name in _LINKS_CORE_TABS:
+        relation = _helper_relation_name("links_core", namespace=namespace)
+        if not _relation_exists(conn, relation):
+            return None
+        return iter_relation_rows(conn, relation)
+    if tab_name in _CHAIN_TABS:
+        rows = _chain_tab_rows_from_helper_relations(conn, tab_name, namespace=namespace)
+        return iter(rows) if rows is not None else None
+    return None
+
+
+def _chain_tab_rows_from_helper_relations(
+    conn: Any,
+    tab_name: str,
+    *,
+    namespace: str | None = None,
+) -> list[dict[str, Any]] | None:
+    if tab_name == "canonical_chains.csv":
+        mode = "canonical"
+    elif tab_name == "redirect_and_canonical_chains.csv":
+        mode = "redirect_and_canonical"
+    elif tab_name == "redirect_chains.csv":
+        mode = "redirect"
+    else:
         return None
-    relation = _helper_relation_name("links_core", namespace=namespace)
-    if not _relation_exists(conn, relation):
+
+    helper_relations = {
+        "chain_url_info": _helper_relation_name("chain_url_info", namespace=namespace),
+        "redirect_edges": _helper_relation_name("redirect_edges", namespace=namespace),
+        "canonical_edges": _helper_relation_name("canonical_edges", namespace=namespace),
+        "chain_inlinks": _helper_relation_name("chain_inlinks", namespace=namespace),
+    }
+    required = ["chain_url_info"]
+    if mode in {"redirect", "redirect_and_canonical"}:
+        required.append("redirect_edges")
+    if mode in {"canonical", "redirect_and_canonical"}:
+        required.append("canonical_edges")
+    if any(not _relation_exists(conn, helper_relations[name]) for name in required):
         return None
-    return iter_relation_rows(conn, relation)
+
+    url_info = {
+        str(row.get("url") or ""): dict(row)
+        for row in iter_relation_rows(conn, helper_relations["chain_url_info"])
+        if str(row.get("url") or "").strip()
+    }
+    if not url_info:
+        return []
+    redirect_edges = {
+        str(row.get("source_url") or ""): dict(row)
+        for row in iter_relation_rows(conn, helper_relations["redirect_edges"])
+        if str(row.get("source_url") or "").strip()
+    }
+    canonical_edges = {
+        str(row.get("source_url") or ""): str(row.get("target_url") or "").strip()
+        for row in iter_relation_rows(conn, helper_relations["canonical_edges"])
+        if str(row.get("source_url") or "").strip()
+    }
+    if mode == "redirect" and not redirect_edges:
+        return None
+    if mode == "canonical" and not canonical_edges:
+        return None
+    if mode == "redirect_and_canonical" and not redirect_edges and not canonical_edges:
+        return None
+    inlink_rows = (
+        {
+            str(row.get("destination_url") or ""): dict(row)
+            for row in iter_relation_rows(conn, helper_relations["chain_inlinks"])
+            if str(row.get("destination_url") or "").strip()
+        }
+        if _relation_exists(conn, helper_relations["chain_inlinks"])
+        else {}
+    )
+    indexability = _chain_indexability_map(conn, namespace=namespace)
+
+    def to_bool(value: Any) -> bool | None:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        text = str(value).strip().lower()
+        if text in {"1", "true", "yes", "y"}:
+            return True
+        if text in {"0", "false", "no", "n"}:
+            return False
+        return None
+
+    def build_chain(start_url: str) -> tuple[list[dict[str, Any]], list[str], list[str], bool, bool] | None:
+        steps: list[dict[str, Any]] = []
+        hop_types: list[str] = []
+        hop_targets: list[str] = []
+        visited: set[str] = set()
+        loop = False
+        temp_redirect = False
+        current = start_url
+        max_hops = 10
+        while len(steps) < max_hops:
+            if current in visited:
+                loop = True
+                break
+            visited.add(current)
+            data = url_info.get(current)
+            if not data:
+                break
+            steps.append(data)
+            if mode not in {"redirect", "redirect_and_canonical"}:
+                break
+            edge = redirect_edges.get(current)
+            if not edge:
+                break
+            next_url = str(edge.get("target_url") or "").strip()
+            if not next_url or next_url == current:
+                break
+            hop_types.append(str(edge.get("redirect_type") or "HTTP Redirect"))
+            hop_targets.append(next_url)
+            temp_redirect = temp_redirect or bool(to_bool(edge.get("temp_redirect")))
+            current = next_url
+        if mode in {"canonical", "redirect_and_canonical"}:
+            while len(steps) < max_hops:
+                next_url = canonical_edges.get(current)
+                if not next_url or next_url == current:
+                    break
+                if next_url in visited:
+                    loop = True
+                    break
+                hop_types.append("Canonical")
+                hop_targets.append(next_url)
+                current = next_url
+                visited.add(current)
+                steps.append(url_info.get(current) or {"url": current})
+            if mode == "canonical" and not any(hop == "Canonical" for hop in hop_types):
+                return None
+        if mode == "redirect" and not hop_types:
+            return None
+        return steps, hop_types, hop_targets, loop, temp_redirect
+
+    def chain_type_for(hop_types: list[str]) -> str | None:
+        has_redirect = any(t in {"HTTP Redirect", "Meta Refresh"} for t in hop_types)
+        has_canonical = any(t == "Canonical" for t in hop_types)
+        if mode == "canonical":
+            return "Canonical" if has_canonical else None
+        if mode == "redirect_and_canonical":
+            if has_redirect and has_canonical:
+                return "Redirect & Canonical"
+            if has_canonical:
+                return "Canonical"
+        if has_redirect:
+            return "HTTP Redirect" if any(t == "HTTP Redirect" for t in hop_types) else "Meta Refresh"
+        return None
+
+    start_urls: list[str] = []
+    if mode in {"redirect", "redirect_and_canonical"}:
+        start_urls.extend(sorted(redirect_edges.keys()))
+    if mode in {"canonical", "redirect_and_canonical"}:
+        start_urls.extend(sorted(canonical_edges.keys()))
+
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for start_url in start_urls:
+        if not start_url or start_url in seen:
+            continue
+        seen.add(start_url)
+        result = build_chain(start_url)
+        if not result:
+            continue
+        steps, hop_types, hop_targets, loop, temp_redirect = result
+        if mode == "canonical":
+            hop_count = sum(1 for hop in hop_types if hop == "Canonical")
+        elif mode == "redirect_and_canonical":
+            hop_count = len(hop_types)
+        else:
+            hop_count = sum(1 for hop in hop_types if hop in {"HTTP Redirect", "Meta Refresh"})
+        final = steps[-1] if steps else {}
+        final_url = str(final.get("url") or "").strip()
+        final_indexability, final_indexability_status = indexability.get(final_url, (None, None))
+        inlink = inlink_rows.get(start_url, {})
+        row: dict[str, Any] = {
+            "Chain Type": chain_type_for(hop_types),
+            "Number of Redirects": hop_count,
+            "Number of Redirects/Canonicals": hop_count,
+            "Number of Canonicals": hop_count,
+            "Loop": loop,
+            "Temp Redirect in Chain": temp_redirect,
+            "Address": start_url,
+            "Source": inlink.get("source_url"),
+            "Alt Text": inlink.get("alt_text"),
+            "Anchor Text": inlink.get("anchor_text"),
+            "Link Path": inlink.get("element_path"),
+            "Link Position": inlink.get("element_position"),
+            "Final Address": final_url or None,
+            "Final Content": final.get("content_type"),
+            "Final Status Code": final.get("response_code"),
+            "Final Status": final.get("response_msg"),
+            "Final Indexability": final_indexability,
+            "Final Indexability Status": final_indexability_status,
+        }
+        for index in range(1, 11):
+            step = steps[index - 1] if index <= len(steps) else {}
+            row[f"Content {index}"] = step.get("content_type")
+            row[f"Status Code {index}"] = step.get("response_code")
+            row[f"Status {index}"] = step.get("response_msg")
+            row[f"Redirect Type {index}"] = hop_types[index - 1] if index <= len(hop_targets) else None
+            row[f"Redirect URL {index}"] = hop_targets[index - 1] if index <= len(hop_targets) else None
+        rows.append(row)
+    return rows
+
+
+def _chain_indexability_map(conn: Any, *, namespace: str | None = None) -> dict[str, tuple[Any, Any]]:
+    relation = resolve_relation_name(conn, "tab", "internal_all.csv", namespace=namespace)
+    if not relation:
+        return {}
+    columns = set(_relation_columns(conn, relation))
+    if "Address" not in columns:
+        return {}
+    indexability = '"Indexability"' if "Indexability" in columns else "NULL"
+    indexability_status = '"Indexability Status"' if "Indexability Status" in columns else "NULL"
+    cursor = conn.execute(
+        f'SELECT "Address" AS address, {indexability} AS indexability, '
+        f'{indexability_status} AS indexability_status FROM {relation}'
+    )
+    return {
+        str(row[0] or ""): (row[1], row[2])
+        for row in cursor.fetchall()
+        if str(row[0] or "").strip()
+    }
 
 
 def _iter_buffered_fast_rows(
@@ -546,6 +798,16 @@ def _iter_buffered_fast_rows(
     yield {field: first_row.get(field) for field in _RESPONSE_CODES_FAST_FIELDS}
     for row in remaining_rows:
         yield {field: row.get(field) for field in _RESPONSE_CODES_FAST_FIELDS}
+
+
+def _iter_buffered_projected_rows(
+    columns: Sequence[str],
+    first_row: Mapping[str, Any],
+    remaining_rows: Iterator[Mapping[str, Any]],
+) -> Iterator[dict[str, Any]]:
+    yield {column: first_row.get(column) for column in columns}
+    for row in remaining_rows:
+        yield {column: row.get(column) for column in columns}
 
 
 def _helpers_needed_for_tab_exports(
@@ -669,8 +931,9 @@ def _write_helper_relations_from_backend(
     normalized = tuple(dict.fromkeys(str(name).strip().lower() for name in helper_names if str(name).strip()))
     chain_requested = any(name in _CHAIN_HELPER_SCHEMAS for name in normalized)
     chain_bundle: dict[str, list[dict[str, Any]]] | None = None
+    raw_relation_source = _raw_relation_source_backend(conn, namespace=namespace)
     if chain_requested:
-        chain_bundle = _build_chain_helper_bundle_from_source(backend)
+        chain_bundle = _build_chain_helper_bundle_from_source(raw_relation_source or backend)
 
     basic_schema = (("Address", "VARCHAR"), ("Status Code", "BIGINT"))
     common_schema = tuple(
@@ -765,6 +1028,9 @@ def _write_helper_relations_from_backend(
             _store_helper_metadata(conn, helper_name, relation_name, namespace=namespace)
             continue
         if helper_name == "links_core":
+            if _write_links_core_relation_from_raw(conn, relation_name, namespace=namespace):
+                _store_helper_metadata(conn, helper_name, relation_name, namespace=namespace)
+                continue
             rows = _iter_links_core_rows_from_source(backend)
             if not _write_relation(conn, relation_name, rows):
                 _create_empty_helper_relation(conn, relation_name, links_core_schema)
@@ -775,6 +1041,177 @@ def _write_helper_relations_from_backend(
             if not _write_relation(conn, relation_name, rows):
                 _create_empty_helper_relation(conn, relation_name, _CHAIN_HELPER_SCHEMAS[helper_name])
             _store_helper_metadata(conn, helper_name, relation_name, namespace=namespace)
+
+
+def _write_links_core_relation_from_raw(
+    conn: Any,
+    relation_name: str,
+    *,
+    namespace: str | None = None,
+) -> bool:
+    links_relation = resolve_relation_name(conn, "raw", "APP.LINKS", namespace=namespace)
+    urls_relation = resolve_relation_name(conn, "raw", "APP.URLS", namespace=namespace)
+    unique_urls_relation = resolve_relation_name(conn, "raw", "APP.UNIQUE_URLS", namespace=namespace)
+    if not links_relation or not urls_relation or not unique_urls_relation:
+        return False
+    links_columns = {column.upper() for column in _relation_columns(conn, links_relation)}
+    urls_columns = {column.upper() for column in _relation_columns(conn, urls_relation)}
+    unique_url_columns = {column.upper() for column in _relation_columns(conn, unique_urls_relation)}
+    required_links = {
+        "SRC_ID",
+        "DST_ID",
+        "ALT_TEXT",
+        "LINK_TEXT",
+        "NOFOLLOW",
+        "UGC",
+        "SPONSORED",
+        "NOOPENER",
+        "NOREFERRER",
+        "TARGET",
+        "PATH_TYPE",
+        "ELEMENT_PATH",
+        "ELEMENT_POSITION",
+        "HREF_LANG",
+        "LINK_TYPE",
+        "SCOPE",
+        "ORIGIN",
+    }
+    if not required_links.issubset(links_columns):
+        return False
+    if not {"ENCODED_URL", "RESPONSE_CODE", "RESPONSE_MSG"}.issubset(urls_columns):
+        return False
+    if not {"ID", "ENCODED_URL"}.issubset(unique_url_columns):
+        return False
+
+    def bool_expr(expr: str) -> str:
+        lowered = f"LOWER(CAST({expr} AS VARCHAR))"
+        return (
+            f"CASE "
+            f"WHEN {expr} IS NULL THEN NULL "
+            f"WHEN {lowered} IN ('true', '1', 'yes', 'y') THEN TRUE "
+            f"WHEN {lowered} IN ('false', '0', 'no', 'n') THEN FALSE "
+            f"ELSE NULL END"
+        )
+
+    _assert_safe_relation(relation_name)
+    _drop_relation(conn, relation_name)
+    nofollow_expr = bool_expr("l.NOFOLLOW")
+    ugc_expr = bool_expr("l.UGC")
+    sponsored_expr = bool_expr("l.SPONSORED")
+    noopener_expr = bool_expr("l.NOOPENER")
+    noreferrer_expr = bool_expr("l.NOREFERRER")
+    conn.execute(
+        f"""
+        CREATE TABLE {relation_name} AS
+        WITH shaped AS (
+            SELECT
+                CASE TRY_CAST(l.LINK_TYPE AS BIGINT)
+                    WHEN 1 THEN 'Hyperlink'
+                    WHEN 6 THEN 'Canonical'
+                    WHEN 8 THEN 'Rel Prev'
+                    WHEN 10 THEN 'Rel Next'
+                    WHEN 12 THEN 'Hreflang (HTTP)'
+                    WHEN 13 THEN 'Hreflang'
+                    ELSE CAST(l.LINK_TYPE AS VARCHAR)
+                END AS "Type",
+                s.ENCODED_URL AS "Source",
+                d.ENCODED_URL AS "Address",
+                d.ENCODED_URL AS "Destination",
+                l.ALT_TEXT AS "Alt Text",
+                l.LINK_TEXT AS "Anchor",
+                u.RESPONSE_CODE AS "Status Code",
+                u.RESPONSE_MSG AS "Status",
+                {nofollow_expr} AS nofollow_bool,
+                {ugc_expr} AS ugc_bool,
+                {sponsored_expr} AS sponsored_bool,
+                {noopener_expr} AS noopener_bool,
+                {noreferrer_expr} AS noreferrer_bool,
+                l.TARGET AS "Target",
+                l.PATH_TYPE AS "Path Type",
+                l.ELEMENT_PATH AS "Link Path",
+                l.ELEMENT_POSITION AS "Link Position",
+                l.HREF_LANG AS "hreflang",
+                l.LINK_TYPE AS "Link Type",
+                l.SCOPE AS "Scope",
+                l.ORIGIN AS "Origin"
+            FROM {links_relation} l
+            JOIN {unique_urls_relation} s ON l.SRC_ID = s.ID
+            JOIN {unique_urls_relation} d ON l.DST_ID = d.ID
+            LEFT JOIN {urls_relation} u ON u.ENCODED_URL = d.ENCODED_URL
+        )
+        SELECT
+            "Type",
+            "Source",
+            "Address",
+            "Destination",
+            "Alt Text",
+            "Anchor",
+            "Status Code",
+            "Status",
+            CASE WHEN nofollow_bool IS NULL THEN NULL ELSE NOT nofollow_bool END AS "Follow",
+            "Target",
+            NULLIF(TRIM(CONCAT_WS(
+                ' ',
+                CASE WHEN nofollow_bool THEN 'nofollow' ELSE NULL END,
+                CASE WHEN ugc_bool THEN 'ugc' ELSE NULL END,
+                CASE WHEN sponsored_bool THEN 'sponsored' ELSE NULL END,
+                CASE WHEN noopener_bool THEN 'noopener' ELSE NULL END,
+                CASE WHEN noreferrer_bool THEN 'noreferrer' ELSE NULL END
+            )), '') AS "Rel",
+            "Path Type",
+            "Link Path",
+            "Link Position",
+            "hreflang",
+            "Link Type",
+            "Scope",
+            "Origin",
+            nofollow_bool AS "NoFollow",
+            ugc_bool AS "UGC",
+            sponsored_bool AS "Sponsored",
+            noopener_bool AS "Noopener",
+            noreferrer_bool AS "Noreferrer"
+        FROM shaped
+        """
+    )
+    return True
+
+
+class _RawRelationSourceBackend:
+    def __init__(self, conn: Any, relations: Mapping[str, str]) -> None:
+        self._conn = conn
+        self._relations = dict(relations)
+
+    def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
+        rewritten = str(query)
+        for source_name, relation_name in self._relations.items():
+            rewritten = re.sub(re.escape(source_name), relation_name, rewritten, flags=re.IGNORECASE)
+        cursor = self._conn.execute(rewritten, list(params or []))
+        columns = [desc[0] for desc in cursor.description or []]
+        for row in iter_cursor_rows(cursor):
+            yield {col: val for col, val in zip(columns, row)}
+
+    def raw(self, table: str) -> Iterator[dict[str, Any]]:
+        relation = self._relations.get(str(table).strip().upper())
+        if not relation:
+            raise NotImplementedError(f"Raw table not available in DuckDB cache: {table}")
+        return iter_relation_rows(self._conn, relation)
+
+
+def _raw_relation_source_backend(conn: Any, *, namespace: str | None = None) -> _RawRelationSourceBackend | None:
+    relations: dict[str, str] = {}
+    for table_name in ("APP.URLS", "APP.LINKS", "APP.UNIQUE_URLS"):
+        relation = resolve_relation_name(conn, "raw", table_name, namespace=namespace)
+        if not relation:
+            return None
+        relations[table_name] = relation
+    return _RawRelationSourceBackend(conn, relations)
+
+
+def _relation_columns(conn: Any, relation_name: str) -> list[str]:
+    schema_name, _, table_name = relation_name.partition(".")
+    if not table_name:
+        schema_name, table_name = "main", schema_name
+    return _table_columns(conn, schema_name, table_name)
 
 
 def _normalize_export_row(row: Mapping[str, Any]) -> dict[str, Any]:
@@ -854,10 +1291,11 @@ def _insert_rows(
     placeholders = ", ".join("?" for _ in columns)
     quoted_columns = ", ".join(_quote_identifier(column) for column in columns)
     sql = f"INSERT INTO {relation_name} ({quoted_columns}) VALUES ({placeholders})"
+    batch_size = _positive_int_from_env("SF_DUCKDB_INSERT_BATCH_SIZE", _DEFAULT_INSERT_BATCH_SIZE)
     batch: list[tuple[Any, ...]] = []
     for row in rows:
         batch.append(tuple(_convert_duckdb_value(row.get(column)) for column in columns))
-        if len(batch) >= 1000:
+        if len(batch) >= batch_size:
             conn.executemany(sql, batch)
             batch.clear()
     if batch:
