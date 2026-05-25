@@ -65,6 +65,16 @@ _HREFLANG_MULTIMAP_TAB_KEYS = {
     "hreflang_non_canonical_return_links.csv",
     "hreflang_no_index_return_links.csv",
 }
+_IMPLICIT_GUI_FILTER_BY_TAB_KEY = {
+    "hreflang_not_using_canonical.csv": ("Hreflang", "Not Using Canonical"),
+    "hreflang_noindex_return_links.csv": ("Hreflang", "Noindex Return Links"),
+    "hreflang_inconsistent_language_region_return_links.csv": (
+        "Hreflang",
+        "Inconsistent Language & Region Return Links",
+    ),
+    "hreflang_missing_self_reference.csv": ("Hreflang", "Missing Self Reference"),
+    "hreflang_missing_xdefault.csv": ("Hreflang", "Missing X-Default"),
+}
 _LANGUAGE_TAB_KEYS = {
     "spelling_and_grammar_errors.csv",
     "spelling_and_grammar_errors_report_summary.csv",
@@ -2867,11 +2877,12 @@ def _resolve_internal_expression_selects(
 def _resolve_tab_entries(
     mapping: dict[str, Any], tab_name: str, gui_filter: Any
 ) -> tuple[str, list[dict[str, Any]], list[Any], list[dict[str, Any]]]:
-    gui_defs = _resolve_gui_defs(tab_name, gui_filter)
     key = _normalize_tab_name(tab_name)
+    resolved_tab_name, resolved_gui_filter = _implicit_gui_filter_for_tab_key(tab_name, gui_filter)
+    gui_defs = _resolve_gui_defs(resolved_tab_name, resolved_gui_filter)
     entries = mapping.get(key)
-    if not entries and gui_filter:
-        filename = make_tab_filename(tab_name, str(_first_gui_name(gui_filter)))
+    if not entries and resolved_gui_filter:
+        filename = make_tab_filename(resolved_tab_name, str(_first_gui_name(resolved_gui_filter)))
         entries = mapping.get(filename)
         if not entries and "-" in filename:
             entries = mapping.get(filename.replace("-", ""))
@@ -3319,6 +3330,15 @@ def _resolve_gui_defs(tab_name: str, gui_filter: Any) -> list[Any]:
         if filt:
             defs.append(filt)
     return defs
+
+
+def _implicit_gui_filter_for_tab_key(tab_key: str, gui_filter: Any) -> tuple[str, Any]:
+    if gui_filter:
+        return tab_key, gui_filter
+    implicit = _IMPLICIT_GUI_FILTER_BY_TAB_KEY.get(_normalize_tab_name(tab_key))
+    if not implicit:
+        return tab_key, gui_filter
+    return implicit
 
 
 def _first_gui_name(gui_filter: Any) -> str:

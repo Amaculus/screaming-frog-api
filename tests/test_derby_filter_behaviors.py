@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import gzip
 import sqlite3
 
 from screamingfrog.backends.derby_backend import (
@@ -125,6 +126,140 @@ def test_derby_hreflang_not_using_canonical_filter_returns_expected_sources() ->
     conn.close()
 
 
+def test_derby_hreflang_issue_filename_applies_implicit_filter() -> None:
+    conn = _derby_like_connection()
+    conn.execute("CREATE TABLE APP.URLS (ENCODED_URL TEXT PRIMARY KEY, IS_CANONICALISED INTEGER)")
+    conn.execute("CREATE TABLE APP.UNIQUE_URLS (ID INTEGER PRIMARY KEY, ENCODED_URL TEXT)")
+    conn.execute(
+        "CREATE TABLE APP.LINKS ("
+        "SRC_ID INTEGER, DST_ID INTEGER, LINK_TYPE INTEGER, HREF_LANG TEXT)"
+    )
+    conn.executemany(
+        "INSERT INTO APP.URLS (ENCODED_URL, IS_CANONICALISED) VALUES (?, ?)",
+        [
+            ("https://example.com/en/", 0),
+            ("https://example.com/de/", 1),
+            ("https://example.com/fr/", 0),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO APP.UNIQUE_URLS (ID, ENCODED_URL) VALUES (?, ?)",
+        [
+            (1, "https://example.com/en/"),
+            (2, "https://example.com/de/"),
+            (3, "https://example.com/fr/"),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO APP.LINKS (SRC_ID, DST_ID, LINK_TYPE, HREF_LANG) VALUES (?, ?, ?, ?)",
+        [
+            (1, 2, 13, "de"),
+            (3, 1, 13, "en"),
+        ],
+    )
+    mapping = {
+        "hreflang_not_using_canonical.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+        ]
+    }
+    backend = _backend_for_mapping(conn, mapping)
+
+    rows = list(backend.get_tab("hreflang_not_using_canonical.csv"))
+
+    assert [row["Address"] for row in rows] == ["https://example.com/en/"]
+    conn.close()
+
+
+def test_derby_hreflang_missing_self_and_xdefault_require_hreflang() -> None:
+    conn = _derby_like_connection()
+    conn.execute("CREATE TABLE APP.URLS (ENCODED_URL TEXT PRIMARY KEY)")
+    conn.execute("CREATE TABLE APP.UNIQUE_URLS (ID INTEGER PRIMARY KEY, ENCODED_URL TEXT)")
+    conn.execute(
+        "CREATE TABLE APP.LINKS ("
+        "SRC_ID INTEGER, DST_ID INTEGER, LINK_TYPE INTEGER, HREF_LANG TEXT)"
+    )
+    conn.executemany(
+        "INSERT INTO APP.URLS (ENCODED_URL) VALUES (?)",
+        [
+            ("https://example.com/en/",),
+            ("https://example.com/de/",),
+            ("https://example.com/orphan/",),
+            ("https://example.com/default/",),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO APP.UNIQUE_URLS (ID, ENCODED_URL) VALUES (?, ?)",
+        [
+            (1, "https://example.com/en/"),
+            (2, "https://example.com/de/"),
+            (3, "https://example.com/orphan/"),
+            (4, "https://example.com/default/"),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO APP.LINKS (SRC_ID, DST_ID, LINK_TYPE, HREF_LANG) VALUES (?, ?, ?, ?)",
+        [
+            (1, 2, 13, "de"),
+            (2, 2, 13, "de"),
+            (4, 1, 13, "x-default"),
+        ],
+    )
+    mapping = {
+        "hreflang_missing_self_reference.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+        ],
+        "hreflang_missing_xdefault.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+        ],
+    }
+    backend = _backend_for_mapping(conn, mapping)
+
+    missing_self = list(backend.get_tab("hreflang_missing_self_reference.csv"))
+    missing_xdefault = list(backend.get_tab("hreflang_missing_xdefault.csv"))
+
+    assert [row["Address"] for row in missing_self] == [
+        "https://example.com/en/",
+        "https://example.com/default/",
+    ]
+    assert [row["Address"] for row in missing_xdefault] == [
+        "https://example.com/en/",
+        "https://example.com/de/",
+    ]
+    conn.close()
+
+
+def test_derby_hreflang_noindex_filename_applies_implicit_multimap_filter() -> None:
+    conn = _derby_like_connection()
+    conn.execute("CREATE TABLE APP.URLS (ENCODED_URL TEXT PRIMARY KEY)")
+    conn.execute(
+        "CREATE TABLE APP.MULTIMAP_HREF_LANG_NO_INDEX_CONFIRMATION ("
+        "MULTIMAP_KEY TEXT, MULTIMAP_VALUE TEXT)"
+    )
+    conn.executemany(
+        "INSERT INTO APP.URLS (ENCODED_URL) VALUES (?)",
+        [
+            ("https://example.com/a/",),
+            ("https://example.com/b/",),
+        ],
+    )
+    conn.execute(
+        "INSERT INTO APP.MULTIMAP_HREF_LANG_NO_INDEX_CONFIRMATION "
+        "(MULTIMAP_KEY, MULTIMAP_VALUE) VALUES (?, ?)",
+        ("https://example.com/a/", "https://example.com/noindex/"),
+    )
+    mapping = {
+        "hreflang_noindex_return_links.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+        ]
+    }
+    backend = _backend_for_mapping(conn, mapping)
+
+    rows = list(backend.get_tab("hreflang_noindex_return_links.csv"))
+
+    assert [row["Address"] for row in rows] == ["https://example.com/a/"]
+    conn.close()
+
+
 def test_derby_hreflang_unlinked_filter_returns_only_hreflang_only_destinations() -> None:
     conn = _derby_like_connection()
     conn.execute("CREATE TABLE APP.UNIQUE_URLS (ID INTEGER PRIMARY KEY, ENCODED_URL TEXT)")
@@ -180,6 +315,71 @@ def test_derby_hreflang_unlinked_filter_returns_only_hreflang_only_destinations(
     rows = list(backend.get_tab("Hreflang", {"__gui__": "Unlinked hreflang URLs"}))
 
     assert rows == [{"Type": 13, "hreflang": "en-gb"}]
+    conn.close()
+
+
+def test_derby_structured_data_issue_tabs_do_not_return_every_url() -> None:
+    conn = _derby_like_connection()
+    conn.execute(
+        "CREATE TABLE APP.URLS ("
+        "ENCODED_URL TEXT PRIMARY KEY, SERIALISED_STRUCTURED_DATA BLOB, PARSE_ERROR_MSG TEXT)"
+    )
+    conn.execute(
+        "CREATE TABLE APP.URL_INSPECTION ("
+        "ENCODED_URL TEXT PRIMARY KEY, RICH_RESULTS_TYPES TEXT, "
+        "RICH_RESULTS_TYPE_ERRORS INTEGER, RICH_RESULTS_TYPE_WARNINGS INTEGER)"
+    )
+    structured_blob = b"JSONLD" + gzip.compress(b'{"@type": "Article"}')
+    conn.executemany(
+        "INSERT INTO APP.URLS "
+        "(ENCODED_URL, SERIALISED_STRUCTURED_DATA, PARSE_ERROR_MSG) VALUES (?, ?, ?)",
+        [
+            ("https://example.com/missing/", None, None),
+            ("https://example.com/valid/", structured_blob, None),
+            ("https://example.com/error/", structured_blob, "invalid json-ld"),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO APP.URL_INSPECTION "
+        "(ENCODED_URL, RICH_RESULTS_TYPES, RICH_RESULTS_TYPE_ERRORS, RICH_RESULTS_TYPE_WARNINGS) "
+        "VALUES (?, ?, ?, ?)",
+        [
+            ("https://example.com/missing/", None, 0, 0),
+            ("https://example.com/valid/", "Article", 0, 0),
+            ("https://example.com/error/", "Article", 2, 1),
+        ],
+    )
+    mapping = {
+        "structured_data_missing.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+        ],
+        "structured_data_validation_errors.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+            {"csv_column": "Errors", "db_column": "RICH_RESULTS_TYPE_ERRORS", "db_table": "APP.URL_INSPECTION"},
+        ],
+        "structured_data_validation_warnings.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+            {"csv_column": "Warnings", "db_column": "RICH_RESULTS_TYPE_WARNINGS", "db_table": "APP.URL_INSPECTION"},
+        ],
+        "structured_data_parse_errors.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+            {"csv_column": "Parse Error", "db_column": "PARSE_ERROR_MSG", "db_table": "APP.URLS"},
+        ],
+    }
+    backend = _backend_for_mapping(conn, mapping)
+
+    assert [row["Address"] for row in backend.get_tab("structured_data_missing.csv")] == [
+        "https://example.com/missing/"
+    ]
+    assert [row["Address"] for row in backend.get_tab("structured_data_validation_errors.csv")] == [
+        "https://example.com/error/"
+    ]
+    assert [row["Address"] for row in backend.get_tab("structured_data_validation_warnings.csv")] == [
+        "https://example.com/error/"
+    ]
+    assert [row["Address"] for row in backend.get_tab("structured_data_parse_errors.csv")] == [
+        "https://example.com/error/"
+    ]
     conn.close()
 
 
