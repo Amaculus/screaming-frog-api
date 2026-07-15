@@ -136,6 +136,63 @@ _REDIRECT_ISSUE_TABS: dict[str, str] = {
 }
 
 
+_WARM_MEMO_TABLE = "sf_meta_warm_unavailable"
+
+
+def _warm_memo_namespace(backend: Any) -> str:
+    return str(getattr(backend, "namespace", "") or "")
+
+
+def _warm_unavailable_memo_read(backend: Any) -> set[str]:
+    """Tabs previously found unavailable for this cache — skipped on later
+    warms so each warm doesn't re-pay a source-scan attempt per dead tab."""
+    try:
+        rows = backend.conn.execute(
+            f"SELECT tab FROM {_WARM_MEMO_TABLE} WHERE namespace = ?",
+            [_warm_memo_namespace(backend)],
+        ).fetchall()
+        return {str(r[0]) for r in rows}
+    except Exception:
+        return set()
+
+
+def _warm_unavailable_memo_write(backend: Any, tab_names: Sequence[str]) -> None:
+    try:
+        conn = backend.conn.cursor()
+        try:
+            conn.execute(
+                f"CREATE TABLE IF NOT EXISTS {_WARM_MEMO_TABLE} "
+                f"(namespace VARCHAR, tab VARCHAR)"
+            )
+            ns = _warm_memo_namespace(backend)
+            for tab_name in tab_names:
+                conn.execute(
+                    f"INSERT INTO {_WARM_MEMO_TABLE} (namespace, tab) "
+                    f"SELECT ?, ? WHERE NOT EXISTS ("
+                    f"SELECT 1 FROM {_WARM_MEMO_TABLE} WHERE namespace = ? AND tab = ?)",
+                    [ns, str(tab_name), ns, str(tab_name)],
+                )
+        finally:
+            conn.close()
+    except Exception:
+        logger.debug("warm memo write failed", exc_info=True)
+
+
+def _audit_warm_tabs() -> tuple[str, ...]:
+    """Tab set covered by warm_cache(profile='audit'): everything the issue
+    reports and link/chain readers touch."""
+    seen: dict[str, None] = {}
+    for name in (
+        *DEFAULT_DUCKDB_TABS,
+        *_CANONICAL_ISSUE_TABS,
+        *_HREFLANG_ISSUE_TABS,
+        *_SECURITY_ISSUE_TABS,
+        *_REDIRECT_ISSUE_TABS,
+    ):
+        seen.setdefault(str(name))
+    return tuple(seen)
+
+
 @dataclass(frozen=True)
 class InternalView:
     backend: CrawlBackend
@@ -1478,6 +1535,94 @@ class Crawl:
             source_label=source_label,
             namespace=namespace,
         )
+
+    def warm_cache(
+        self,
+        *,
+        profile: str = "audit",
+        tabs: Sequence[str] | None = None,
+        helpers: Sequence[str] | None = None,
+        retry_unavailable: bool = False,
+    ) -> dict[str, list[str]]:
+        """Eagerly materialize DuckDB cache relations for a read profile.
+
+        Lazy materialization pays a slow source scan per missing tab the
+        first time each relation is read — fine for one-off reads, but
+        pathological for consumers (audits, monitors, dashboards) that read
+        many tabs in one pass. Warming makes that cost explicit, one-time,
+        and persistent: materialized relations live in the sidecar .duckdb,
+        so every later load reads them fast.
+
+        Profiles: 'chains' (default helper relations only) or 'audit'
+        (helpers + issue-family tabs + link/chain tabs — everything the
+        report methods read). Explicit tabs=/helpers= override the profile's
+        set. No-op on non-DuckDB backends (everything is reported
+        'unsupported').
+
+        Returns a report dict: {'materialized', 'present', 'unavailable',
+        'unsupported'} — 'unavailable' means the source cannot produce that
+        relation (e.g. the tab does not exist for this crawl config).
+        Unavailable tabs are memoized in the cache and skipped on later
+        warms (each retry pays a source-scan attempt); pass
+        retry_unavailable=True to attempt them again.
+        """
+        if profile not in {"audit", "chains"}:
+            raise ValueError("warm_cache profile must be 'audit' or 'chains'")
+        report: dict[str, list[str]] = {
+            "materialized": [],
+            "present": [],
+            "unavailable": [],
+            "unsupported": [],
+        }
+        want_helpers = tuple(helpers) if helpers is not None else DEFAULT_DUCKDB_HELPERS
+        if tabs is not None:
+            want_tabs = tuple(dict.fromkeys(str(t) for t in tabs))
+        elif profile == "audit":
+            want_tabs = _audit_warm_tabs()
+        else:
+            want_tabs = ()
+
+        backend = self._backend
+        if not isinstance(backend, DuckDBBackend):
+            report["unsupported"] = [f"helper:{h}" for h in want_helpers] + list(want_tabs)
+            return report
+
+        for helper_name in want_helpers:
+            try:
+                relation = _duckdb_ensure_helper_relation(backend, helper_name)
+            except Exception:
+                relation = None
+            bucket = "materialized" if relation else "unavailable"
+            report[bucket].append(f"helper:{helper_name}")
+
+        known_unavailable = (
+            set() if retry_unavailable else _warm_unavailable_memo_read(backend)
+        )
+        missing: list[str] = []
+        for tab_name in want_tabs:
+            if resolve_relation_name(backend.conn, "tab", tab_name, namespace=backend.namespace):
+                report["present"].append(tab_name)
+            elif tab_name in known_unavailable:
+                report["unavailable"].append(tab_name)
+            else:
+                missing.append(tab_name)
+        if missing:
+            materialize = getattr(backend, "_materialize_exports", None)
+            if callable(materialize):
+                try:
+                    materialize(tabs=tuple(missing))
+                except Exception:
+                    pass
+            newly_unavailable: list[str] = []
+            for tab_name in missing:
+                if resolve_relation_name(backend.conn, "tab", tab_name, namespace=backend.namespace):
+                    report["materialized"].append(tab_name)
+                else:
+                    report["unavailable"].append(tab_name)
+                    newly_unavailable.append(tab_name)
+            if newly_unavailable:
+                _warm_unavailable_memo_write(backend, newly_unavailable)
+        return report
 
     def inlinks(self, url: str) -> Iterator["Link"]:
         """Return inlinks for a given URL (backend-dependent support)."""

@@ -2148,3 +2148,94 @@ def test_source_fingerprint_ignores_duckdb_cache_files(tmp_path: Path) -> None:
     (tmp_path / "crawl.duckdb").write_bytes(b"cache")
     (tmp_path / "crawl.duckdb.wal").write_bytes(b"wal")
     assert _source_fingerprint(tmp_path) == before
+
+
+def test_warm_cache_materializes_missing_tabs_and_reports(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "warm.duckdb"
+    crawl.export_duckdb(str(target), source_label="fake-crawl", tables=(), tabs=())
+
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        FakeDuckExportBackend(),
+        source_label="fake-crawl",
+        available_tabs=("internal_all.csv", "all_inlinks.csv", "redirect_chains.csv"),
+    )
+    try:
+        report = duck.warm_cache(
+            tabs=("internal_all", "all_inlinks", "redirect_chains", "canonicals_missing"),
+            helpers=(),
+        )
+        assert sorted(report["materialized"]) == [
+            "all_inlinks",
+            "internal_all",
+            "redirect_chains",
+        ]
+        assert report["present"] == []
+        assert report["unavailable"] == ["canonicals_missing"]
+
+        # warmed relations are read back without touching the source again
+        assert duck.tab_count("internal_all") == 2
+
+        # second warm reports everything already present
+        again = duck.warm_cache(
+            tabs=("internal_all", "all_inlinks", "redirect_chains"),
+            helpers=(),
+        )
+        assert again["materialized"] == []
+        assert sorted(again["present"]) == [
+            "all_inlinks",
+            "internal_all",
+            "redirect_chains",
+        ]
+    finally:
+        duck.close()
+
+
+def test_warm_cache_is_a_reported_noop_on_non_duckdb_backends() -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    report = crawl.warm_cache(tabs=("internal_all",), helpers=("links_core",))
+    assert report["materialized"] == []
+    assert report["unsupported"] == ["helper:links_core", "internal_all"]
+
+
+def test_warm_cache_rejects_unknown_profile(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    try:
+        crawl.warm_cache(profile="everything")
+    except ValueError as exc:
+        assert "profile" in str(exc)
+    else:
+        raise AssertionError("expected ValueError for unknown profile")
+
+
+def test_warm_cache_memoizes_unavailable_tabs(tmp_path: Path) -> None:
+    crawl = Crawl(FakeDuckExportBackend())
+    target = tmp_path / "warm-memo.duckdb"
+    crawl.export_duckdb(str(target), source_label="fake-crawl", tables=(), tabs=())
+
+    duck = Crawl.from_duckdb(str(target))
+    duck._backend.configure_lazy_source(  # type: ignore[attr-defined]
+        FakeDuckExportBackend(),
+        source_label="fake-crawl",
+        available_tabs=("internal_all.csv",),
+    )
+    try:
+        first = duck.warm_cache(tabs=("internal_all", "canonicals_missing"), helpers=())
+        assert first["materialized"] == ["internal_all"]
+        assert first["unavailable"] == ["canonicals_missing"]
+
+        # memoized: reported unavailable without re-attempting the source
+        source = duck._backend.get_lazy_source_backend()  # type: ignore[attr-defined]
+        calls_before = getattr(source, "_export_calls", None)
+        second = duck.warm_cache(tabs=("internal_all", "canonicals_missing"), helpers=())
+        assert second["present"] == ["internal_all"]
+        assert second["unavailable"] == ["canonicals_missing"]
+
+        # retry_unavailable=True attempts it again (still unavailable)
+        third = duck.warm_cache(
+            tabs=("canonicals_missing",), helpers=(), retry_unavailable=True
+        )
+        assert third["unavailable"] == ["canonicals_missing"]
+    finally:
+        duck.close()

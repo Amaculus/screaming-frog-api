@@ -25,6 +25,11 @@ This file lists the current callable API in `screaming-frog-api`.
 - `crawl.summary() -> dict[str, Any]`
   - core counts are always populated
   - issue-family and chain totals may be `None` on lean DuckDB caches until those tabs are materialized
+- `crawl.warm_cache(profile="audit" | "chains", tabs=None, helpers=None) -> dict[str, list[str]]`
+  - eagerly materializes DuckDB cache relations so multi-tab consumers (audits, monitors) never pay lazy per-tab source scans mid-read
+  - `"audit"` covers default helpers + issue-family tabs (canonical/hreflang/security/redirect) + link/chain tabs; `"chains"` covers helpers only; explicit `tabs=`/`helpers=` override
+  - materialized relations persist in the sidecar `.duckdb` — warming is one-time per crawl file
+  - returns `{"materialized", "present", "unavailable", "unsupported"}`; no-op (reported as `unsupported`) on non-DuckDB backends
 - `crawl.inlinks(url) -> Iterator[Link]`
 - `crawl.outlinks(url) -> Iterator[Link]`
 - `crawl.redirect_chains(min_hops=None, max_hops=None, loop=None) -> Iterator[dict[str, Any]]`
