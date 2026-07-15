@@ -14,7 +14,7 @@ See `methods.md` for a complete method-level API reference.
 ## Public alpha status
 - `601 / 628` tabs fully mapped
 - `15,490 / 15,589` fields mapped
-- current `main` passes `287` tests (`2` skipped live/optional tests)
+- current `main` passes `291` tests (`2` skipped live/optional tests)
 
 ## Known limitations
 - JavaScript redirect classification and relative-canonical detection require crawl signals that are not available in every Derby schema.
