@@ -6,6 +6,7 @@ from typing import Any, Callable, Iterable, Iterator, Mapping, Optional, Sequenc
 from urllib.parse import urljoin
 
 from screamingfrog.backends.base import CrawlBackend
+from screamingfrog.backends.matching import filter_value_matches
 from screamingfrog.db.duckdb import (
     _drop_relation,
     _ensure_metadata_tables,
@@ -543,7 +544,8 @@ class DuckDBBackend(CrawlBackend):
 
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
         self._ensure_sql_relations(query)
-        cursor = self.conn.execute(query, list(params or []))
+        rewritten = self._rewrite_sql_relations(query)
+        cursor = self.conn.execute(rewritten, list(params or []))
         columns = [desc[0] for desc in cursor.description or []]
         for row in iter_cursor_rows(cursor):
             yield {col: val for col, val in zip(columns, row)}
@@ -592,20 +594,16 @@ class DuckDBBackend(CrawlBackend):
         rows = self._helper_rows(helper_name)
         if rows is None:
             return None
-        self.conn.close()
+        conn = self.conn.cursor()
         try:
-            conn = self._duckdb.connect(str(self.db_path))
-            try:
-                _ensure_metadata_tables(conn)
-                if _relation_exists(conn, relation):
-                    _drop_relation(conn, relation)
-                if not _write_relation(conn, relation, rows):
-                    return None
-                _store_helper_metadata(conn, helper_name, relation, namespace=self.namespace)
-            finally:
-                conn.close()
+            _ensure_metadata_tables(conn)
+            if _relation_exists(conn, relation):
+                _drop_relation(conn, relation)
+            if not _write_relation(conn, relation, rows):
+                return None
+            _store_helper_metadata(conn, helper_name, relation, namespace=self.namespace)
         finally:
-            self._open_connection()
+            conn.close()
         return relation if _relation_exists(self.conn, relation) else None
 
     def ensure_raw_tables(self, tables: Sequence[str]) -> bool:
@@ -643,27 +641,23 @@ class DuckDBBackend(CrawlBackend):
         except Exception:
             return False
 
-        self.conn.close()
+        conn = self.conn.cursor()
         try:
-            conn = self._duckdb.connect(str(self.db_path))
-            try:
-                _ensure_metadata_tables(conn)
-                for helper_name in helper_names:
-                    relation = _helper_relation_name(helper_name, namespace=self.namespace)
-                    if _helper_relation_ready(conn, helper_name, namespace=self.namespace):
-                        continue
-                    if _relation_exists(conn, relation):
-                        _drop_relation(conn, relation)
-                    rows = helper_rows.get(helper_name, [])
-                    if rows:
-                        _write_relation(conn, relation, rows)
-                    else:
-                        _create_empty_helper_relation(conn, relation, _CHAIN_HELPER_SCHEMAS[helper_name])
-                    _store_helper_metadata(conn, helper_name, relation, namespace=self.namespace)
-            finally:
-                conn.close()
+            _ensure_metadata_tables(conn)
+            for helper_name in helper_names:
+                relation = _helper_relation_name(helper_name, namespace=self.namespace)
+                if _helper_relation_ready(conn, helper_name, namespace=self.namespace):
+                    continue
+                if _relation_exists(conn, relation):
+                    _drop_relation(conn, relation)
+                rows = helper_rows.get(helper_name, [])
+                if rows:
+                    _write_relation(conn, relation, rows)
+                else:
+                    _create_empty_helper_relation(conn, relation, _CHAIN_HELPER_SCHEMAS[helper_name])
+                _store_helper_metadata(conn, helper_name, relation, namespace=self.namespace)
         finally:
-            self._open_connection()
+            conn.close()
 
         return all(
             _helper_relation_ready(self.conn, name, namespace=self.namespace)
@@ -831,7 +825,7 @@ class DuckDBBackend(CrawlBackend):
             "response_codes_internal_redirection_(3xx).csv": '"Status Code" BETWEEN 300 AND 399',
             "response_codes_internal_client_error_(4xx).csv": '"Status Code" BETWEEN 400 AND 499',
             "response_codes_internal_server_error_(5xx).csv": '"Status Code" BETWEEN 500 AND 599',
-            "response_codes_internal_no_response.csv": '"Status Code" IS NULL',
+            "response_codes_internal_no_response.csv": '("Status Code" IS NULL OR "Status Code" = 0)',
         }.get(normalized)
         if normalized not in {
             "response_codes_internal_all.csv",
@@ -874,7 +868,7 @@ class DuckDBBackend(CrawlBackend):
             "response_codes_internal_redirection_(3xx).csv": '"Status Code" BETWEEN 300 AND 399',
             "response_codes_internal_client_error_(4xx).csv": '"Status Code" BETWEEN 400 AND 499',
             "response_codes_internal_server_error_(5xx).csv": '"Status Code" BETWEEN 500 AND 599',
-            "response_codes_internal_no_response.csv": '"Status Code" IS NULL',
+            "response_codes_internal_no_response.csv": '("Status Code" IS NULL OR "Status Code" = 0)',
         }.get(normalized)
         if normalized not in {
             "response_codes_internal_all.csv",
@@ -965,7 +959,7 @@ class DuckDBBackend(CrawlBackend):
         requested_tabs = tuple(str(name).strip() for name in tabs if str(name).strip())
         if not requested_tables and not requested_tabs:
             return True
-        self.conn.close()
+        conn = self.conn.cursor()
         try:
             for tab_name in requested_tabs or ():
                 try:
@@ -977,6 +971,7 @@ class DuckDBBackend(CrawlBackend):
                         if_exists="auto",
                         source_label=self._lazy_source_label,
                         namespace=self.namespace,
+                        _connection=conn,
                     )
                 except (FileNotFoundError, NotImplementedError, ValueError):
                     continue
@@ -989,9 +984,10 @@ class DuckDBBackend(CrawlBackend):
                     if_exists="auto",
                     source_label=self._lazy_source_label,
                     namespace=self.namespace,
+                    _connection=conn,
                 )
         finally:
-            self._open_connection()
+            conn.close()
         return True
 
     def get_lazy_source_backend(self) -> Any | None:
@@ -1003,7 +999,10 @@ class DuckDBBackend(CrawlBackend):
         return self._lazy_source_backend
 
     def _open_connection(self) -> None:
-        self.conn = self._duckdb.connect(str(self.db_path), read_only=True)
+        # Lazy exports write through child cursors on this connection.  Keeping
+        # the parent alive means an iterator already reading another relation
+        # is not invalidated when a missing tab/helper is materialized.
+        self.conn = self._duckdb.connect(str(self.db_path))
 
     def close(self) -> None:
         conn = getattr(self, "conn", None)
@@ -1013,6 +1012,11 @@ class DuckDBBackend(CrawlBackend):
             except Exception:
                 pass
         self.conn = None
+        source = getattr(self, "_lazy_source_backend", None)
+        close_source = getattr(source, "close", None)
+        if callable(close_source):
+            close_source()
+        self._lazy_source_backend = None
 
     def _resolve_namespace(self, namespace: str | None) -> str:
         requested = str(namespace or "").strip().lower()
@@ -1031,16 +1035,22 @@ class DuckDBBackend(CrawlBackend):
         )
 
     def _ensure_sql_relations(self, query: str) -> None:
-        raw_tables: set[str] = set()
-        for schema_name, table_name in re.findall(
-            r"(?is)\b(?:from|join)\s+([A-Za-z_][\w$]*)\s*\.\s*([A-Za-z_][\w$]*)",
-            str(query),
-        ):
-            if str(schema_name).strip().upper() != "APP":
-                continue
-            raw_tables.add(f"APP.{str(table_name).strip().upper()}")
+        raw_tables = {
+            f"APP.{table_name.upper()}"
+            for table_name in re.findall(
+                r"(?i)\bAPP\s*\.\s*([A-Za-z_][\w$]*)\b", str(query)
+            )
+        }
         if raw_tables:
             self.ensure_raw_tables(sorted(raw_tables))
+
+    def _rewrite_sql_relations(self, query: str) -> str:
+        def replace(match: re.Match[str]) -> str:
+            table = f"APP.{match.group(1).upper()}"
+            relation = resolve_relation_name(self.conn, "raw", table, namespace=self.namespace)
+            return relation or match.group(0)
+
+        return re.sub(r"(?i)\bAPP\s*\.\s*([A-Za-z_][\w$]*)\b", replace, str(query))
 
 
 def _build_relation_query(
@@ -1086,19 +1096,7 @@ def _row_matches(row: dict[str, Any], filters: dict[str, Any]) -> bool:
     lookup = {_normalize_key(key): value for key, value in row.items()}
     for key, expected in filters.items():
         actual = lookup.get(key)
-        if callable(expected):
-            if not expected(actual):
-                return False
-            continue
-        if expected is None:
-            if actual not in (None, ""):
-                return False
-            continue
-        if isinstance(expected, (list, tuple, set)):
-            if actual not in expected:
-                return False
-            continue
-        if str(actual) != str(expected):
+        if not filter_value_matches(actual, expected):
             return False
     return True
 
@@ -1338,7 +1336,7 @@ def _iter_internal_common_rows_from_derby_source(source_backend: Any) -> Iterato
     cursor.execute(sql)
     columns = [desc[0] for desc in cursor.description or []]
 
-    for row in _iter_cursor_rows(cursor):
+    for row in iter_cursor_rows(cursor):
         data = {col: val for col, val in zip(columns, row)}
         parsed_headers: dict[str, dict[str, list[str]]] = {}
         parsed_links: dict[str, list[dict[str, Any]]] = {}

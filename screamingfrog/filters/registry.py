@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional
 
 
 @dataclass(frozen=True)
@@ -17,6 +17,7 @@ class FilterDef:
     join_type: str = "LEFT"
     blob_column: Optional[str] = None
     blob_pattern: Optional[bytes] = None
+    row_predicate: Optional[Callable[[Mapping[str, Any]], bool]] = None
     columns: List[str] = field(default_factory=list)
 
 

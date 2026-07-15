@@ -88,6 +88,20 @@ def test_page_view_select_projects_requested_fields(tmp_path: Path) -> None:
     assert rows == [{"Address": "https://example.com/shop/b", "Title 1": ""}]
 
 
+def test_internal_view_select_uses_projected_backend_path() -> None:
+    class ProjectingBackend(FakeBackend):
+        def get_internal(self, filters=None):
+            raise AssertionError("full internal rows should not be fetched")
+
+        def iter_internal_projection(self, fields, filters=None):
+            assert tuple(fields) == ("Address", "Title 1")
+            yield {"Address": "https://example.com/", "Title 1": "Home"}
+
+    rows = Crawl(ProjectingBackend()).internal.select("Address", "Title 1").collect()
+
+    assert rows == [{"Address": "https://example.com/", "Title 1": "Home"}]
+
+
 def test_link_view_select_projects_requested_fields(tmp_path: Path) -> None:
     _write_csv(
         tmp_path / "internal_all.csv",

@@ -4,6 +4,7 @@ import csv
 from pathlib import Path
 
 from screamingfrog import Crawl
+from screamingfrog.crawl import _parse_directives
 
 
 def _write_internal(path: Path, rows: list[dict[str, str]]) -> None:
@@ -191,3 +192,8 @@ def test_crawl_compare_csv(tmp_path: Path) -> None:
     assert ("X-Robots-Tag", None, "noindex") in fields
     assert ("Meta Refresh", None, "https://example.com/refresh") in fields
     assert ("Directives Summary", "follow,index", "nofollow,noindex") in fields
+
+
+def test_parse_directives_splits_whitespace_without_splitting_letter_s() -> None:
+    assert _parse_directives("noindex nofollow") == {"noindex", "nofollow"}
+    assert _parse_directives("nosnippet, noindex") == {"nosnippet", "noindex"}

@@ -37,18 +37,22 @@ def register_page_title_filters() -> None:
             name="Below X Characters",
             tab="Page Titles",
             description="Title length below 30 characters.",
-            sql_where="TITLE_1 IS NOT NULL AND LENGTH(TITLE_1) < 30",
+            sql_where="TITLE_1 IS NOT NULL AND TRIM(TITLE_1) <> '' AND LENGTH(TITLE_1) < 30",
             columns=["Title 1"],
         ),
         FilterDef(
             name="Over X Pixels",
             tab="Page Titles",
-            description="Title pixel width over threshold (TODO: DB column).",
+            description="Title pixel width over 561 pixels.",
+            row_predicate=lambda row: _number(row.get("Title 1 Pixel Width")) > 561,
+            columns=["Title 1 Pixel Width"],
         ),
         FilterDef(
             name="Below X Pixels",
             tab="Page Titles",
-            description="Title pixel width below threshold (TODO: DB column).",
+            description="Title pixel width below 200 pixels.",
+            row_predicate=lambda row: 0 < _number(row.get("Title 1 Pixel Width")) < 200,
+            columns=["Title 1 Pixel Width"],
         ),
         FilterDef(
             name="Same as H1",
@@ -80,3 +84,10 @@ def register_page_title_filters() -> None:
 
 
 register_page_title_filters()
+
+
+def _number(value: object) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0

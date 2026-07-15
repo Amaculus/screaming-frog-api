@@ -35,10 +35,56 @@ class DatabaseBackend(CrawlBackend):
             yield InternalPage.from_data(row, copy_data=False)
 
     def get_inlinks(self, url: str) -> Iterator[Link]:
-        raise NotImplementedError("Inlinks not implemented for DB backend yet")
+        yield from self._get_links("in", url)
 
     def get_outlinks(self, url: str) -> Iterator[Link]:
-        raise NotImplementedError("Outlinks not implemented for DB backend yet")
+        yield from self._get_links("out", url)
+
+    def _get_links(self, direction: str, url: str) -> Iterator[Link]:
+        tables = {
+            str(row[0]).lower(): str(row[0])
+            for row in self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type IN ('table', 'view')"
+            ).fetchall()
+        }
+        candidates = (
+            ("all_inlinks", "inlinks", "links")
+            if direction == "in"
+            else ("all_outlinks", "outlinks", "links")
+        )
+        table = next((tables[name] for name in candidates if name in tables), None)
+        if table is None:
+            raise NotImplementedError(
+                f"SQLite database does not include a {direction}links table"
+            )
+        columns = self._get_table_columns(table)
+        source_col = _resolve_column_name(columns, "Source", "From", "Source URL")
+        destination_col = _resolve_column_name(
+            columns, "Destination", "Address", "To", "Destination URL"
+        )
+        match_col = destination_col if direction == "in" else source_col
+        if match_col is None:
+            raise NotImplementedError(
+                f"SQLite {table} table has no {'destination' if direction == 'in' else 'source'} column"
+            )
+        quoted_table = _quote_sqlite_identifier(table)
+        quoted_match = _quote_sqlite_identifier(match_col)
+        cursor = self.conn.execute(
+            f"SELECT * FROM {quoted_table} WHERE {quoted_match} = ?", [url]
+        )
+        result_columns = [desc[0] for desc in cursor.description or []]
+        for values in _iter_cursor_rows(cursor):
+            row = {column: value for column, value in zip(result_columns, values)}
+            row.setdefault("Source", row.get(source_col) if source_col else None)
+            row.setdefault(
+                "Destination", row.get(destination_col) if destination_col else None
+            )
+            anchor_col = _resolve_column_name(
+                result_columns, "Anchor", "Anchor Text", "Link Text"
+            )
+            if "Anchor" not in row:
+                row["Anchor"] = row.get(anchor_col) if anchor_col else None
+            yield Link.from_row(row)
 
     def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
         if table != "internal":
@@ -149,7 +195,9 @@ class DatabaseBackend(CrawlBackend):
         self.conn = None
 
     def _get_table_columns(self, table_name: str) -> list[str]:
-        cursor = self.conn.execute(f"PRAGMA table_info({table_name});")
+        cursor = self.conn.execute(
+            f"PRAGMA table_info({_quote_sqlite_identifier(table_name)});"
+        )
         return [row[1] for row in cursor.fetchall()]
 
     def _build_tab_query(
@@ -206,7 +254,7 @@ class DatabaseBackend(CrawlBackend):
             )
             if status_col:
                 if spec.status_is_null:
-                    where_parts.append(f"{status_col} IS NULL")
+                    where_parts.append(f"({status_col} IS NULL OR {status_col} = 0)")
                 else:
                     if spec.status_min is not None and spec.status_max is not None:
                         where_parts.append(f"{status_col} BETWEEN ? AND ?")
@@ -222,7 +270,7 @@ class DatabaseBackend(CrawlBackend):
         if spec.missing_candidates:
             missing_col = _resolve_column(self._internal_column_map, spec.missing_candidates)
             if missing_col:
-                where_parts.append(f"{missing_col} IS NULL OR TRIM({missing_col}) = ''")
+                where_parts.append(f"({missing_col} IS NULL OR TRIM({missing_col}) = '')")
             else:
                 where_parts.append("1=0")
         if filters:
@@ -415,6 +463,22 @@ def _resolve_column(column_map: dict[str, str], candidates: Sequence[str]) -> Op
     return None
 
 
+def _resolve_column_name(columns: Sequence[str], *candidates: str) -> Optional[str]:
+    lookup = {
+        str(column).strip().lower().replace("_", " "): str(column)
+        for column in columns
+    }
+    for candidate in candidates:
+        resolved = lookup.get(str(candidate).strip().lower().replace("_", " "))
+        if resolved:
+            return resolved
+    return None
+
+
+def _quote_sqlite_identifier(value: str) -> str:
+    return '"' + str(value).replace('"', '""') + '"'
+
+
 def _build_sqlite_where(
     filters: dict[str, Any], column_map: dict[str, str]
 ) -> tuple[str, list[Any]]:
@@ -442,17 +506,20 @@ def _build_sqlite_where(
 
 
 def _iter_cursor_rows(cursor: Any, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:
-    fetchmany = getattr(cursor, "fetchmany", None)
-    if not callable(fetchmany):
-        for row in cursor.fetchall():
-            yield row
-        return
-    while True:
-        rows = fetchmany(batch_size)
-        if not rows:
-            break
-        for row in rows:
-            yield row
+    try:
+        fetchmany = getattr(cursor, "fetchmany", None)
+        if not callable(fetchmany):
+            yield from cursor.fetchall()
+            return
+        while True:
+            rows = fetchmany(batch_size)
+            if not rows:
+                break
+            yield from rows
+    finally:
+        close = getattr(cursor, "close", None)
+        if callable(close):
+            close()
 
 
 def _looks_like_sqlite(path: Path) -> bool:

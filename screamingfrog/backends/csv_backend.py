@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
 
 from screamingfrog.backends.base import CrawlBackend
+from screamingfrog.backends.matching import filter_value_matches
 from screamingfrog.filters.names import make_tab_filename, normalize_name
 from screamingfrog.models import InternalPage, Link
 
@@ -44,10 +45,27 @@ class CSVBackend(CrawlBackend):
                 yield InternalPage.from_csv_row(row)
 
     def get_inlinks(self, url: str) -> Iterator[Link]:
-        raise NotImplementedError("Inlinks not implemented for CSV backend yet")
+        yield from self._get_links("in", url)
 
     def get_outlinks(self, url: str) -> Iterator[Link]:
-        raise NotImplementedError("Outlinks not implemented for CSV backend yet")
+        yield from self._get_links("out", url)
+
+    def _get_links(self, direction: str, url: str) -> Iterator[Link]:
+        tab_name = "all_inlinks" if direction == "in" else "all_outlinks"
+        for raw_row in self.get_tab(tab_name):
+            row = dict(raw_row)
+            source = _first_row_value(row, "Source", "From", "Source URL")
+            destination = _first_row_value(
+                row, "Destination", "Address", "To", "Destination URL"
+            )
+            matched = destination if direction == "in" else source
+            if not filter_value_matches(matched, url):
+                continue
+            row.setdefault("Source", source)
+            row.setdefault("Destination", destination)
+            if "Anchor" not in row:
+                row["Anchor"] = _first_row_value(row, "Anchor Text", "Link Text")
+            yield Link.from_row(row)
 
     def count(self, table: str, filters: Optional[dict[str, Any]] = None) -> int:
         if table != "internal":
@@ -208,18 +226,8 @@ def _row_matches(
         lookup = _normalize_key(str(key))
         column = column_map.get(lookup, key)
         actual = row.get(column)
-        if isinstance(expected, (list, tuple, set)):
-            if actual not in expected:
-                return False
-        elif callable(expected):
-            if not expected(actual):
-                return False
-        else:
-            if expected is None:
-                if actual not in (None, ""):
-                    return False
-            elif str(actual) != str(expected):
-                return False
+        if not filter_value_matches(actual, expected):
+            return False
     return True
 
 
@@ -242,3 +250,12 @@ def _build_header_map(headers: list[str]) -> dict[str, str]:
     for header in headers:
         mapping[_normalize_key(header)] = header
     return mapping
+
+
+def _first_row_value(row: dict[str, Any], *candidates: str) -> Any:
+    lookup = {_normalize_key(str(key)): value for key, value in row.items()}
+    for candidate in candidates:
+        value = lookup.get(_normalize_key(candidate))
+        if value not in {None, ""}:
+            return value
+    return None

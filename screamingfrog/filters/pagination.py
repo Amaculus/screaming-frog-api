@@ -27,6 +27,31 @@ def register_pagination_filters() -> None:
         "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL "
         "AND d.ENCODED_URL = s.ENCODED_URL AND l.LINK_TYPE IN (8, 10))"
     )
+    target_join = (
+        "FROM APP.LINKS l "
+        "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+        "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+    )
+    non_200_target = (
+        "EXISTS (SELECT 1 " + target_join +
+        "LEFT JOIN APP.URLS u ON u.ENCODED_URL = d.ENCODED_URL "
+        "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL "
+        "AND l.LINK_TYPE IN (8, 10) "
+        "AND (u.RESPONSE_CODE IS NULL OR u.RESPONSE_CODE NOT BETWEEN 200 AND 299))"
+    )
+    unlinked_target = (
+        "EXISTS (SELECT 1 " + target_join +
+        "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL "
+        "AND l.LINK_TYPE IN (8, 10) "
+        "AND NOT EXISTS (SELECT 1 FROM APP.LINKS hl "
+        "WHERE hl.DST_ID = l.DST_ID AND hl.LINK_TYPE = 1))"
+    )
+    non_indexable_target = (
+        "EXISTS (SELECT 1 " + target_join +
+        "JOIN APP.URLS u ON u.ENCODED_URL = d.ENCODED_URL "
+        "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL "
+        "AND l.LINK_TYPE IN (8, 10) AND " + _non_indexable_sql("u") + ")"
+    )
 
     filters = [
         FilterDef(name="All", tab="Pagination", description="All pagination entries."),
@@ -60,17 +85,20 @@ def register_pagination_filters() -> None:
         FilterDef(
             name="Non-200 Pagination URLs",
             tab="Pagination",
-            description="Pagination URLs with non-200 response (TODO: DB columns).",
+            description="Pagination URLs with a non-2xx response.",
+            sql_where=non_200_target,
         ),
         FilterDef(
             name="Unlinked Pagination URLs",
             tab="Pagination",
-            description="Unlinked pagination URLs (TODO: DB columns).",
+            description="Pagination targets without regular hyperlink inlinks.",
+            sql_where=unlinked_target,
         ),
         FilterDef(
             name="Non-Indexable",
             tab="Pagination",
-            description="Non-indexable pagination URLs (TODO: DB columns).",
+            description="Pagination targets blocked by robots directives.",
+            sql_where=non_indexable_target,
         ),
         FilterDef(
             name="Multiple Pagination URLs",
@@ -97,6 +125,25 @@ def register_pagination_filters() -> None:
 
     for filt in filters:
         register_filter(filt)
+
+
+def _non_indexable_sql(alias: str) -> str:
+    robots_names = "'robots', 'googlebot', 'bingbot', 'yandex', 'baiduspider', 'slurp'"
+    directives = []
+    for prefix in ("", "_JS"):
+        for index in range(1, 21):
+            directives.append(
+                f"(LOWER({alias}.META_NAME{prefix}_{index}) IN ({robots_names}) "
+                f"AND LOWER({alias}.META_CONTENT{prefix}_{index}) LIKE '%noindex%')"
+            )
+    directives.extend(
+        f"LOWER({alias}.X_ROBOT_TAG_{index}) LIKE '%noindex%'"
+        for index in range(1, 21)
+    )
+    return (
+        "(LOWER(CAST(" + alias + ".BLOCKED_BY_ROBOTS_TXT AS VARCHAR(10))) "
+        "IN ('1', 'true') OR " + " OR ".join(directives) + ")"
+    )
 
 
 register_pagination_filters()

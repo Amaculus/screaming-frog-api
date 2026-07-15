@@ -10,7 +10,7 @@ _META_CONTENT_JS_COLUMNS = [f"META_CONTENT_JS_{i}" for i in range(1, 21)]
 
 
 def _name_is_description(col: str) -> str:
-    return f"LOWER({col}) = 'description'"
+    return f"COALESCE(LOWER({col}), '') = 'description'"
 
 
 def _description_exists_expr() -> str:
@@ -78,12 +78,16 @@ def register_meta_description_filters() -> None:
         FilterDef(
             name="Over X Pixels",
             tab="Meta Description",
-            description="Meta description over pixel threshold (TODO: DB column).",
+            description="Meta description over 985 pixels.",
+            row_predicate=lambda row: _number(row.get("Meta Description 1 Pixel Width")) > 985,
+            columns=["Meta Description 1 Pixel Width"],
         ),
         FilterDef(
             name="Below X Pixels",
             tab="Meta Description",
-            description="Meta description below pixel threshold (TODO: DB column).",
+            description="Meta description below 400 pixels.",
+            row_predicate=lambda row: 0 < _number(row.get("Meta Description 1 Pixel Width")) < 400,
+            columns=["Meta Description 1 Pixel Width"],
         ),
         FilterDef(
             name="Multiple",
@@ -106,3 +110,10 @@ def register_meta_description_filters() -> None:
 
 
 register_meta_description_filters()
+
+
+def _number(value: object) -> float:
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0

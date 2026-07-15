@@ -14,10 +14,10 @@ See `methods.md` for a complete method-level API reference.
 ## Public alpha status
 - `601 / 628` tabs fully mapped
 - `15,490 / 15,589` fields mapped
-- current `main` passes `195` tests (`2` skipped live/optional tests)
+- current `main` passes `287` tests (`2` skipped live/optional tests)
 
 ## Known limitations
-- Title and meta-description pixel-width filters are not implemented yet.
+- JavaScript redirect classification and relative-canonical detection require crawl signals that are not available in every Derby schema.
 - Some hreflang edge cases still do not have exact Derby parity (`incorrect language-code` cases).
 - `.seospider` conversion requires a local Screaming Frog CLI install.
 

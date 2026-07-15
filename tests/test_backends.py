@@ -80,6 +80,48 @@ def test_generic_tab_access(sample_export_dir: Path) -> None:
     assert rows[0]["Address"] == "https://example.com/missing"
 
 
+def test_csv_backend_reads_exported_inlinks_and_outlinks(sample_export_dir: Path) -> None:
+    for name in ("all_inlinks.csv", "all_outlinks.csv"):
+        with (sample_export_dir / name).open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=["Source", "Destination", "Anchor"])
+            writer.writeheader()
+            writer.writerow(
+                {
+                    "Source": "https://example.com/source",
+                    "Destination": "https://example.com/target",
+                    "Anchor": "Target",
+                }
+            )
+
+    crawl = Crawl.from_exports(str(sample_export_dir))
+
+    assert [link.source for link in crawl.inlinks("https://example.com/target")] == [
+        "https://example.com/source"
+    ]
+    assert [link.destination for link in crawl.outlinks("https://example.com/source")] == [
+        "https://example.com/target"
+    ]
+
+
+def test_sqlite_backend_reads_optional_link_table(sample_db_path: Path) -> None:
+    conn = sqlite3.connect(str(sample_db_path))
+    conn.execute('CREATE TABLE links ("Source" TEXT, "Destination" TEXT, "Anchor Text" TEXT)')
+    conn.execute(
+        'INSERT INTO links VALUES (?, ?, ?)',
+        ("https://example.com/source", "https://example.com/target", "Target"),
+    )
+    conn.commit()
+    conn.close()
+    crawl = Crawl.from_database(str(sample_db_path))
+
+    assert [link.anchor_text for link in crawl.inlinks("https://example.com/target")] == [
+        "Target"
+    ]
+    assert [link.destination for link in crawl.outlinks("https://example.com/source")] == [
+        "https://example.com/target"
+    ]
+
+
 def test_tab_count_and_rows_use_csv_backend_fast_paths(sample_export_dir: Path) -> None:
     crawl = Crawl.load(str(sample_export_dir))
 

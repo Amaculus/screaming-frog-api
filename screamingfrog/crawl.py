@@ -134,7 +134,6 @@ _REDIRECT_ISSUE_TABS: dict[str, str] = {
     "response_codes_internal_redirect_loop": "Redirect Loop",
     "redirect_chains": "Redirect Chain",
 }
-_DERBY_SOURCE_BACKEND_CACHE: dict[tuple[str, str | None, str | None], DerbyBackend] = {}
 
 
 @dataclass(frozen=True)
@@ -143,6 +142,8 @@ class InternalView:
     filters: dict[str, Any] | None = None
 
     def filter(self, **kwargs: Any) -> "InternalView":
+        if "gui" in kwargs or "gui_filters" in kwargs:
+            raise ValueError("GUI filters apply to named tabs; use crawl.tab(...).filter(gui=...)")
         merged = dict(self.filters or {})
         merged.update(kwargs)
         return InternalView(self.backend, merged)
@@ -159,6 +160,16 @@ class InternalView:
             str(term),
             tuple(fields) if fields is not None else None,
             case_sensitive,
+        )
+
+    def select(self, *fields: str) -> "ProjectedPageView":
+        """Project internal rows without fetching unrelated backend columns."""
+        if not fields:
+            raise ValueError("select() requires at least one field")
+        return ProjectedPageView(
+            self.backend,
+            tuple(str(field) for field in fields),
+            self.filters,
         )
 
     def __iter__(self) -> Iterator[InternalPage]:
@@ -254,6 +265,8 @@ class ProjectedTabView:
         merged = dict(self.filters or {})
         gui = kwargs.pop("gui", None)
         gui_filters = kwargs.pop("gui_filters", None)
+        if gui is not None and gui_filters is not None:
+            raise ValueError("Pass either gui or gui_filters, not both")
         if gui is not None:
             merged["__gui__"] = gui
         if gui_filters is not None:
@@ -311,6 +324,8 @@ class PageView:
     filters: dict[str, Any] | None = None
 
     def filter(self, **kwargs: Any) -> "PageView":
+        if "gui" in kwargs or "gui_filters" in kwargs:
+            raise ValueError("GUI filters apply to named tabs; use crawl.tab(...).filter(gui=...)")
         merged = dict(self.filters or {})
         merged.update(kwargs)
         return PageView(self.backend, merged)
@@ -853,15 +868,12 @@ class Crawl:
                 )
             crawl = cls.from_duckdb(str(exported), namespace=duckdb_namespace)
             if isinstance(crawl, Crawl):
-                source_backend = _get_cached_derby_source_backend(
-                    db_path,
-                    mapping_path=mapping_path,
-                    derby_jar=derby_jar,
-                )
                 _attach_lazy_duckdb_source(
                     crawl,
                     source_label=source_label,
-                    source_backend=source_backend,
+                    source_backend_factory=lambda: _get_cached_derby_source_backend(
+                        db_path, mapping_path=mapping_path, derby_jar=derby_jar
+                    ),
                     available_tabs=_available_duckdb_source_tabs(mapping_path),
                 )
             return crawl
@@ -1014,15 +1026,12 @@ class Crawl:
                 )
             crawl = cls.from_duckdb(str(exported), namespace=duckdb_namespace)
             if isinstance(crawl, Crawl):
-                source_backend = _get_cached_derby_source_backend(
-                    str(project_dir),
-                    mapping_path=mapping_path,
-                    derby_jar=derby_jar,
-                )
                 _attach_lazy_duckdb_source(
                     crawl,
                     source_label=source_label,
-                    source_backend=source_backend,
+                    source_backend_factory=lambda: _get_cached_derby_source_backend(
+                        str(project_dir), mapping_path=mapping_path, derby_jar=derby_jar
+                    ),
                     available_tabs=_available_duckdb_source_tabs(mapping_path),
                 )
             return crawl
@@ -1160,15 +1169,12 @@ class Crawl:
                 )
             crawl = cls.from_duckdb(str(exported), namespace=duckdb_namespace)
             if isinstance(crawl, Crawl):
-                source_backend = _get_cached_derby_source_backend(
-                    str(project_dir),
-                    mapping_path=mapping_path,
-                    derby_jar=derby_jar,
-                )
                 _attach_lazy_duckdb_source(
                     crawl,
                     source_label=crawl_id,
-                    source_backend=source_backend,
+                    source_backend_factory=lambda: _get_cached_derby_source_backend(
+                        str(project_dir), mapping_path=mapping_path, derby_jar=derby_jar
+                    ),
                     available_tabs=_available_duckdb_source_tabs(mapping_path),
                 )
             return crawl
@@ -1530,7 +1536,7 @@ class Crawl:
         if duckdb_rows is not None:
             return duckdb_rows
         rows: list[dict[str, Any]] = []
-        for row in self.links("in"):
+        for row in _available_link_rows(self, "in"):
             status = _coerce_status_code(row.get("Status Code"))
             if status is None or status < min_status or status > max_status:
                 continue
@@ -1546,7 +1552,7 @@ class Crawl:
         if duckdb_rows is not None:
             return duckdb_rows
         rows: list[dict[str, Any]] = []
-        for row in self.links("in"):
+        for row in _available_link_rows(self, "in"):
             if _row_is_nofollow(row):
                 rows.append(dict(row))
         return rows
@@ -1614,7 +1620,7 @@ class Crawl:
         if duckdb_rows is not None:
             return duckdb_rows
         incoming: dict[str, int] = {}
-        for row in self.links("in"):
+        for row in _available_link_rows(self, "in"):
             address = str(
                 row.get("Address") or row.get("Destination") or row.get("To") or ""
             ).strip()
@@ -2182,6 +2188,8 @@ def _compare_page_indices(
     for url in sorted(new_urls & old_urls):
         new_page = new_pages[url]
         old_page = old_pages[url]
+        new_lookup = _normalized_row_lookup(new_page.data)
+        old_lookup = _normalized_row_lookup(old_page.data)
 
         if new_page.status_code != old_page.status_code:
             status_changes.append(
@@ -2192,8 +2200,8 @@ def _compare_page_indices(
                 )
             )
 
-        new_title = _get_first_value(new_page.data, title_fields)
-        old_title = _get_first_value(old_page.data, title_fields)
+        new_title = _get_first_value(new_page.data, title_fields, normalized=new_lookup)
+        old_title = _get_first_value(old_page.data, title_fields, normalized=old_lookup)
         if _diff_values(old_title, new_title):
             title_changes.append(TitleChange(url=url, old_title=old_title, new_title=new_title))
 
@@ -2220,8 +2228,8 @@ def _compare_page_indices(
                 new_value = _canonical_status(new_page, new_pages, new_pages_norm, canonical_fields)
                 old_value = _canonical_status(old_page, old_pages, old_pages_norm, canonical_fields)
             else:
-                new_value = _get_first_value(new_page.data, candidates)
-                old_value = _get_first_value(old_page.data, candidates)
+                new_value = _get_first_value(new_page.data, candidates, normalized=new_lookup)
+                old_value = _get_first_value(old_page.data, candidates, normalized=old_lookup)
             if _diff_values(old_value, new_value):
                 field_changes.append(
                     FieldChange(
@@ -3555,11 +3563,11 @@ def _duckdb_summary(crawl: Crawl) -> dict[str, Any] | None:
             "nofollow_inlinks": nofollow_inlinks,
             "orphan_pages": orphan_pages,
             "non_indexable_pages": non_indexable_pages,
-            "redirect_chains": _duckdb_materialized_tab_count_or_none(backend, "redirect_chains"),
-            "security_issues": _duckdb_issue_tab_count_or_none(backend, _SECURITY_ISSUE_TABS),
-            "canonical_issues": _duckdb_issue_tab_count_or_none(backend, _CANONICAL_ISSUE_TABS),
-            "hreflang_issues": _duckdb_issue_tab_count_or_none(backend, _HREFLANG_ISSUE_TABS),
-            "redirect_issues": _duckdb_issue_tab_count_or_none(backend, _REDIRECT_ISSUE_TABS),
+            "redirect_chains": _duckdb_materialized_tab_count_or_none(backend, "redirect_chains") or 0,
+            "security_issues": _duckdb_issue_tab_count_or_none(backend, _SECURITY_ISSUE_TABS) or 0,
+            "canonical_issues": _duckdb_issue_tab_count_or_none(backend, _CANONICAL_ISSUE_TABS) or 0,
+            "hreflang_issues": _duckdb_issue_tab_count_or_none(backend, _HREFLANG_ISSUE_TABS) or 0,
+            "redirect_issues": _duckdb_issue_tab_count_or_none(backend, _REDIRECT_ISSUE_TABS) or 0,
         }
 
     internal_relation = getattr(backend, "_internal_relation", None)
@@ -3652,7 +3660,7 @@ def _duckdb_summary(crawl: Crawl) -> dict[str, Any] | None:
                 backend,
                 f"""
                 SELECT COUNT(*) AS count
-                FROM {internal_relation} i
+                FROM {count_relation} i
                 LEFT JOIN (
                     SELECT d.ENCODED_URL AS address, COUNT(*) AS inlinks
                     FROM {links_relation} l
@@ -3673,11 +3681,11 @@ def _duckdb_summary(crawl: Crawl) -> dict[str, Any] | None:
         "nofollow_inlinks": nofollow_inlinks,
         "orphan_pages": orphan_pages,
         "non_indexable_pages": non_indexable_pages,
-        "redirect_chains": redirect_chains,
-        "security_issues": _duckdb_issue_tab_count_or_none(backend, _SECURITY_ISSUE_TABS),
-        "canonical_issues": _duckdb_issue_tab_count_or_none(backend, _CANONICAL_ISSUE_TABS),
-        "hreflang_issues": _duckdb_issue_tab_count_or_none(backend, _HREFLANG_ISSUE_TABS),
-        "redirect_issues": _duckdb_issue_tab_count_or_none(backend, _REDIRECT_ISSUE_TABS),
+        "redirect_chains": redirect_chains or 0,
+        "security_issues": _duckdb_issue_tab_count_or_none(backend, _SECURITY_ISSUE_TABS) or 0,
+        "canonical_issues": _duckdb_issue_tab_count_or_none(backend, _CANONICAL_ISSUE_TABS) or 0,
+        "hreflang_issues": _duckdb_issue_tab_count_or_none(backend, _HREFLANG_ISSUE_TABS) or 0,
+        "redirect_issues": _duckdb_issue_tab_count_or_none(backend, _REDIRECT_ISSUE_TABS) or 0,
     }
 
 
@@ -4102,6 +4110,9 @@ def _iter_projected_page_rows(
         projected = _duckdb_projected_page_rows(backend, requested, filters=filters)
         if projected is not None:
             return projected
+    projected_internal = getattr(backend, "iter_internal_projection", None)
+    if callable(projected_internal):
+        return projected_internal(requested, filters=filters)
     return (
         _project_page_row(page, requested)
         for page in backend.get_internal(filters=filters)
@@ -4342,20 +4353,31 @@ def _index_internal_normalized(crawl: Crawl) -> dict[str, InternalPage]:
     return pages
 
 
-def _get_first_value(data: dict[str, Any], keys: Sequence[str]) -> Optional[str]:
-    normalized = {str(k).strip().lower(): v for k, v in data.items()}
+def _normalized_row_lookup(data: Mapping[str, Any]) -> dict[str, Any]:
+    return {str(key).strip().lower(): value for key, value in data.items()}
+
+
+def _get_first_value(
+    data: Mapping[str, Any],
+    keys: Sequence[str],
+    *,
+    normalized: Mapping[str, Any] | None = None,
+) -> Optional[str]:
+    lookup = normalized if normalized is not None else _normalized_row_lookup(data)
     for key in keys:
         if key in data and data[key] not in (None, ""):
             return str(data[key])
         lower = key.strip().lower()
-        if lower in normalized and normalized[lower] not in (None, ""):
-            return str(normalized[lower])
+        if lower in lookup and lookup[lower] not in (None, ""):
+            return str(lookup[lower])
     return None
 
 
 def _diff_values(old: Optional[str], new: Optional[str]) -> bool:
     if old is None and new is None:
         return False
+    if old is None or new is None:
+        return True
     return str(old) != str(new)
 
 
@@ -4381,7 +4403,7 @@ def _parse_directives(value: Optional[str]) -> set[str]:
     text = str(value)
     if not text.strip():
         return set()
-    parts = re.split(r"[;,\\s]+", text)
+    parts = re.split(r"[;,\s]+", text)
     return {part.strip().lower() for part in parts if part.strip()}
 
 
@@ -4664,19 +4686,13 @@ def _get_cached_derby_source_backend(
     mapping_path: str | None,
     derby_jar: str | None,
 ) -> DerbyBackend:
-    source_path = str(Path(db_path).resolve())
-    fingerprint = _source_fingerprint(Path(db_path))
-    cache_key = (source_path, fingerprint, str(Path(derby_jar).resolve()) if derby_jar else None)
-    backend = _DERBY_SOURCE_BACKEND_CACHE.get(cache_key)
-    if backend is not None:
-        return backend
-    backend = DerbyBackend(
+    # Lazy DuckDB backends own their Derby source. Avoid a process-global
+    # connection/extraction cache, which stranded locks and temp directories.
+    return DerbyBackend(
         db_path,
         mapping_path=mapping_path,
         derby_jar=derby_jar,
     )
-    _DERBY_SOURCE_BACKEND_CACHE[cache_key] = backend
-    return backend
 
 
 def _attach_lazy_duckdb_source(
@@ -4696,6 +4712,14 @@ def _attach_lazy_duckdb_source(
         source_label=source_label,
         available_tabs=available_tabs,
     )
+
+
+def _available_link_rows(crawl: Crawl, direction: str) -> Iterator[dict[str, Any]]:
+    """Yield link rows, treating an unexported optional link tab as empty."""
+    try:
+        yield from crawl.links(direction)
+    except (FileNotFoundError, NotImplementedError):
+        return
 
 
 def _iter_broken_pages(

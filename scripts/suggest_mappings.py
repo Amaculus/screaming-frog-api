@@ -216,8 +216,8 @@ def suggest_for_tab(
                 continue
             # Try known-dict heuristic first (safe for auto-apply)
             primary = primary_table or "APP.URLS"
-            primary_cols = primary_cols or db_schemas.get(primary) or all_db_cols
-            heuristic, h_source = csv_column_to_derby_heuristic(csv_col, primary_cols)
+            candidate_cols = primary_cols or db_schemas.get(primary) or all_db_cols
+            heuristic, h_source = csv_column_to_derby_heuristic(csv_col, candidate_cols)
             if heuristic and (heuristic in (db_schemas.get(primary) or set())):
                 note = "known mapping" if h_source == "known" else "heuristic match"
                 out.append({
@@ -247,8 +247,8 @@ def suggest_for_tab(
         # Not in mapping: suggest
         # Try known-dict heuristic first (safe for auto-apply)
         primary = primary_table or "APP.URLS"
-        primary_cols = primary_cols or db_schemas.get(primary) or all_db_cols
-        heuristic, h_source = csv_column_to_derby_heuristic(csv_col, primary_cols)
+        candidate_cols = primary_cols or db_schemas.get(primary) or all_db_cols
+        heuristic, h_source = csv_column_to_derby_heuristic(csv_col, candidate_cols)
         if heuristic and (heuristic in (db_schemas.get(primary) or set())):
             note = "known mapping" if h_source == "known" else "heuristic match"
             out.append({

@@ -16,6 +16,7 @@ from screamingfrog.db.duckdb import (
     _helper_relation_name,
     _import_duckdb,
     _relation_exists,
+    _source_fingerprint,
     iter_relation_rows,
     ensure_duckdb_cache,
     export_duckdb_from_backend,
@@ -1111,6 +1112,27 @@ def test_duckdb_backend_lazy_materializes_raw_tables_from_source(tmp_path: Path)
     )
 
 
+def test_duckdb_lazy_materialization_preserves_active_iterator(tmp_path: Path) -> None:
+    source = FakeDuckExportBackend()
+    target = tmp_path / "crawl-active-reader.duckdb"
+    Crawl(source).export_duckdb(
+        str(target),
+        source_label="fake-crawl",
+        tables=(),
+        tabs=("internal_all",),
+    )
+    duck = Crawl.from_duckdb(str(target))
+    backend = duck._backend  # type: ignore[attr-defined]
+    backend.configure_lazy_source(source, source_label="fake-crawl")
+
+    rows = backend._iter_relation(backend._internal_relation)
+    first = next(rows)
+    assert backend.ensure_raw_tables(("APP.URLS",))
+
+    assert first["Address"] == "https://example.com/ok"
+    assert [row["Address"] for row in rows] == ["https://example.com/broken"]
+
+
 def test_ensure_duckdb_cache_reuses_existing_db_while_read_only_connection_is_open(tmp_path: Path) -> None:
     crawl = Crawl(FakeDuckExportBackend())
     target = tmp_path / "crawl-reuse.duckdb"
@@ -1778,11 +1800,11 @@ def test_duckdb_report_helpers_work_without_materialized_link_tabs(tmp_path: Pat
         "nofollow_inlinks": 1,
         "orphan_pages": 2,
         "non_indexable_pages": 1,
-        "redirect_chains": None,
-        "security_issues": None,
-        "canonical_issues": None,
-        "hreflang_issues": None,
-        "redirect_issues": None,
+        "redirect_chains": 0,
+        "security_issues": 0,
+        "canonical_issues": 0,
+        "hreflang_issues": 0,
+        "redirect_issues": 0,
     }
 
 
@@ -2085,3 +2107,44 @@ def test_bulk_load_syscs_csvs_to_duckdb_rejects_row_count_mismatch(tmp_path: Pat
         assert not _relation_exists(conn, "app.urls")
     finally:
         conn.close()
+
+
+def test_export_duckdb_link_tab_does_not_truncate_fetch_batches(tmp_path: Path) -> None:
+    backend = FakeDuckExportBackend()
+    backend._raw = {
+        "APP.URLS": [
+            {"ENCODED_URL": f"https://example.com/destination/{index}", "RESPONSE_CODE": 200}
+            for index in range(1505)
+        ],
+        "APP.UNIQUE_URLS": [
+            row
+            for index in range(1505)
+            for row in (
+                {"ID": index * 2 + 1, "ENCODED_URL": f"https://example.com/source/{index}"},
+                {"ID": index * 2 + 2, "ENCODED_URL": f"https://example.com/destination/{index}"},
+            )
+        ],
+        "APP.LINKS": [
+            {"SRC_ID": index * 2 + 1, "DST_ID": index * 2 + 2, "LINK_TEXT": str(index)}
+            for index in range(1505)
+        ],
+    }
+    target = tmp_path / "large-links.duckdb"
+
+    Crawl(backend).export_duckdb(
+        str(target), source_label="large-links", tables=(), tabs=("all_inlinks",)
+    )
+    duck = Crawl.from_duckdb(str(target))
+    try:
+        assert duck.tab_count("all_inlinks") == 1505
+        assert len(duck.tab("all_inlinks").collect()) == 1505
+    finally:
+        duck.close()
+
+
+def test_source_fingerprint_ignores_duckdb_cache_files(tmp_path: Path) -> None:
+    (tmp_path / "service.properties").write_text("source", encoding="utf-8")
+    before = _source_fingerprint(tmp_path)
+    (tmp_path / "crawl.duckdb").write_bytes(b"cache")
+    (tmp_path / "crawl.duckdb.wal").write_bytes(b"wal")
+    assert _source_fingerprint(tmp_path) == before

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
@@ -33,9 +34,8 @@ class CLIExportBackend(CrawlBackend):
             raise FileNotFoundError(f"Crawl file not found: {load_target}")
 
         self.load_target = load_target
-        self.export_dir = Path(export_dir) if export_dir else Path(
-            tempfile.mkdtemp(prefix="sf_exports_")
-        )
+        self._owns_export_dir = export_dir is None
+        self.export_dir = Path(export_dir) if export_dir else Path(tempfile.mkdtemp(prefix="sf_exports_"))
         tabs = export_tabs
         if export_profile:
             # Let the profile populate export lists.
@@ -114,6 +114,14 @@ class CLIExportBackend(CrawlBackend):
 
     def sql(self, query: str, params: Optional[Sequence[Any]] = None) -> Iterator[dict[str, Any]]:
         raise NotImplementedError("SQL access is only available for database backends.")
+
+    def close(self) -> None:
+        close = getattr(self._csv, "close", None)
+        if callable(close):
+            close()
+        if self._owns_export_dir:
+            shutil.rmtree(self.export_dir, ignore_errors=True)
+            self._owns_export_dir = False
 
 
 def _looks_like_path(value: str) -> bool:

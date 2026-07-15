@@ -26,9 +26,10 @@ def resolve_java_executable(java_home: str | None = None) -> Path:
     """Resolve the java executable path."""
     env_home = java_home or os.environ.get("JAVA_HOME")
     if env_home:
-        candidate = Path(env_home) / "bin" / "java.exe"
-        if candidate.exists():
-            return candidate
+        for executable in ("java.exe", "java"):
+            candidate = Path(env_home) / "bin" / executable
+            if candidate.exists():
+                return candidate
     java_path = shutil.which("java")
     if java_path:
         return Path(java_path)

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from pathlib import Path
 
 from scripts.suggest_mappings import generate_mapping_nulls_content
 
 
+@lru_cache(maxsize=1)
 def _mapping() -> dict[str, list[dict]]:
     return json.loads(Path("schemas/mapping.json").read_text(encoding="utf-8"))
 

@@ -939,7 +939,9 @@ def test_get_tab_fetches_chrome_console_supplementary_columns_by_encoded_url() -
             )
         ],
     )
-    console_cursor = _FakeCursor(["NUM_ERRORS"], [(5,)])
+    console_cursor = _FakeCursor(
+        ["ENCODED_URL", "NUM_ERRORS"], [("https://example.com/page", 5)]
+    )
 
     backend = DerbyBackend.__new__(DerbyBackend)
     backend._conn = _MultiCursorConnection([main_cursor, console_cursor])
@@ -974,10 +976,9 @@ def test_get_tab_fetches_chrome_console_supplementary_columns_by_encoded_url() -
     ]
     assert main_cursor.executed_sql == "SELECT ENCODED_URL, ENCODED_URL, TITLE_1 FROM APP.URLS"
     assert console_cursor.executed_sql == (
-        "SELECT NUM_ERRORS FROM APP.CHROME_CONSOLE_DATA "
-        "WHERE ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY"
+        "SELECT ENCODED_URL, NUM_ERRORS FROM APP.CHROME_CONSOLE_DATA"
     )
-    assert console_cursor.executed_params == ["https://example.com/page"]
+    assert console_cursor.executed_params == []
 
 
 def test_get_accessibility_summary_tab_parses_axe_results() -> None:
@@ -1781,19 +1782,49 @@ def test_get_hreflang_multimap_tabs_emit_expected_rows() -> None:
 
     backend = DerbyBackend.__new__(DerbyBackend)
     backend._conn = _MultiCursorConnection(
-        [
-            multimap_missing,
-            missing_link,
-            missing_target,
-            multimap_inconsistent,
-            inconsistent_link,
-            inconsistent_return,
-            multimap_noncanonical,
-            canonical_target,
-            multimap_noindex,
-            noindex_link,
-        ]
-    )
+            [
+                multimap_missing,
+                _FakeCursor(
+                    ["ENCODED_URL", "RESPONSE_CODE", "HTTP_RESPONSE_HEADER_COLLECTION"],
+                    [("https://example.com/b", 404, None)],
+                ),
+                _FakeCursor(
+                    ["SRC", "DST", "HREF_LANG", "LINK_TYPE"],
+                    [("https://example.com/a", "https://example.com/b", "en-gb", 13)],
+                ),
+                _FakeCursor(["SRC", "DST"], []),
+                multimap_inconsistent,
+                _FakeCursor(
+                    ["ENCODED_URL", "RESPONSE_CODE", "HTTP_RESPONSE_HEADER_COLLECTION"], []
+                ),
+                _FakeCursor(
+                    ["SRC", "DST", "HREF_LANG", "LINK_TYPE"],
+                    [
+                        ("https://example.com/a", "https://example.com/b", "en-gb", 13),
+                        ("https://example.com/b", "https://example.com/c", "fr-fr", 13),
+                    ],
+                ),
+                _FakeCursor(["SRC", "DST"], []),
+                multimap_noncanonical,
+                _FakeCursor(
+                    ["ENCODED_URL", "RESPONSE_CODE", "HTTP_RESPONSE_HEADER_COLLECTION"], []
+                ),
+                _FakeCursor(["SRC", "DST", "HREF_LANG", "LINK_TYPE"], []),
+                _FakeCursor(
+                    ["SRC", "DST"],
+                    [("https://example.com/b", "https://example.com/canonical-b")],
+                ),
+                multimap_noindex,
+                _FakeCursor(
+                    ["ENCODED_URL", "RESPONSE_CODE", "HTTP_RESPONSE_HEADER_COLLECTION"], []
+                ),
+                _FakeCursor(
+                    ["SRC", "DST", "HREF_LANG", "LINK_TYPE"],
+                    [("https://example.com/a", "https://example.com/b", "en-gb", 13)],
+                ),
+                _FakeCursor(["SRC", "DST"], []),
+            ]
+        )
     backend._mapping = {
         "hreflang_missing_return_links.csv": [
             {"csv_column": "URL Missing Return Link", "db_expression": "NULL"},

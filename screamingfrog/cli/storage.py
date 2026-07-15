@@ -37,20 +37,27 @@ def ensure_storage_mode(
     """Temporarily force storage.mode in spider.config."""
     path = resolve_spider_config(config_path)
     existed = path.exists()
-    original = path.read_text(encoding="utf-8") if existed else ""
+    original, encoding = _read_config(path) if existed else ("", "utf-8")
+    original_value = _get_config_value(original, "storage.mode")
     updated = _set_config_value(original, "storage.mode", mode)
     if updated != original:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(updated, encoding="utf-8")
+        path.write_text(updated, encoding=encoding)
 
     try:
         yield path
     finally:
-        if existed:
-            path.write_text(original, encoding="utf-8")
-        else:
-            if path.exists():
-                path.unlink()
+        if path.exists():
+            current, current_encoding = _read_config(path)
+            restored = (
+                _remove_config_value(current, "storage.mode")
+                if original_value is None
+                else _set_config_value(current, "storage.mode", original_value)
+            )
+            path.write_text(restored, encoding=current_encoding)
+        elif existed:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(original, encoding=encoding)
 
 
 def _set_config_value(text: str, key: str, value: str) -> str:
@@ -64,7 +71,7 @@ def _set_config_value(text: str, key: str, value: str) -> str:
         if stripped.startswith(key_prefix):
             lines[idx] = f"{key}={value}\n"
             found = True
-        elif stripped.split("=", 1)[0] == key:
+        elif stripped.split("=", 1)[0].strip() == key:
             lines[idx] = f"{key}={value}\n"
             found = True
 
@@ -73,3 +80,36 @@ def _set_config_value(text: str, key: str, value: str) -> str:
             lines[-1] = f"{lines[-1]}\n"
         lines.append(f"{key}={value}\n")
     return "".join(lines)
+
+
+def _read_config(path: Path) -> tuple[str, str]:
+    raw = path.read_bytes()
+    try:
+        return raw.decode("utf-8"), "utf-8"
+    except UnicodeDecodeError:
+        return raw.decode("cp1252"), "cp1252"
+
+
+def _get_config_value(text: str, key: str) -> str | None:
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        lhs, value = stripped.split("=", 1)
+        if lhs.strip() == key:
+            return value.strip()
+    return None
+
+
+def _remove_config_value(text: str, key: str) -> str:
+    lines = text.splitlines(keepends=True)
+    return "".join(
+        line
+        for line in lines
+        if not (
+            line.strip()
+            and not line.strip().startswith("#")
+            and "=" in line
+            and line.strip().split("=", 1)[0].strip() == key
+        )
+    )

@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
+from screamingfrog.filters.names import make_tab_filename
+
 
 DEFAULT_EXPORT_TABS = ("Internal:All",)
 _INTERNAL_CSV_CANDIDATES = (
@@ -30,6 +32,7 @@ def export_crawl(
     overwrite: bool = True,
     force: bool = False,
     export_profile: str | None = None,
+    timeout: float | None = 1800,
 ) -> Path:
     """Export crawl data via Screaming Frog CLI using --load-crawl.
 
@@ -39,11 +42,6 @@ def export_crawl(
         tempfile.mkdtemp(prefix="sf_exports_")
     )
     export_dir_path.mkdir(parents=True, exist_ok=True)
-
-    if not force and _internal_csv_exists(export_dir_path):
-        return export_dir_path
-
-    cli = resolve_cli_path(cli_path)
 
     if export_profile:
         from screamingfrog.config import get_export_profile
@@ -56,6 +54,13 @@ def export_crawl(
 
     if export_tabs is None:
         export_tabs = DEFAULT_EXPORT_TABS
+
+    if not force and _requested_exports_exist(
+        export_dir_path, export_tabs, bulk_exports, save_reports
+    ):
+        return export_dir_path
+
+    cli = resolve_cli_path(cli_path)
 
     args = [
         str(cli),
@@ -78,11 +83,7 @@ def export_crawl(
     if save_reports:
         args.extend(["--save-report", ",".join(save_reports)])
 
-    result = subprocess.run(
-        args,
-        capture_output=True,
-        text=True,
-    )
+    result = _run_process(args, timeout=timeout)
     if result.returncode != 0:
         raise RuntimeError(_format_cli_error(result))
 
@@ -158,6 +159,7 @@ def run_cli(
     *,
     cli_path: str | None = None,
     check: bool = True,
+    timeout: float | None = 1800,
 ) -> subprocess.CompletedProcess[str]:
     """Run Screaming Frog CLI with arbitrary arguments.
 
@@ -169,15 +171,10 @@ def run_cli(
         raise ValueError("args must contain at least one CLI argument")
 
     cli = str(resolve_cli_path(cli_path))
-    first = Path(cmd[0]).name.lower()
-    if "screamingfrogseo" not in first and "screamingfrogseospider" not in first:
+    if str(cmd[0]).startswith("-"):
         cmd.insert(0, cli)
 
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-    )
+    result = _run_process(cmd, timeout=timeout)
     if check and result.returncode != 0:
         raise RuntimeError(_format_cli_error(result))
     return result
@@ -237,6 +234,35 @@ def _internal_csv_exists(export_dir: Path) -> bool:
         if path.name.lower() in {c.lower() for c in _INTERNAL_CSV_CANDIDATES}:
             return True
     return False
+
+
+def _requested_exports_exist(
+    export_dir: Path,
+    export_tabs: Sequence[str] | None,
+    bulk_exports: Sequence[str] | None,
+    save_reports: Sequence[str] | None,
+) -> bool:
+    requested = [*(export_tabs or ()), *(bulk_exports or ()), *(save_reports or ())]
+    if not requested:
+        return _internal_csv_exists(export_dir)
+    existing = {path.name.lower() for path in export_dir.glob("*.csv")}
+    return all(make_tab_filename(name).lower() in existing for name in requested)
+
+
+def _run_process(cmd: Sequence[str], *, timeout: float | None) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
+            list(cmd),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument" not in str(exc):
+            raise
+        return subprocess.run(list(cmd), capture_output=True, text=True)
 
 
 def _format_cli_error(result: subprocess.CompletedProcess[str]) -> str:

@@ -8,7 +8,7 @@ _META_CONTENT_COLUMNS = [f"META_CONTENT_{i}" for i in range(1, 21)]
 
 
 def _name_is_keywords(col: str) -> str:
-    return f"LOWER({col}) = 'keywords'"
+    return f"COALESCE(LOWER({col}), '') = 'keywords'"
 
 
 def _keywords_exists_expr() -> str:

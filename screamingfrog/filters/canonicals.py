@@ -1,9 +1,18 @@
 from __future__ import annotations
 
 from screamingfrog.filters.registry import FilterDef, register_filter
+from screamingfrog.filters.pagination import _non_indexable_sql
 
 
 def register_canonical_filters() -> None:
+    non_indexable_target = (
+        "EXISTS (SELECT 1 FROM APP.LINKS l "
+        "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+        "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+        "JOIN APP.URLS u ON u.ENCODED_URL = d.ENCODED_URL "
+        "WHERE s.ENCODED_URL = APP.URLS.ENCODED_URL "
+        "AND l.LINK_TYPE = 6 AND " + _non_indexable_sql("u") + ")"
+    )
     filters = [
         FilterDef(name="All", tab="Canonicals", description="All canonicals."),
         FilterDef(
@@ -97,7 +106,8 @@ def register_canonical_filters() -> None:
         FilterDef(
             name="Non-Indexable Canonical",
             tab="Canonicals",
-            description="Non-indexable canonical target (TODO: DB columns).",
+            description="Canonical target blocked by robots directives.",
+            sql_where=non_indexable_target,
         ),
         FilterDef(
             name="Unlinked",

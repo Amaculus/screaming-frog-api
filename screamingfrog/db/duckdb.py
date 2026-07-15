@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import tempfile
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping, Optional, Sequence
@@ -100,17 +101,20 @@ def export_duckdb_from_derby(
 
     backend = DerbyBackend(db_path, mapping_path=mapping_path, derby_jar=derby_jar)
     label = source_label or str(Path(db_path).resolve())
-    return export_duckdb_from_backend(
-        backend,
-        duckdb_path,
-        tables=tables,
-        tabs=tabs,
-        helpers=helpers,
-        if_exists=if_exists,
-        source_label=label,
-        source_fingerprint=_source_fingerprint(Path(db_path)),
-        namespace=namespace,
-    )
+    try:
+        return export_duckdb_from_backend(
+            backend,
+            duckdb_path,
+            tables=tables,
+            tabs=tabs,
+            helpers=helpers,
+            if_exists=if_exists,
+            source_label=label,
+            source_fingerprint=_source_fingerprint(Path(db_path)),
+            namespace=namespace,
+        )
+    finally:
+        backend.close()
 
 
 def export_duckdb_from_db_id(
@@ -206,7 +210,7 @@ def _syscs_export_tables(
                 expected_rows = _count_derby_rows(derby_conn, normalized_name)
                 cursor.execute(
                     "CALL SYSCS_UTIL.SYSCS_EXPORT_TABLE(?, ?, ?, ?, ?, ?)",
-                    [schema_name, table_name, str(csv_path), None, None, None],
+                    [schema_name, table_name, str(csv_path), None, None, "UTF-8"],
                 )
                 if not csv_path.exists() or csv_path.stat().st_size <= 0:
                     continue
@@ -268,7 +272,8 @@ def _bulk_load_syscs_csvs_to_duckdb(
             duckdb_conn.execute(
                 f"CREATE TABLE {relation_name} AS "
                 f"SELECT * FROM read_csv_auto("
-                f"'{escaped_path}', header=false, sample_size={sample_size}, ignore_errors=false)"
+                f"'{escaped_path}', header=false, sample_size={sample_size}, "
+                "encoding='utf-8', allow_quoted_nulls=false, ignore_errors=false)"
             )
             if columns:
                 _rename_loaded_columns(duckdb_conn, relation_name, columns)
@@ -399,6 +404,7 @@ def export_duckdb_from_backend(
     source_label: str | None = None,
     source_fingerprint: str | None = None,
     namespace: str | None = None,
+    _connection: Any | None = None,
 ) -> Path:
     mode = str(if_exists).strip().lower()
     if mode not in {"replace", "skip", "auto"}:
@@ -417,8 +423,12 @@ def export_duckdb_from_backend(
     target.parent.mkdir(parents=True, exist_ok=True)
     normalized_namespace = _normalize_namespace(namespace)
 
-    duckdb = _import_duckdb()
-    conn = duckdb.connect(str(target))
+    owns_connection = _connection is None
+    if owns_connection:
+        duckdb = _import_duckdb()
+        conn = duckdb.connect(str(target))
+    else:
+        conn = _connection
     try:
         _ensure_metadata_tables(conn)
         existing = _get_import_metadata(conn, namespace=normalized_namespace)
@@ -452,7 +462,7 @@ def export_duckdb_from_backend(
             if requested_keys.issubset(available_keys) and helper_relations_ready:
                 return target
 
-        if existing and mode in {"replace", "auto"} and not same_source:
+        if existing and (mode == "replace" or (mode == "auto" and not same_source)):
             _drop_exported_objects(conn, namespace=normalized_namespace)
             existing_objects = []
 
@@ -496,6 +506,15 @@ def export_duckdb_from_backend(
             if ("tab", normalized) in exported_keys:
                 continue
             relation_name = _tab_relation_name(normalized, namespace=normalized_namespace)
+            helper_relation = _fast_tab_relation_from_helper_relations(
+                conn, normalized, namespace=normalized_namespace
+            )
+            if helper_relation is not None:
+                _drop_relation(conn, relation_name)
+                conn.execute(f"CREATE TABLE {relation_name} AS SELECT * FROM {helper_relation}")
+                exported_objects.append((normalized, "tab", relation_name))
+                exported_keys.add(("tab", normalized))
+                continue
             rows = _fast_tab_rows_from_helper_relations(conn, normalized, namespace=normalized_namespace)
             if rows is None:
                 rows = _fast_tab_rows_from_backend(backend, normalized)
@@ -514,7 +533,8 @@ def export_duckdb_from_backend(
         )
         return target
     finally:
-        conn.close()
+        if owns_connection:
+            conn.close()
 
 
 def iter_relation_rows(conn: Any, relation_name: str) -> Iterator[dict[str, Any]]:
@@ -576,12 +596,26 @@ def _fast_tab_rows_from_helper_relations(
     return None
 
 
+def _fast_tab_relation_from_helper_relations(
+    conn: Any,
+    normalized_tab_name: str,
+    *,
+    namespace: str | None = None,
+) -> str | None:
+    """Return an identity helper relation suitable for a direct CTAS copy."""
+    tab_name = _normalize_tab_name(normalized_tab_name)
+    if tab_name not in _LINKS_CORE_TABS:
+        return None
+    relation = _helper_relation_name("links_core", namespace=namespace)
+    return relation if _relation_exists(conn, relation) else None
+
+
 def _chain_tab_rows_from_helper_relations(
     conn: Any,
     tab_name: str,
     *,
     namespace: str | None = None,
-) -> list[dict[str, Any]] | None:
+) -> Iterator[dict[str, Any]] | None:
     if tab_name == "canonical_chains.csv":
         mode = "canonical"
     elif tab_name == "redirect_and_canonical_chains.csv":
@@ -720,55 +754,70 @@ def _chain_tab_rows_from_helper_relations(
     if mode in {"canonical", "redirect_and_canonical"}:
         start_urls.extend(sorted(canonical_edges.keys()))
 
-    rows: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for start_url in start_urls:
-        if not start_url or start_url in seen:
-            continue
-        seen.add(start_url)
-        result = build_chain(start_url)
-        if not result:
-            continue
-        steps, hop_types, hop_targets, loop, temp_redirect = result
-        if mode == "canonical":
-            hop_count = sum(1 for hop in hop_types if hop == "Canonical")
-        elif mode == "redirect_and_canonical":
-            hop_count = len(hop_types)
-        else:
-            hop_count = sum(1 for hop in hop_types if hop in {"HTTP Redirect", "Meta Refresh"})
-        final = steps[-1] if steps else {}
-        final_url = str(final.get("url") or "").strip()
-        final_indexability, final_indexability_status = indexability.get(final_url, (None, None))
-        inlink = inlink_rows.get(start_url, {})
-        row: dict[str, Any] = {
-            "Chain Type": chain_type_for(hop_types),
-            "Number of Redirects": hop_count,
-            "Number of Redirects/Canonicals": hop_count,
-            "Number of Canonicals": hop_count,
-            "Loop": loop,
-            "Temp Redirect in Chain": temp_redirect,
-            "Address": start_url,
-            "Source": inlink.get("source_url"),
-            "Alt Text": inlink.get("alt_text"),
-            "Anchor Text": inlink.get("anchor_text"),
-            "Link Path": inlink.get("element_path"),
-            "Link Position": inlink.get("element_position"),
-            "Final Address": final_url or None,
-            "Final Content": final.get("content_type"),
-            "Final Status Code": final.get("response_code"),
-            "Final Status": final.get("response_msg"),
-            "Final Indexability": final_indexability,
-            "Final Indexability Status": final_indexability_status,
-        }
-        for index in range(1, 11):
-            step = steps[index - 1] if index <= len(steps) else {}
-            row[f"Content {index}"] = step.get("content_type")
-            row[f"Status Code {index}"] = step.get("response_code")
-            row[f"Status {index}"] = step.get("response_msg")
-            row[f"Redirect Type {index}"] = hop_types[index - 1] if index <= len(hop_targets) else None
-            row[f"Redirect URL {index}"] = hop_targets[index - 1] if index <= len(hop_targets) else None
-        rows.append(row)
-    return rows
+    def iter_rows() -> Iterator[dict[str, Any]]:
+        seen: set[str] = set()
+        for start_url in start_urls:
+            if not start_url or start_url in seen:
+                continue
+            seen.add(start_url)
+            result = build_chain(start_url)
+            if not result:
+                continue
+            steps, hop_types, hop_targets, loop, temp_redirect = result
+            if mode == "canonical":
+                hop_count = sum(1 for hop in hop_types if hop == "Canonical")
+            elif mode == "redirect_and_canonical":
+                hop_count = len(hop_types)
+            else:
+                hop_count = sum(
+                    1 for hop in hop_types if hop in {"HTTP Redirect", "Meta Refresh"}
+                )
+            if tab_name == "redirect_chains.csv" and hop_count < 2 and not loop:
+                continue
+            redirect_count = sum(
+                1 for hop in hop_types if hop in {"HTTP Redirect", "Meta Refresh"}
+            )
+            canonical_count = sum(1 for hop in hop_types if hop == "Canonical")
+            final = steps[-1] if steps else {}
+            final_url = str(final.get("url") or "").strip()
+            final_indexability, final_indexability_status = indexability.get(
+                final_url, (None, None)
+            )
+            inlink = inlink_rows.get(start_url, {})
+            row: dict[str, Any] = {
+                "Chain Type": chain_type_for(hop_types),
+                "Number of Redirects": redirect_count,
+                "Number of Redirects/Canonicals": hop_count,
+                "Number of Canonicals": canonical_count,
+                "Loop": loop,
+                "Temp Redirect in Chain": temp_redirect,
+                "Address": start_url,
+                "Source": inlink.get("source_url"),
+                "Alt Text": inlink.get("alt_text"),
+                "Anchor Text": inlink.get("anchor_text"),
+                "Link Path": inlink.get("element_path"),
+                "Link Position": inlink.get("element_position"),
+                "Final Address": final_url or None,
+                "Final Content": final.get("content_type"),
+                "Final Status Code": final.get("response_code"),
+                "Final Status": final.get("response_msg"),
+                "Final Indexability": final_indexability,
+                "Final Indexability Status": final_indexability_status,
+            }
+            for index in range(1, 11):
+                step = steps[index - 1] if index <= len(steps) else {}
+                row[f"Content {index}"] = step.get("content_type")
+                row[f"Status Code {index}"] = step.get("response_code")
+                row[f"Status {index}"] = step.get("response_msg")
+                row[f"Redirect Type {index}"] = (
+                    hop_types[index - 1] if index <= len(hop_targets) else None
+                )
+                row[f"Redirect URL {index}"] = (
+                    hop_targets[index - 1] if index <= len(hop_targets) else None
+                )
+            yield row
+
+    return iter_rows()
 
 
 def _chain_indexability_map(conn: Any, *, namespace: str | None = None) -> dict[str, tuple[Any, Any]]:
@@ -850,7 +899,18 @@ def list_exported_tabs_for_namespace(conn: Any, namespace: str | None = None) ->
 
 def list_duckdb_namespaces(path: str | Path) -> list[str]:
     duckdb = _import_duckdb()
-    conn = duckdb.connect(str(path), read_only=True)
+    # DuckDB requires every in-process connection to a database to use the
+    # same configuration. Backends keep a writable connection open so lazy
+    # relations can be added without invalidating active readers.
+    try:
+        conn = duckdb.connect(str(path))
+    except Exception as exc:
+        # A caller may already hold a read-only connection. DuckDB rejects a
+        # second connection with different configuration, so retry with the
+        # matching mode while preserving all other connection errors.
+        if "different configuration" not in str(exc).lower():
+            raise
+        conn = duckdb.connect(str(path), read_only=True)
     try:
         return _list_namespaces(conn)
     finally:
@@ -905,7 +965,7 @@ def _write_relation(conn: Any, relation_name: str, rows: Iterable[Mapping[str, A
     _drop_relation(conn, relation_name)
     _create_relation(conn, relation_name, columns, type_map)
     _insert_rows(conn, relation_name, columns, buffered)
-    _insert_rows(conn, relation_name, columns, iterator)
+    _insert_rows_evolving(conn, relation_name, columns, type_map, iterator)
     return True
 
 
@@ -1250,6 +1310,8 @@ def _infer_duckdb_types(rows: Sequence[Mapping[str, Any]], columns: Sequence[str
         best: str | None = None
         for row in rows:
             value = row.get(col)
+            if value is None:
+                continue
             current = _duckdb_type_for_value(value)
             if best is None or precedence[current] > precedence[best]:
                 best = current
@@ -1288,18 +1350,126 @@ def _insert_rows(
     rows: Iterable[Mapping[str, Any]],
 ) -> None:
     _assert_safe_relation(relation_name)
-    placeholders = ", ".join("?" for _ in columns)
-    quoted_columns = ", ".join(_quote_identifier(column) for column in columns)
-    sql = f"INSERT INTO {relation_name} ({quoted_columns}) VALUES ({placeholders})"
     batch_size = _positive_int_from_env("SF_DUCKDB_INSERT_BATCH_SIZE", _DEFAULT_INSERT_BATCH_SIZE)
-    batch: list[tuple[Any, ...]] = []
+    batch: list[Mapping[str, Any]] = []
     for row in rows:
-        batch.append(tuple(_convert_duckdb_value(row.get(column)) for column in columns))
+        batch.append(row)
         if len(batch) >= batch_size:
-            conn.executemany(sql, batch)
+            _insert_row_batch(conn, relation_name, columns, batch)
             batch.clear()
     if batch:
-        conn.executemany(sql, batch)
+        _insert_row_batch(conn, relation_name, columns, batch)
+
+
+def _insert_row_batch(
+    conn: Any,
+    relation_name: str,
+    columns: Sequence[str],
+    rows: Sequence[Mapping[str, Any]],
+) -> None:
+    """Insert one batch through Arrow when available, with executemany fallback."""
+    quoted_columns = ", ".join(_quote_identifier(column) for column in columns)
+    use_arrow = str(os.environ.get("SF_DUCKDB_USE_ARROW", "1")).strip().lower() not in {
+        "0",
+        "false",
+        "no",
+    }
+    if use_arrow and callable(getattr(conn, "register", None)):
+        alias = f"sf_arrow_{uuid.uuid4().hex}"
+        registered = False
+        inserted = False
+        try:
+            import pyarrow as pa  # type: ignore
+
+            payload = {
+                column: [_convert_duckdb_value(row.get(column)) for row in rows]
+                for column in columns
+            }
+            table = pa.table(payload)
+            conn.register(alias, table)
+            registered = True
+            conn.execute(
+                f"INSERT INTO {relation_name} ({quoted_columns}) "
+                f"SELECT {quoted_columns} FROM {alias}"
+            )
+            inserted = True
+        except Exception as exc:
+            logger.debug("Arrow batch insert unavailable; using executemany: %s", exc)
+        finally:
+            if registered:
+                try:
+                    conn.unregister(alias)
+                except Exception as exc:
+                    logger.debug("Unable to unregister Arrow batch %s: %s", alias, exc)
+        if inserted:
+            return
+
+    placeholders = ", ".join("?" for _ in columns)
+    sql = f"INSERT INTO {relation_name} ({quoted_columns}) VALUES ({placeholders})"
+    values = [
+        tuple(_convert_duckdb_value(row.get(column)) for column in columns)
+        for row in rows
+    ]
+    conn.executemany(sql, values)
+
+
+def _insert_rows_evolving(
+    conn: Any,
+    relation_name: str,
+    columns: list[str],
+    type_map: dict[str, str],
+    rows: Iterable[Mapping[str, Any]],
+) -> None:
+    """Insert streaming rows while preserving columns/types first seen late."""
+    batch_size = _positive_int_from_env("SF_DUCKDB_INSERT_BATCH_SIZE", _DEFAULT_INSERT_BATCH_SIZE)
+    batch: list[Mapping[str, Any]] = []
+
+    def flush() -> None:
+        if not batch:
+            return
+        discovered = _ordered_columns(batch)
+        inferred = _infer_duckdb_types(batch, discovered)
+        for column in discovered:
+            if column not in type_map:
+                data_type = inferred[column]
+                conn.execute(
+                    f"ALTER TABLE {relation_name} ADD COLUMN {_quote_identifier(column)} {data_type}"
+                )
+                columns.append(column)
+                type_map[column] = data_type
+                continue
+            if not any(row.get(column) is not None for row in batch):
+                continue
+            widened = _widen_duckdb_type(type_map[column], inferred[column])
+            if widened != type_map[column]:
+                conn.execute(
+                    f"ALTER TABLE {relation_name} ALTER COLUMN {_quote_identifier(column)} "
+                    f"SET DATA TYPE {widened}"
+                )
+                type_map[column] = widened
+        _insert_rows(conn, relation_name, columns, batch)
+        batch.clear()
+
+    for row in rows:
+        batch.append(row)
+        if len(batch) >= batch_size:
+            flush()
+    flush()
+
+
+def _widen_duckdb_type(current: str, observed: str) -> str:
+    if current == observed or observed == "VARCHAR" and current == "VARCHAR":
+        return current
+    numeric = {current, observed}
+    if numeric <= {"BOOLEAN", "BIGINT", "DOUBLE"}:
+        if "DOUBLE" in numeric:
+            return "DOUBLE"
+        if "BIGINT" in numeric:
+            return "BIGINT"
+        return "BOOLEAN"
+    if current == "VARCHAR" or observed == "VARCHAR":
+        return "VARCHAR"
+    return current if current == observed else "VARCHAR"
 
 
 def _convert_duckdb_value(value: Any) -> Any:
@@ -1453,6 +1623,10 @@ def _get_export_objects(conn: Any, *, namespace: str | None = None) -> list[tupl
             continue
         export_name = _normalize_export_name(kind, raw_export_name)
         relation_name = str(raw_relation_name)
+        try:
+            _assert_safe_relation(relation_name)
+        except ValueError:
+            continue
         if not _relation_exists(conn, relation_name):
             continue
         key = (kind, export_name)
@@ -1479,6 +1653,10 @@ def _drop_exported_objects(conn: Any, *, namespace: str | None = None) -> None:
     seen: set[str] = set()
     for relation in relations:
         if relation in seen:
+            continue
+        try:
+            _assert_safe_relation(relation)
+        except ValueError:
             continue
         seen.add(relation)
         _drop_relation(conn, relation)
@@ -1638,9 +1816,12 @@ def _list_helper_relations(conn: Any, *, namespace: str | None = None) -> list[s
         SELECT table_schema, table_name
         FROM information_schema.tables
         WHERE lower(table_schema) = 'main'
-          AND lower(table_name) LIKE ?
+          AND lower(table_name) LIKE ? ESCAPE '\\'
         """,
-        [helper_prefix.lower().replace(".", "") + "%"],
+        [
+            helper_prefix.lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            + "%"
+        ],
     )
     return [f"{row[0]}.{row[1]}" for row in cursor.fetchall()]
 
@@ -1864,11 +2045,16 @@ def _source_fingerprint(path: Path) -> str:
         stat = target.stat()
         return f"file:{stat.st_size}:{stat.st_mtime_ns}"
 
-    latest_mtime = int(target.stat().st_mtime_ns)
+    # Directory mtimes change when an ignored cache/WAL is created, so only
+    # source-file metadata participates in the fingerprint.
+    latest_mtime = 0
     total_size = 0
     file_count = 0
     for child in target.rglob("*"):
         if not child.is_file():
+            continue
+        name = child.name.lower()
+        if child.suffix.lower() == ".duckdb" or name.endswith(".duckdb.wal"):
             continue
         stat = child.stat()
         file_count += 1

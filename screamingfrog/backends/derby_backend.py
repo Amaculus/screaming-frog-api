@@ -2,21 +2,25 @@ from __future__ import annotations
 
 import atexit
 import gzip
+import hashlib
 import json
 import logging
 import os
 import re
+import shutil
 import tempfile
 import threading
 import weakref
 import zipfile
 import zlib
 from collections import defaultdict
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any, Iterator, Optional, Sequence
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from screamingfrog.backends.base import CrawlBackend
+from screamingfrog.backends.matching import filter_value_matches
 from screamingfrog.db.derby import (
     ensure_java_home,
     extract_dbseospider,
@@ -33,6 +37,7 @@ _LIVE_BACKENDS_LOCK = threading.Lock()
 
 
 def _close_all_live_backends() -> None:
+    global _TK_ROOT
     with _LIVE_BACKENDS_LOCK:
         backends = list(_LIVE_BACKENDS)
     for backend in backends:
@@ -40,6 +45,14 @@ def _close_all_live_backends() -> None:
             backend.close()
         except Exception:
             continue
+    root = globals().get("_TK_ROOT")
+    if root is not None:
+        try:
+            root.destroy()
+        except Exception:
+            pass
+        _TK_ROOT = None
+        globals().get("_TK_FONT_CACHE", {}).clear()
 
 
 atexit.register(_close_all_live_backends)
@@ -74,6 +87,7 @@ _IMPLICIT_GUI_FILTER_BY_TAB_KEY = {
     ),
     "hreflang_missing_self_reference.csv": ("Hreflang", "Missing Self Reference"),
     "hreflang_missing_xdefault.csv": ("Hreflang", "Missing X-Default"),
+    "hreflang_missing_x-default.csv": ("Hreflang", "Missing X-Default"),
 }
 _LANGUAGE_TAB_KEYS = {
     "spelling_and_grammar_errors.csv",
@@ -168,6 +182,9 @@ _TK_FONT_CACHE: dict[tuple[str, int, str], Any] = {}
 _CHAIN_MAX_HOPS = 10
 _FETCH_BATCH_SIZE = 10000
 _BLOB_FETCH_BATCH_SIZE = 1
+_JSON_BLOB_CACHE: ContextVar[dict[bytes, dict[str, Any]] | None] = ContextVar(
+    "sf_json_blob_cache", default=None
+)
 _APP_URLS_ENCODED_URL_RE = re.compile(r"(?i)\bAPP\.URLS\.ENCODED_URL\b")
 _DERBY_BOOLEAN_SQL_COLUMNS = {
     "BLOCKED_BY_ROBOTS_TXT",
@@ -207,6 +224,7 @@ class DerbyBackend(CrawlBackend):
             raise FileNotFoundError(f"Crawl file not found: {self.db_path}")
 
         self._work_dir = Path(work_dir) if work_dir else None
+        self._owned_work_dir: Path | None = None
         self._db_root = self._resolve_db_root()
         self._mapping = _load_mapping(mapping_path)
         self._table, self._column_map = _resolve_internal_mapping(self._mapping)
@@ -302,7 +320,8 @@ class DerbyBackend(CrawlBackend):
             raise ValueError("Unable to resolve internal row key column for Derby batching")
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
-        columns = [desc[0] for desc in cursor.description or self._internal_columns]
+        description = cursor.description or []
+        columns = [desc[0] for desc in description] if description else list(self._internal_columns)
         column_set = {str(col) for col in columns}
         active_expr_aliases = [
             (alias, csv_col)
@@ -572,14 +591,31 @@ class DerbyBackend(CrawlBackend):
         requested = tuple(dict.fromkeys(str(field) for field in fields if str(field).strip()))
         if not requested:
             return
-        sql = _LINKS_BASE_SELECT
-        cursor = self._conn.cursor()
-        cursor.execute(sql)
         norm_filters = _normalize_filters(filters or {})
+        sql = _LINKS_BASE_SELECT
+        where_parts: list[str] = []
+        params: list[Any] = []
+        pushed_keys: list[str] = []
+        for keys, expression in (
+            (("source",), "s.ENCODED_URL"),
+            (("address", "destination"), "d.ENCODED_URL"),
+        ):
+            values = _filter_values(norm_filters, *keys)
+            if not values or any(callable(value) for value in values):
+                continue
+            placeholders = ", ".join("?" for _ in values)
+            where_parts.append(f"{expression} IN ({placeholders})")
+            params.extend(values)
+            pushed_keys.extend(keys)
+        if where_parts:
+            sql += " WHERE " + " AND ".join(where_parts)
+        cursor = self._conn.cursor()
+        cursor.execute(sql, params)
+        post_filters = _without_filter_keys(norm_filters, *pushed_keys)
         for row in _iter_cursor_rows(cursor):
             data = _link_row_to_dict(row)
             data.setdefault("Address", data.get("Destination"))
-            if norm_filters and not _row_matches_filters(data, norm_filters):
+            if post_filters and not _row_matches_filters(data, post_filters):
                 continue
             yield {field: data.get(field) for field in requested}
 
@@ -597,6 +633,15 @@ class DerbyBackend(CrawlBackend):
             self._conn = None
         with _LIVE_BACKENDS_LOCK:
             _LIVE_BACKENDS.discard(self)
+        owned_work_dir = getattr(self, "_owned_work_dir", None)
+        if owned_work_dir is not None:
+            try:
+                shutil.rmtree(owned_work_dir)
+            except FileNotFoundError:
+                pass
+            except Exception as exc:
+                logger.debug("Error removing Derby work directory %s: %s", owned_work_dir, exc)
+            self._owned_work_dir = None
 
     def _internal_row_key_column(self) -> str | None:
         return _resolve_column_name(self._internal_columns, "ID") or _resolve_column_name(
@@ -736,37 +781,37 @@ class DerbyBackend(CrawlBackend):
         row_limit = filters.pop("__limit__", None)
         normalized = _normalize_tab_name(tab_name)
         if normalized in _CHAIN_TAB_KEYS:
-            yield from self._get_chain_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_chain_tab(normalized, filters), row_limit)
             return
         if normalized in _COOKIE_TAB_KEYS:
-            yield from self._get_cookie_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_cookie_tab(normalized, filters), row_limit)
             return
         if normalized in _HTTP_HEADER_TAB_KEYS:
-            yield from self._get_http_header_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_http_header_tab(normalized, filters), row_limit)
             return
         if normalized in _HREFLANG_MULTIMAP_TAB_KEYS:
-            yield from self._get_hreflang_multimap_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_hreflang_multimap_tab(normalized, filters), row_limit)
             return
         if normalized == "mobile_all.csv":
-            yield from self._get_mobile_all_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_mobile_all_tab(normalized, filters), row_limit)
             return
         if normalized in _LANGUAGE_TAB_KEYS:
-            yield from self._get_language_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_language_tab(normalized, filters), row_limit)
             return
         if normalized in _STRUCTURED_DATA_TAB_KEYS:
-            yield from self._get_structured_data_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_structured_data_tab(normalized, filters), row_limit)
             return
         if normalized in _ACCESSIBILITY_TAB_KEYS:
-            yield from self._get_accessibility_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_accessibility_tab(normalized, filters), row_limit)
             return
         if normalized in _PAGESPEED_TAB_KEYS:
-            yield from self._get_pagespeed_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_pagespeed_tab(normalized, filters), row_limit)
             return
         if normalized in _RICH_RESULTS_TAB_KEYS:
-            yield from self._get_rich_results_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_rich_results_tab(normalized, filters), row_limit)
             return
         if normalized in _URL_INSPECTION_TAB_KEYS:
-            yield from self._get_url_inspection_tab(normalized, filters)
+            yield from _iter_with_limit(self._get_url_inspection_tab(normalized, filters), row_limit)
             return
         table, entries, gui_defs, supplementary = _resolve_tab_entries(
             self._mapping, tab_name, gui_filter
@@ -924,16 +969,20 @@ class DerbyBackend(CrawlBackend):
 
         for filt in gui_defs:
             if filt.sql_where:
-                where_parts.append(_normalize_gui_where_sql(filt.sql_where))
+                where_parts.append(f"({_normalize_gui_where_sql(filt.sql_where)})")
 
         if where_parts:
             sql = f"{sql} WHERE {' AND '.join(where_parts)}"
+        bounded_limit: int | None = None
         if row_limit is not None:
             try:
                 bounded_limit = max(0, int(row_limit))
             except (TypeError, ValueError):
                 bounded_limit = 0
-            sql = f"{sql} FETCH FIRST {bounded_limit} ROWS ONLY"
+            if bounded_limit == 0:
+                return
+            if not post_filters and not blob_checks:
+                sql = f"{sql} FETCH FIRST {bounded_limit} ROWS ONLY"
 
         supplementary_specs = {
             table_name: specs
@@ -941,6 +990,7 @@ class DerbyBackend(CrawlBackend):
             if not _table_references_absent(table_name, existing_tables)
         }
         supplementary_cache: dict[tuple[str, str], dict[str, Any]] = {}
+        supplementary_loaded_tables: set[str] = set()
         multi_row_cache: dict[tuple[str, str], dict[int, list[Any]]] = {}
         unique_url_cache: dict[Any, str | None] = {}
 
@@ -962,24 +1012,23 @@ class DerbyBackend(CrawlBackend):
             if not db_columns:
                 supplementary_cache[cache_key] = {}
                 return {}
-            cursor_inner = self._conn.cursor()
-            cursor_inner.execute(
-                f"SELECT {', '.join(db_columns)} FROM {table_name} "
-                "WHERE ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY",
-                [encoded_url],
-            )
-            row_inner = cursor_inner.fetchone()
-            if not row_inner:
-                data_inner: dict[str, Any] = {}
-            else:
-                data_inner = {
-                    column: value for column, value in zip(db_columns, row_inner)
-                }
-            supplementary_cache[cache_key] = data_inner
-            return data_inner
+            if table_name not in supplementary_loaded_tables:
+                cursor_inner = self._conn.cursor()
+                cursor_inner.execute(
+                    f"SELECT ENCODED_URL, {', '.join(db_columns)} FROM {table_name}"
+                )
+                for row_inner in _iter_cursor_rows(cursor_inner):
+                    if not row_inner or row_inner[0] in {None, ""}:
+                        continue
+                    supplementary_cache[(table_name, str(row_inner[0]))] = {
+                        column: value for column, value in zip(db_columns, row_inner[1:])
+                    }
+                supplementary_loaded_tables.add(table_name)
+            return supplementary_cache.get(cache_key, {})
 
         cursor = self._conn.cursor()
         cursor.execute(sql, params)
+        yielded = 0
         for row in _iter_cursor_rows(cursor):
             if blob_checks and not _row_matches_blob_patterns(row, blob_checks, blob_indexes):
                 continue
@@ -1066,7 +1115,15 @@ class DerbyBackend(CrawlBackend):
                                 output.setdefault(csv_col, None)
             if post_filters and not _row_matches_filters(output, post_filters):
                 continue
+            if any(
+                filt.row_predicate is not None and not filt.row_predicate(output)
+                for filt in gui_defs
+            ):
+                continue
             yield output
+            yielded += 1
+            if bounded_limit is not None and yielded >= bounded_limit:
+                break
 
     def tab_count(self, tab_name: str, filters: Optional[dict[str, Any]] = None) -> int:
         active_filters = dict(filters or {})
@@ -1101,15 +1158,24 @@ class DerbyBackend(CrawlBackend):
                     "url_with_inconsistent_language_return_link",
                 )
                 cursor = self._conn.cursor()
-                sql = f"SELECT COUNT(*) FROM {table_name}"
+                sql = f"SELECT COUNT(*) FROM {table_name} WHERE MULTIMAP_KEY IS NOT NULL"
                 params: list[Any] = []
                 if address_values:
                     placeholders = ", ".join(["?"] * len(address_values))
-                    sql += f" WHERE MULTIMAP_KEY IN ({placeholders})"
+                    sql += f" AND MULTIMAP_KEY IN ({placeholders})"
                     params.extend(address_values)
-                cursor.execute(sql, params)
-                row = cursor.fetchone()
-                return int(row[0]) if row and row[0] is not None else 0
+                try:
+                    cursor.execute(sql, params)
+                    row = cursor.fetchone()
+                    return int(row[0]) if row and row[0] is not None else 0
+                finally:
+                    close = getattr(cursor, "close", None)
+                    if callable(close):
+                        close()
+            fallback_filters = dict(active_filters)
+            if gui_filter is not None:
+                fallback_filters["__gui__"] = gui_filter
+            return sum(1 for _ in self.get_tab(tab_name, filters=fallback_filters))
 
         if normalized in (
             _CHAIN_TAB_KEYS
@@ -1151,7 +1217,7 @@ class DerbyBackend(CrawlBackend):
             where_parts.append(where)
         for filt in gui_defs:
             if filt.sql_where:
-                where_parts.append(_normalize_gui_where_sql(filt.sql_where))
+                where_parts.append(f"({_normalize_gui_where_sql(filt.sql_where)})")
 
         join_table, join_on, join_type = _resolve_join(gui_defs)
         if join_table and _table_references_absent(join_table, existing_tables):
@@ -1161,7 +1227,7 @@ class DerbyBackend(CrawlBackend):
             join_sql = f" {join_type} JOIN {join_table} j ON {join_on}"
 
         blob_checks = _resolve_blob_checks(gui_defs)
-        if post_filters or blob_checks:
+        if post_filters or blob_checks or any(filt.row_predicate for filt in gui_defs):
             fallback_filters = dict(active_filters)
             if gui_filter is not None:
                 fallback_filters["__gui__"] = gui_filter
@@ -1222,7 +1288,15 @@ class DerbyBackend(CrawlBackend):
         tab_names: Sequence[str],
         filters: Optional[dict[str, Any]] = None,
     ) -> dict[str, int]:
-        return {str(tab_name): self.tab_count(str(tab_name), filters=filters) for tab_name in tab_names}
+        cache: dict[bytes, dict[str, Any]] = {}
+        token = _JSON_BLOB_CACHE.set(cache)
+        try:
+            return {
+                str(tab_name): self.tab_count(str(tab_name), filters=filters)
+                for tab_name in tab_names
+            }
+        finally:
+            _JSON_BLOB_CACHE.reset(token)
 
     def tab_select(
         self,
@@ -1258,6 +1332,7 @@ class DerbyBackend(CrawlBackend):
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         address_values = _filter_values(norm_filters, "address")
+        post_filters = _without_filter_keys(norm_filters, "address", "url")
         cursor = self._conn.cursor()
         sql = (
             "SELECT ENCODED_URL, COOKIE_COLLECTION FROM APP.URLS "
@@ -1273,13 +1348,13 @@ class DerbyBackend(CrawlBackend):
         if tab_key == "all_cookies.csv":
             for encoded_url, cookie_blob in _iter_cursor_rows(cursor):
                 for row in _iter_cookie_rows(encoded_url, cookie_blob):
-                    if _row_matches_filters(row, norm_filters):
+                    if _row_matches_filters(row, post_filters):
                         yield {column: row.get(column) for column in columns}
             return
 
         summary_rows = _build_cookie_summary_rows(_iter_cursor_rows(cursor))
         for row in summary_rows:
-            if _row_matches_filters(row, norm_filters):
+            if _row_matches_filters(row, post_filters):
                 yield {column: row.get(column) for column in columns}
 
     def _get_language_tab(
@@ -1288,16 +1363,17 @@ class DerbyBackend(CrawlBackend):
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         detailed_rows = list(self._iter_language_error_rows(norm_filters))
+        post_filters = _without_filter_keys(norm_filters, "address", "url")
 
         if tab_key == "spelling_and_grammar_errors.csv":
             for row in detailed_rows:
-                if _row_matches_filters(row, norm_filters):
+                if _row_matches_filters(row, post_filters):
                     yield {column: row.get(column) for column in columns}
             return
 
         summary_rows = _build_language_error_summary_rows(detailed_rows)
         for row in summary_rows:
-            if _row_matches_filters(row, norm_filters):
+            if _row_matches_filters(row, post_filters):
                 yield {column: row.get(column) for column in columns}
 
     def _get_http_header_tab(
@@ -1306,6 +1382,7 @@ class DerbyBackend(CrawlBackend):
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         address_values = _filter_values(norm_filters, "address", "url")
+        post_filters = _without_filter_keys(norm_filters, "address", "url")
         cursor = self._conn.cursor()
         sql = (
             "SELECT ENCODED_URL, HTTP_REQUEST_HEADER_COLLECTION FROM APP.URLS "
@@ -1328,7 +1405,7 @@ class DerbyBackend(CrawlBackend):
 
         for header_name in sorted(header_names):
             row = {"HTTP Request Headers": _display_header_name(header_name)}
-            if _row_matches_filters(row, norm_filters):
+            if _row_matches_filters(row, post_filters):
                 yield {column: row.get(column) for column in columns}
 
     def _get_hreflang_multimap_tab(
@@ -1337,6 +1414,13 @@ class DerbyBackend(CrawlBackend):
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         address_values = _filter_values(
+            norm_filters,
+            "address",
+            "url",
+            "url_missing_return_link",
+            "url_with_inconsistent_language_return_link",
+        )
+        post_filters = _without_filter_keys(
             norm_filters,
             "address",
             "url",
@@ -1359,97 +1443,72 @@ class DerbyBackend(CrawlBackend):
             params.extend(address_values)
         cursor.execute(sql, params)
 
+        multimap_rows = list(_iter_cursor_rows(cursor))
         url_meta_cache: dict[str, dict[str, Any]] = {}
+        meta_cursor = self._conn.cursor()
+        meta_cursor.execute(
+            "SELECT ENCODED_URL, RESPONSE_CODE, HTTP_RESPONSE_HEADER_COLLECTION FROM APP.URLS"
+        )
+        for encoded_url, response_code, header_blob in _iter_cursor_rows(meta_cursor):
+            url_meta_cache[str(encoded_url)] = {
+                "response_code": response_code,
+                "headers": _headers_from_blob(header_blob),
+            }
+
         hreflang_cache: dict[tuple[str, str], dict[str, Any]] = {}
-        return_cache: dict[tuple[str, str, str | None], dict[str, Any]] = {}
+        return_edges: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        edge_cursor = self._conn.cursor()
+        edge_cursor.execute(
+            "SELECT s.ENCODED_URL, d.ENCODED_URL, l.HREF_LANG, l.LINK_TYPE "
+            "FROM APP.LINKS l "
+            "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+            "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+            "WHERE l.LINK_TYPE IN (12, 13) "
+            "ORDER BY s.ENCODED_URL, CASE WHEN l.LINK_TYPE = 13 THEN 0 ELSE 1 END, d.ENCODED_URL"
+        )
+        for src_url, dst_url, href_lang, link_type in _iter_cursor_rows(edge_cursor):
+            source, destination = str(src_url), str(dst_url)
+            edge = {"href_lang": _safe_text(href_lang), "link_type": link_type}
+            hreflang_cache.setdefault((source, destination), edge)
+            return_edges[source].append(
+                {"return_url": _safe_text(dst_url), "actual_lang": _safe_text(href_lang)}
+            )
+
         canonical_cache: dict[str, Optional[str]] = {}
+        canonical_cursor = self._conn.cursor()
+        canonical_cursor.execute(
+            "SELECT s.ENCODED_URL, d.ENCODED_URL FROM APP.LINKS l "
+            "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+            "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+            "WHERE l.LINK_TYPE = 6 ORDER BY s.ENCODED_URL, d.ENCODED_URL"
+        )
+        for src_url, dst_url in _iter_cursor_rows(canonical_cursor):
+            canonical_cache.setdefault(str(src_url), _safe_text(dst_url))
 
         def fetch_url_meta(encoded_url: str) -> dict[str, Any]:
-            if encoded_url in url_meta_cache:
-                return url_meta_cache[encoded_url]
-            cursor_inner = self._conn.cursor()
-            cursor_inner.execute(
-                "SELECT RESPONSE_CODE, HTTP_RESPONSE_HEADER_COLLECTION "
-                "FROM APP.URLS WHERE ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY",
-                [encoded_url],
-            )
-            row = cursor_inner.fetchone()
-            meta = {
-                "response_code": row[0] if row else None,
-                "headers": _headers_from_blob(row[1]) if row and len(row) > 1 else {},
-            }
-            url_meta_cache[encoded_url] = meta
-            return meta
+            return url_meta_cache.get(encoded_url, {"response_code": None, "headers": {}})
 
         def fetch_hreflang_edge(src_url: str, dst_url: str) -> dict[str, Any]:
-            cache_key = (src_url, dst_url)
-            if cache_key in hreflang_cache:
-                return hreflang_cache[cache_key]
-            cursor_inner = self._conn.cursor()
-            cursor_inner.execute(
-                "SELECT l.HREF_LANG, l.LINK_TYPE "
-                "FROM APP.LINKS l "
-                "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
-                "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
-                "WHERE s.ENCODED_URL = ? AND d.ENCODED_URL = ? "
-                "AND l.LINK_TYPE IN (12, 13) "
-                "ORDER BY CASE WHEN l.LINK_TYPE = 13 THEN 0 ELSE 1 END "
-                "FETCH FIRST 1 ROWS ONLY",
-                [src_url, dst_url],
+            return hreflang_cache.get(
+                (src_url, dst_url), {"href_lang": None, "link_type": None}
             )
-            row = cursor_inner.fetchone()
-            data = {
-                "href_lang": _safe_text(row[0]) if row else None,
-                "link_type": row[1] if row else None,
-            }
-            hreflang_cache[cache_key] = data
-            return data
 
         def fetch_inconsistent_return(
             target_url: str, expected_url: str, expected_lang: str | None
         ) -> dict[str, Any]:
-            cache_key = (target_url, expected_url, expected_lang)
-            if cache_key in return_cache:
-                return return_cache[cache_key]
-            cursor_inner = self._conn.cursor()
-            cursor_inner.execute(
-                "SELECT d.ENCODED_URL, l.HREF_LANG "
-                "FROM APP.LINKS l "
-                "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
-                "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
-                "WHERE s.ENCODED_URL = ? AND l.LINK_TYPE IN (12, 13) "
-                "ORDER BY CASE WHEN l.LINK_TYPE = 13 THEN 0 ELSE 1 END, d.ENCODED_URL",
-                [target_url],
+            edges = return_edges.get(target_url, [])
+            fallback = edges[0] if edges else {"return_url": None, "actual_lang": None}
+            return next(
+                (
+                    edge
+                    for edge in edges
+                    if edge["return_url"] != expected_url or edge["actual_lang"] != expected_lang
+                ),
+                fallback,
             )
-            fallback = {"return_url": None, "actual_lang": None}
-            for return_url, actual_lang in _iter_cursor_rows(cursor_inner):
-                row = {
-                    "return_url": _safe_text(return_url),
-                    "actual_lang": _safe_text(actual_lang),
-                }
-                if fallback["return_url"] is None:
-                    fallback = row
-                if row["return_url"] != expected_url or row["actual_lang"] != expected_lang:
-                    return_cache[cache_key] = row
-                    return row
-            return_cache[cache_key] = fallback
-            return fallback
 
         def fetch_canonical_target(encoded_url: str) -> Optional[str]:
-            if encoded_url in canonical_cache:
-                return canonical_cache[encoded_url]
-            cursor_inner = self._conn.cursor()
-            cursor_inner.execute(
-                "SELECT d.ENCODED_URL "
-                "FROM APP.LINKS l "
-                "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
-                "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
-                "WHERE s.ENCODED_URL = ? AND l.LINK_TYPE = 6 "
-                "FETCH FIRST 1 ROWS ONLY",
-                [encoded_url],
-            )
-            row = cursor_inner.fetchone()
-            canonical = _safe_text(row[0]) if row else None
+            canonical = canonical_cache.get(encoded_url)
             if not canonical:
                 meta = fetch_url_meta(encoded_url)
                 links = _parse_link_headers(meta.get("headers", {}).get("link", []))
@@ -1457,7 +1516,7 @@ class DerbyBackend(CrawlBackend):
             canonical_cache[encoded_url] = canonical
             return canonical
 
-        for multimap_key, multimap_value in _iter_cursor_rows(cursor):
+        for multimap_key, multimap_value in multimap_rows:
             source_url = _safe_text(multimap_key)
             target_url = _safe_text(multimap_value)
             if not source_url or not target_url:
@@ -1498,7 +1557,7 @@ class DerbyBackend(CrawlBackend):
                     "Expected Language": source_edge.get("href_lang"),
                     "Actual Language": return_edge.get("actual_lang"),
                 }
-            if _row_matches_filters(row, norm_filters):
+            if _row_matches_filters(row, post_filters):
                 yield {column: row.get(column) for column in columns}
 
     def _iter_language_error_rows(
@@ -1654,12 +1713,13 @@ class DerbyBackend(CrawlBackend):
             return
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
+        post_filters = _without_filter_keys(norm_filters, "address", "url")
         if tab_key == "accessibility_violations_summary.csv":
             rows = self._iter_accessibility_summary_rows(norm_filters)
         else:
             rows = self._iter_accessibility_detail_rows(tab_key, norm_filters)
         for row in rows:
-            if _row_matches_filters(row, norm_filters):
+            if _row_matches_filters(row, post_filters):
                 yield {column: row.get(column) for column in columns}
 
     def _iter_accessibility_detail_rows(
@@ -1760,6 +1820,7 @@ class DerbyBackend(CrawlBackend):
             return
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
+        post_filters = _without_filter_keys(norm_filters, "address", "url")
         if tab_key in {
             "avoid_excessive_dom_size_report.csv",
             "avoid_large_layout_shifts_report.csv",
@@ -1779,7 +1840,7 @@ class DerbyBackend(CrawlBackend):
         else:
             rows = self._iter_pagespeed_coverage_rows("unused-javascript", norm_filters)
         for row in rows:
-            if _row_matches_filters(row, norm_filters):
+            if _row_matches_filters(row, post_filters):
                 yield {column: row.get(column) for column in columns}
 
     def _iter_pagespeed_detail_rows(
@@ -1976,20 +2037,25 @@ class DerbyBackend(CrawlBackend):
         self, tab_key: str, norm_filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
         address_values = _filter_values(norm_filters, "address", "url")
+        idx_expr, idx_status_expr = self._indexability_expressions()
+        idx_select = idx_expr or "CAST(NULL AS VARCHAR(1))"
+        idx_status_select = idx_status_expr or "CAST(NULL AS VARCHAR(1))"
         cursor = self._conn.cursor()
         sql = (
-            "SELECT ENCODED_URL, RICH_RESULTS_VERDICT, RICH_RESULTS_TYPES, "
-            "RICH_RESULTS_TYPE_ERRORS, RICH_RESULTS_TYPE_WARNINGS, JSON "
-            "FROM APP.URL_INSPECTION"
+            "SELECT i.ENCODED_URL, i.RICH_RESULTS_VERDICT, i.RICH_RESULTS_TYPES, "
+            "i.RICH_RESULTS_TYPE_ERRORS, i.RICH_RESULTS_TYPE_WARNINGS, i.JSON, "
+            f"{idx_select}, {idx_status_select} "
+            "FROM APP.URL_INSPECTION i LEFT JOIN APP.URLS u ON u.ENCODED_URL = i.ENCODED_URL"
         )
         params: list[Any] = []
         if address_values:
             placeholders = ", ".join(["?"] * len(address_values))
-            sql += f" WHERE ENCODED_URL IN ({placeholders})"
+            sql += f" WHERE i.ENCODED_URL IN ({placeholders})"
             params.extend(address_values)
         cursor.execute(sql, params)
 
-        for encoded_url, verdict, rich_types, rich_errors, rich_warnings, json_blob in _iter_cursor_rows(cursor):
+        for values in _iter_cursor_rows(cursor):
+            encoded_url, verdict, rich_types, rich_errors, rich_warnings, json_blob = values[:6]
             inspection = _rich_results_first_issue(json_blob)
             feature = inspection.get("feature") or _first_rich_result_feature(rich_types)
             if not feature and verdict in {None, ""}:
@@ -2012,7 +2078,10 @@ class DerbyBackend(CrawlBackend):
 
             issue_type = inspection.get("message") or inspection.get("issue_type")
             item_name = inspection.get("item_name") or feature
-            indexability, indexability_status = self._fetch_indexability_values(encoded_url)
+            if len(values) >= 8:
+                indexability, indexability_status = values[6:8]
+            else:
+                indexability, indexability_status = self._fetch_indexability_values(encoded_url)
             row = {
                 "Address": encoded_url,
                 "Indexability": indexability,
@@ -2153,21 +2222,53 @@ class DerbyBackend(CrawlBackend):
         self, tab_key: str, norm_filters: dict[str, Any]
     ) -> Iterator[dict[str, Any]]:
         address_values = _filter_values(norm_filters, "address", "url")
+        idx_expr, idx_status_expr = self._indexability_expressions()
+        idx_select = idx_expr or "CAST(NULL AS VARCHAR(1))"
+        idx_status_select = idx_status_expr or "CAST(NULL AS VARCHAR(1))"
         cursor = self._conn.cursor()
         sql = (
             "SELECT u.ENCODED_URL, u.SERIALISED_STRUCTURED_DATA, u.PARSE_ERROR_MSG, "
-            "i.RICH_RESULTS_TYPES, i.RICH_RESULTS_TYPE_ERRORS, i.RICH_RESULTS_TYPE_WARNINGS "
+            "i.RICH_RESULTS_TYPES, i.RICH_RESULTS_TYPE_ERRORS, i.RICH_RESULTS_TYPE_WARNINGS, "
+            f"{idx_select}, {idx_status_select} "
             "FROM APP.URLS u "
             "LEFT JOIN APP.URL_INSPECTION i ON i.ENCODED_URL = u.ENCODED_URL"
         )
         params: list[Any] = []
+        where_parts: list[str] = []
+        known_url_columns = getattr(self, "_known_table_columns", {}).get("APP.URLS", frozenset())
+        if tab_key == "structured_data_missing.csv" and {
+            "IS_INTERNAL",
+            "CONTENT_TYPE",
+            "RESPONSE_CODE",
+        }.issubset(known_url_columns):
+            where_parts.extend(
+                [
+                    "u.IS_INTERNAL = TRUE",
+                    "LOWER(u.CONTENT_TYPE) LIKE 'text/html%'",
+                    "u.RESPONSE_CODE BETWEEN 200 AND 299",
+                ]
+            )
         if address_values:
             placeholders = ", ".join(["?"] * len(address_values))
-            sql += f" WHERE u.ENCODED_URL IN ({placeholders})"
+            where_parts.append(f"u.ENCODED_URL IN ({placeholders})")
             params.extend(address_values)
+        if where_parts:
+            sql += f" WHERE {' AND '.join(where_parts)}"
         cursor.execute(sql, params)
 
-        for encoded_url, data_blob, parse_error, rich_types, rich_errors, rich_warnings in _iter_cursor_rows(cursor):
+        for values in _iter_cursor_rows(cursor):
+            (
+                encoded_url,
+                data_blob,
+                parse_error,
+                rich_types,
+                rich_errors,
+                rich_warnings,
+            ) = values[:6]
+            if len(values) >= 8:
+                indexability, indexability_status = values[6:8]
+            else:
+                indexability, indexability_status = self._fetch_indexability_values(encoded_url)
             blocks = _parse_structured_data_blocks(data_blob)
             formats = [block["format"] for block in blocks if block.get("format")]
             format_set = set(formats)
@@ -2181,8 +2282,6 @@ class DerbyBackend(CrawlBackend):
             rich_error_count = _safe_int(rich_errors) or 0
             rich_warning_count = _safe_int(rich_warnings) or 0
             parse_error_text = _safe_text(parse_error)
-            indexability, indexability_status = self._fetch_indexability_values(encoded_url)
-
             row = {
                 "Address": encoded_url,
                 "Errors": rich_error_count,
@@ -2356,25 +2455,38 @@ class DerbyBackend(CrawlBackend):
 
 
     def _fetch_indexability_values(self, encoded_url: str) -> tuple[Any, Any]:
+        idx_expr, idx_status_expr = self._indexability_expressions()
+        if not idx_expr or not idx_status_expr:
+            return None, None
+        cursor = self._conn.cursor()
+        try:
+            cursor.execute(
+                f"SELECT {idx_expr}, {idx_status_expr} FROM APP.URLS "
+                "WHERE ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY",
+                [encoded_url],
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None, None
+            return row[0], row[1]
+        finally:
+            close = getattr(cursor, "close", None)
+            if callable(close):
+                close()
+
+    def _indexability_expressions(self) -> tuple[Any, Any]:
+        cached = getattr(self, "_indexability_expr_cache", None)
+        if cached is not None:
+            return cached
         idx_expr = None
         idx_status_expr = None
         for entry in self._mapping.get(_INTERNAL_MAPPING_KEY, []):
             if entry.get("csv_column") == "Indexability":
                 idx_expr = entry.get("db_expression")
-            if entry.get("csv_column") == "Indexability Status":
+            elif entry.get("csv_column") == "Indexability Status":
                 idx_status_expr = entry.get("db_expression")
-        if not idx_expr or not idx_status_expr:
-            return None, None
-        cursor = self._conn.cursor()
-        cursor.execute(
-            f"SELECT {idx_expr}, {idx_status_expr} FROM APP.URLS "
-            "WHERE ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY",
-            [encoded_url],
-        )
-        row = cursor.fetchone()
-        if not row:
-            return None, None
-        return row[0], row[1]
+        self._indexability_expr_cache = (idx_expr, idx_status_expr)
+        return self._indexability_expr_cache
 
     def _get_chain_tab(
         self, tab_key: str, filters: dict[str, Any]
@@ -2384,99 +2496,79 @@ class DerbyBackend(CrawlBackend):
             raise ValueError(f"No columns mapped for tab: {tab_key}")
         columns = [entry.get("csv_column") for entry in entries if entry.get("csv_column")]
 
-        idx_expr = None
-        idx_status_expr = None
-        for entry in self._mapping.get(_INTERNAL_MAPPING_KEY, []):
-            if entry.get("csv_column") == "Indexability":
-                idx_expr = entry.get("db_expression")
-            if entry.get("csv_column") == "Indexability Status":
-                idx_status_expr = entry.get("db_expression")
+        idx_expr, idx_status_expr = self._indexability_expressions()
 
         url_cache: dict[str, dict[str, Any]] = {}
         inlink_cache: dict[str, dict[str, Any]] = {}
         canonical_cache: dict[str, Optional[str]] = {}
         indexability_cache: dict[str, tuple[Any, Any]] = {}
 
-        def fetch_url_details(url: str) -> Optional[dict[str, Any]]:
-            if url in url_cache:
-                return url_cache[url]
-            cursor = self._conn.cursor()
-            cursor.execute(
-                "SELECT RESPONSE_CODE, RESPONSE_MSG, CONTENT_TYPE, NUM_METAREFRESH, "
-                "META_FULL_URL_1, META_FULL_URL_2, HTTP_RESPONSE_HEADER_COLLECTION "
-                "FROM APP.URLS WHERE ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY",
-                [url],
-            )
-            row = cursor.fetchone()
-            if not row:
-                return None
-            headers = _headers_from_blob(row[6])
-            data = {
+        idx_select = idx_expr or "CAST(NULL AS VARCHAR(1))"
+        idx_status_select = idx_status_expr or "CAST(NULL AS VARCHAR(1))"
+        url_cursor = self._conn.cursor()
+        url_cursor.execute(
+            "SELECT ENCODED_URL, RESPONSE_CODE, RESPONSE_MSG, CONTENT_TYPE, NUM_METAREFRESH, "
+            "META_FULL_URL_1, META_FULL_URL_2, HTTP_RESPONSE_HEADER_COLLECTION, "
+            f"{idx_select}, {idx_status_select} FROM APP.URLS"
+        )
+        for row in _iter_cursor_rows(url_cursor):
+            url = str(row[0])
+            url_cache[url] = {
                 "url": url,
-                "response_code": row[0],
-                "response_msg": row[1],
-                "content_type": row[2],
-                "num_metarefresh": row[3],
-                "meta_url_1": row[4],
-                "meta_url_2": row[5],
-                "headers": headers,
+                "response_code": row[1],
+                "response_msg": row[2],
+                "content_type": row[3],
+                "num_metarefresh": row[4],
+                "meta_url_1": row[5],
+                "meta_url_2": row[6],
+                "headers": _headers_from_blob(row[7]),
             }
-            url_cache[url] = data
-            return data
+            indexability_cache[url] = (row[8], row[9])
+
+        inlink_cursor = self._conn.cursor()
+        inlink_cursor.execute(
+            "SELECT d.ENCODED_URL, s.ENCODED_URL, l.ALT_TEXT, l.LINK_TEXT, "
+            "l.ELEMENT_PATH, l.ELEMENT_POSITION FROM APP.LINKS l "
+            "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+            "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+            "ORDER BY d.ENCODED_URL, CASE WHEN l.LINK_TYPE = 1 THEN 0 ELSE 1 END, s.ENCODED_URL"
+        )
+        for destination, source, alt, anchor, path, position in _iter_cursor_rows(inlink_cursor):
+            inlink_cache.setdefault(
+                str(destination),
+                {
+                    "Source": source,
+                    "Alt Text": alt,
+                    "Anchor Text": anchor,
+                    "Link Path": path,
+                    "Link Position": position,
+                },
+            )
+
+        canonical_cursor = self._conn.cursor()
+        canonical_cursor.execute(
+            "SELECT s.ENCODED_URL, d.ENCODED_URL FROM APP.LINKS l "
+            "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+            "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+            "WHERE l.LINK_TYPE = 6 ORDER BY s.ENCODED_URL, d.ENCODED_URL"
+        )
+        for source, destination in _iter_cursor_rows(canonical_cursor):
+            canonical_cache.setdefault(str(source), _safe_text(destination))
+
+        def fetch_url_details(url: str) -> Optional[dict[str, Any]]:
+            return url_cache.get(url)
 
         def fetch_inlink_details(url: str) -> dict[str, Any]:
-            if url in inlink_cache:
-                return inlink_cache[url]
-            cursor = self._conn.cursor()
-            cursor.execute(
-                "SELECT s.ENCODED_URL, l.ALT_TEXT, l.LINK_TEXT, l.ELEMENT_PATH, l.ELEMENT_POSITION "
-                "FROM APP.LINKS l "
-                "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
-                "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
-                "WHERE d.ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY",
-                [url],
+            return inlink_cache.get(
+                url,
+                {"Source": None, "Alt Text": None, "Anchor Text": None, "Link Path": None, "Link Position": None},
             )
-            row = cursor.fetchone()
-            details = {
-                "Source": row[0] if row else None,
-                "Alt Text": row[1] if row else None,
-                "Anchor Text": row[2] if row else None,
-                "Link Path": row[3] if row else None,
-                "Link Position": row[4] if row else None,
-            }
-            inlink_cache[url] = details
-            return details
 
         def fetch_indexability(url: str) -> tuple[Any, Any]:
-            if url in indexability_cache:
-                return indexability_cache[url]
-            if not idx_expr or not idx_status_expr:
-                indexability_cache[url] = (None, None)
-                return (None, None)
-            cursor = self._conn.cursor()
-            cursor.execute(
-                f"SELECT {idx_expr}, {idx_status_expr} FROM APP.URLS "
-                "WHERE ENCODED_URL = ? FETCH FIRST 1 ROWS ONLY",
-                [url],
-            )
-            row = cursor.fetchone()
-            result = (row[0] if row else None, row[1] if row else None)
-            indexability_cache[url] = result
-            return result
+            return indexability_cache.get(url, (None, None))
 
         def fetch_canonical_target(url: str, headers: dict[str, list[str]]) -> Optional[str]:
-            if url in canonical_cache:
-                return canonical_cache[url]
-            cursor = self._conn.cursor()
-            cursor.execute(
-                "SELECT d.ENCODED_URL FROM APP.LINKS l "
-                "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
-                "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
-                "WHERE s.ENCODED_URL = ? AND l.LINK_TYPE = 6 FETCH FIRST 1 ROWS ONLY",
-                [url],
-            )
-            row = cursor.fetchone()
-            canonical = row[0] if row else None
+            canonical = canonical_cache.get(url)
             if not canonical and headers:
                 links = _parse_link_headers(headers.get("link", []))
                 canonical = _extract_link_rel(links, "canonical")
@@ -2614,7 +2706,8 @@ class DerbyBackend(CrawlBackend):
             mode = "redirect_and_canonical"
 
         start_urls: list[str] = []
-        norm_filters = { _normalize_key(str(k)): v for k, v in filters.items() }
+        norm_filters = {_normalize_key(str(k)): v for k, v in filters.items()}
+        post_filters = _without_filter_keys(norm_filters, "address", "url")
         address_filter = norm_filters.get("address")
         address_values: Optional[list[Any]] = None
         if isinstance(address_filter, (list, tuple, set)):
@@ -2661,13 +2754,17 @@ class DerbyBackend(CrawlBackend):
             steps, hop_types, hop_targets, loop, temp_redirect = result
             chain_type = chain_type_for(tab_key, hop_types)
             hop_count = hop_count_for(tab_key, hop_types)
+            if tab_key == "redirect_chains.csv" and hop_count < 2 and not loop:
+                continue
 
             row: dict[str, Any] = {col: None for col in columns}
             inlink = fetch_inlink_details(start_url)
             set_if(row, "Chain Type", chain_type)
-            set_if(row, "Number of Redirects", hop_count)
+            redirect_count = sum(1 for t in hop_types if t in {"HTTP Redirect", "Meta Refresh"})
+            canonical_count = sum(1 for t in hop_types if t == "Canonical")
+            set_if(row, "Number of Redirects", redirect_count)
             set_if(row, "Number of Redirects/Canonicals", hop_count)
-            set_if(row, "Number of Canonicals", hop_count)
+            set_if(row, "Number of Canonicals", canonical_count)
             set_if(row, "Loop", loop)
             set_if(row, "Temp Redirect in Chain", temp_redirect)
             set_if(row, "Source", inlink.get("Source"))
@@ -2699,7 +2796,8 @@ class DerbyBackend(CrawlBackend):
                     set_if(row, f"Redirect Type {i}", hop_types[i - 1])
                     set_if(row, f"Redirect URL {i}", hop_targets[i - 1])
 
-            yield row
+            if _row_matches_filters(row, post_filters):
+                yield row
 
     def _resolve_db_root(self) -> Path:
         if self.db_path.is_dir():
@@ -2720,6 +2818,8 @@ class DerbyBackend(CrawlBackend):
 
         if zipfile_is_zip(self.db_path):
             extract_dir = self._work_dir or Path(tempfile.mkdtemp(prefix="sf_derby_"))
+            if self._work_dir is None:
+                self._owned_work_dir = extract_dir
             extract_dbseospider(self.db_path, extract_dir)
             db_root = find_derby_db_root(extract_dir)
             if db_root is None:
@@ -2735,7 +2835,6 @@ def _load_mapping(mapping_path: Optional[str]) -> dict[str, Any]:
     env_mapping = os.environ.get("SCREAMINGFROG_MAPPING")
     if env_mapping:
         candidates.append(Path(env_mapping))
-    candidates.append(Path.cwd() / "schemas" / "mapping.json")
     candidates.append(Path(__file__).resolve().parents[1] / "resources" / "mapping.json")
     candidates.append(Path(__file__).resolve().parents[2] / "schemas" / "mapping.json")
 
@@ -3027,6 +3126,8 @@ def _append_filter_clause(
     wrap_expr: bool = False,
 ) -> None:
     expr = f"({sql_expr})" if wrap_expr else sql_expr
+    if callable(expected):
+        raise TypeError("callable filters must be evaluated as post-filters")
     if isinstance(expected, (list, tuple, set)):
         values = list(expected)
         if not values:
@@ -3036,7 +3137,7 @@ def _append_filter_clause(
         clauses.append(f"{expr} IN ({placeholders})")
         params.extend(values)
     elif expected is None:
-        clauses.append(f"{expr} IS NULL")
+        clauses.append(f"({expr} IS NULL OR TRIM(CAST({expr} AS VARCHAR(32672))) = '')")
     else:
         clauses.append(f"{expr} = ?")
         params.append(expected)
@@ -3061,6 +3162,9 @@ def _compile_internal_filters(
 
     for key, expected in filters.items():
         lookup = _normalize_key(str(key))
+        if callable(expected):
+            post_filters[key] = expected
+            continue
         expr = expr_map.get(lookup)
         if expr:
             _append_filter_clause(clauses, params, expr, expected, wrap_expr=True)
@@ -3130,7 +3234,7 @@ def _build_where_from_entries(
     for key, expected in filters.items():
         lookup = _normalize_key(str(key))
         mode, sql_expr = field_map.get(lookup, ("raw", str(key)))
-        if mode == "post":
+        if mode == "post" or callable(expected):
             post_filters[key] = expected
             continue
         _append_filter_clause(
@@ -3327,8 +3431,13 @@ def _resolve_gui_defs(tab_name: str, gui_filter: Any) -> list[Any]:
     defs = []
     for name in names:
         filt = get_filter(tab_name, str(name))
-        if filt:
-            defs.append(filt)
+        if filt is None:
+            raise ValueError(f"Unknown GUI filter {name!r} for tab {tab_name!r}")
+        if not filt.sql_where and not (filt.blob_column and filt.blob_pattern) and not filt.row_predicate:
+            raise NotImplementedError(
+                f"GUI filter {filt.name!r} for tab {tab_name!r} has no executable predicate"
+            )
+        defs.append(filt)
     return defs
 
 
@@ -3416,33 +3525,36 @@ def _row_matches_filters(row: dict[str, Any], norm_filters: dict[str, Any]) -> b
     row_lookup = {_normalize_key(str(key)): value for key, value in row.items()}
     for key, expected in norm_filters.items():
         actual = row_lookup.get(key)
-        if isinstance(expected, (list, tuple, set)):
-            if not any(_filter_value_matches(actual, item) for item in expected):
-                return False
-            continue
-        if not _filter_value_matches(actual, expected):
+        if not filter_value_matches(actual, expected):
             return False
     return True
 
 
+def _without_filter_keys(norm_filters: dict[str, Any], *keys: str) -> dict[str, Any]:
+    excluded = {_normalize_key(key) for key in keys}
+    return {key: value for key, value in norm_filters.items() if key not in excluded}
+
+
+def _iter_with_limit(rows: Iterator[dict[str, Any]], limit: Any) -> Iterator[dict[str, Any]]:
+    if limit is None:
+        yield from rows
+        return
+    try:
+        bounded = max(0, int(limit))
+    except (TypeError, ValueError):
+        bounded = 0
+    if bounded == 0:
+        return
+    emitted = 0
+    for row in rows:
+        yield row
+        emitted += 1
+        if emitted >= bounded:
+            break
+
+
 def _filter_value_matches(actual: Any, expected: Any) -> bool:
-    if expected is None:
-        if actual is None:
-            return True
-        if isinstance(actual, str) and not actual.strip():
-            return True
-        return False
-    if actual is None:
-        return False
-    if isinstance(actual, bool) or isinstance(expected, bool):
-        actual_bool = _normalize_bool(actual)
-        expected_bool = _normalize_bool(expected)
-        return actual_bool is not None and actual_bool == expected_bool
-    actual_int = _safe_int(actual)
-    expected_int = _safe_int(expected)
-    if actual_int is not None and expected_int is not None:
-        return actual_int == expected_int
-    return str(actual).strip().lower() == str(expected).strip().lower()
+    return filter_value_matches(actual, expected)
 
 
 def _preferred_tables(table_counts: dict[str, int]) -> list[str]:
@@ -3722,8 +3834,13 @@ def _connect_derby(db_root: Path, derby_jars: list[Path]):
 
 def _fetch_column_names(conn, table: str) -> list[str]:
     cursor = conn.cursor()
-    cursor.execute(f"SELECT * FROM {table} FETCH FIRST 1 ROWS ONLY")
-    return [col[0] for col in cursor.description]
+    try:
+        cursor.execute(f"SELECT * FROM {table} FETCH FIRST 1 ROWS ONLY")
+        return [col[0] for col in cursor.description]
+    finally:
+        close = getattr(cursor, "close", None)
+        if callable(close):
+            close()
 
 
 def _resolve_column_name(columns: Sequence[str], target: str) -> str | None:
@@ -3736,19 +3853,22 @@ def _resolve_column_name(columns: Sequence[str], target: str) -> str | None:
 
 def _iter_cursor_rows(cursor, batch_size: int = _FETCH_BATCH_SIZE) -> Iterator[tuple[Any, ...]]:
     """Yield cursor rows in chunks to avoid loading full result sets into memory."""
-    if batch_size > _BLOB_FETCH_BATCH_SIZE and _cursor_has_blob_columns(cursor):
-        batch_size = _BLOB_FETCH_BATCH_SIZE
-    fetchmany = getattr(cursor, "fetchmany", None)
-    if not callable(fetchmany):
-        for row in cursor.fetchall():
-            yield row
-        return
-    while True:
-        rows = fetchmany(batch_size)
-        if not rows:
-            break
-        for row in rows:
-            yield row
+    try:
+        if batch_size > _BLOB_FETCH_BATCH_SIZE and _cursor_has_blob_columns(cursor):
+            batch_size = _BLOB_FETCH_BATCH_SIZE
+        fetchmany = getattr(cursor, "fetchmany", None)
+        if not callable(fetchmany):
+            yield from cursor.fetchall()
+            return
+        while True:
+            rows = fetchmany(batch_size)
+            if not rows:
+                break
+            yield from rows
+    finally:
+        close = getattr(cursor, "close", None)
+        if callable(close):
+            close()
 
 
 def _cursor_has_blob_columns(cursor: Any) -> bool:
@@ -3801,10 +3921,17 @@ def _decode_gzip_json_blob(blob: Any) -> dict[str, Any]:
     raw = _blob_bytes(blob)
     if not raw:
         return {}
+    cache = _JSON_BLOB_CACHE.get()
+    cache_key = hashlib.blake2b(raw, digest_size=16).digest() if cache is not None else None
+    if cache is not None and cache_key in cache:
+        return cache[cache_key]
     try:
-        return json.loads(gzip.decompress(raw).decode("utf-8", errors="replace"))
+        payload = json.loads(gzip.decompress(raw).decode("utf-8", errors="replace"))
     except Exception:
-        return {}
+        payload = {}
+    if cache is not None and cache_key is not None:
+        cache[cache_key] = payload
+    return payload
 
 
 def _clob_text(value: Any) -> str:
@@ -3879,8 +4006,7 @@ def _blob_contains(blob: Any, pattern: bytes) -> bool:
     raw = _blob_bytes(blob)
     if not raw:
         return False
-    sample = raw[:512]
-    return pattern.upper() in sample.upper()
+    return pattern.upper() in raw.upper()
 
 
 _DEFAULT_PORTS = {"http": "80", "https": "443"}
@@ -5378,7 +5504,7 @@ def _normalize_bool(value: Any) -> Optional[bool]:
         return True
     if text in {"0", "false", "no", "n", ""}:
         return False
-    return bool(value)
+    return None
 
 
 def _build_rel(

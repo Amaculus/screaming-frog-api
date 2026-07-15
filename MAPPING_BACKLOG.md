@@ -31,8 +31,9 @@ directive occurrences. The next defensible items are narrower validations.
 
 ### 1. `directives_outside_head.csv`
 
-Only map `Occurrences` if a real count field exists in `APP.HTML_VALIDATION_DATA`
-or another Derby table. Do not infer it from the boolean flag alone.
+`Occurrences` is currently mapped as the sum of boolean outside-head flags. Treat
+that as an explicit derived approximation; replace it only if a real occurrence
+count is confirmed in `APP.HTML_VALIDATION_DATA` or another Derby table.
 
 ### 2. Potential Savings / Explanation carryovers
 
@@ -98,11 +99,12 @@ table columns.
 
 Do not guess these.
 
-- `Title 1 Pixel Width`
-- `Meta Description 1 Pixel Width`
 - `% of Total`
 - `Carbon Rating`
 - `Current/Previous Unique Types`
+
+`Title 1 Pixel Width` and `Meta Description 1 Pixel Width` are already implemented
+through `derived_extract`; they are not unmapped backlog items.
 - `serp_summary.csv` duplicate `Character Length` / `Pixel Length` headers
 - `crawl_overview.csv` row-oriented summary layout
 - `change_detection_*` previous/delta values from a single crawl

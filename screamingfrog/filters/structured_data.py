@@ -28,12 +28,20 @@ def register_structured_data_filters() -> None:
         FilterDef(
             name="Validation Errors",
             tab="Structured Data",
-            description="Structured data validation errors (TODO: DB columns).",
+            description="Structured data validation errors.",
+            sql_where="j.RICH_RESULTS_TYPE_ERRORS IS NOT NULL AND j.RICH_RESULTS_TYPE_ERRORS <> ''",
+            join_table="APP.URL_INSPECTION",
+            join_on="APP.URLS.ENCODED_URL = j.ENCODED_URL",
+            join_type="INNER",
         ),
         FilterDef(
             name="Validation Warnings",
             tab="Structured Data",
-            description="Structured data validation warnings (TODO: DB columns).",
+            description="Structured data validation warnings.",
+            sql_where="j.RICH_RESULTS_TYPE_WARNINGS IS NOT NULL AND j.RICH_RESULTS_TYPE_WARNINGS <> ''",
+            join_table="APP.URL_INSPECTION",
+            join_on="APP.URLS.ENCODED_URL = j.ENCODED_URL",
+            join_type="INNER",
         ),
         FilterDef(
             name="Rich Result Validation Errors",
