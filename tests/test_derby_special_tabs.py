@@ -456,3 +456,37 @@ def test_get_tab_structured_data_summary_derives_formats_types_and_features() ->
             "Indexability Status": None,
         }
     ]
+
+
+def test_pagespeed_audit_ids_cover_every_pagespeed_tab() -> None:
+    from screamingfrog.backends.derby_backend import (
+        _PAGESPEED_TAB_KEYS,
+        PAGESPEED_AUDIT_IDS,
+        PAGESPEED_PINNED_SPIDER_VERSION,
+    )
+
+    # every tab except the opportunities summary maps to a pinned audit id
+    unmapped = _PAGESPEED_TAB_KEYS - set(PAGESPEED_AUDIT_IDS) - {
+        "pagespeed_opportunities_summary.csv"
+    }
+    assert unmapped == set()
+    assert PAGESPEED_PINNED_SPIDER_VERSION  # the pin must stay declared
+
+
+def test_pagespeed_missing_audit_id_fails_loudly() -> None:
+    import pytest
+    from screamingfrog.backends.derby_backend import (
+        PageSpeedAuditMissingError,
+        _check_pagespeed_audit_seen,
+    )
+
+    # payloads exist but the audit id never appears -> rename/retire -> raise
+    with pytest.raises(PageSpeedAuditMissingError) as exc:
+        _check_pagespeed_audit_seen("defer_offscreen_images_report.csv", "offscreen-images", 12, 0)
+    assert "offscreen-images" in str(exc.value)
+    assert "22.2" in str(exc.value)
+
+    # id present in at least one payload -> healthy
+    _check_pagespeed_audit_seen("defer_offscreen_images_report.csv", "offscreen-images", 12, 12)
+    # no payloads at all (PSI not connected / empty crawl) -> not a rename, no raise
+    _check_pagespeed_audit_seen("defer_offscreen_images_report.csv", "offscreen-images", 0, 0)

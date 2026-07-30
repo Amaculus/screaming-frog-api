@@ -131,19 +131,57 @@ _ACCESSIBILITY_TAB_KEYS = {
     "wcag_2_2_aa_all_incomplete.csv",
     "wcag_2_2_aa_all_violations.csv",
 }
+# ---------------------------------------------------------------------------
+# PageSpeed/Lighthouse audit-id mapping — PINNED TO SPIDER 22.2 (PSI payloads
+# with Lighthouse <= 12 audit ids).
+#
+# Screaming Frog 23.0 ships Lighthouse 13, which RETIRED, RENAMED and
+# CONSOLIDATED audits (e.g. the separate image audits merged into a single
+# "Improve Image Delivery" insight). A renamed id used to fail SILENTLY here:
+# audits.get(id) -> None -> empty tab, indistinguishable from a clean page.
+# _iter_pagespeed_detail_rows/_iter_pagespeed_coverage_rows now raise a
+# PageSpeedAuditMissingError when an expected id is absent from every crawled
+# PSI payload (Lighthouse returns ALL audits, passing or not, so a missing id
+# means rename/retire — not a healthy page).
+#
+# When upgrading the pinned Spider version: re-verify EVERY id below against a
+# fresh crawl's APP.PAGE_SPEED_API payloads before changing the pin.
+# ---------------------------------------------------------------------------
+PAGESPEED_PINNED_SPIDER_VERSION = "22.2"
+PAGESPEED_AUDIT_IDS: dict[str, str] = {
+    "avoid_excessive_dom_size_report.csv": "dom-size",
+    "avoid_large_layout_shifts_report.csv": "layout-shifts",
+    "avoid_serving_legacy_javascript_to_modern_browsers_report.csv": "legacy-javascript",
+    "reduce_javascript_execution_time_report.csv": "bootup-time",
+    "serve_static_assets_with_an_efficient_cache_policy_report.csv": "uses-long-cache-ttl",
+    "illegible_font_size_report.csv": "font-size",
+    "image_elements_do_not_have_explicit_width_and_height_report.csv": "unsized-images",
+    "defer_offscreen_images_report.csv": "offscreen-images",
+    "use_video_formats_for_animated_content_report.csv": "efficient-animated-content",
+    "css_coverage_summary.csv": "unused-css-rules",
+    "js_coverage_summary.csv": "unused-javascript",
+}
+
+
+class PageSpeedAuditMissingError(RuntimeError):
+    """An expected Lighthouse audit id was absent from every PSI payload —
+    almost certainly renamed/retired by a Spider/Lighthouse upgrade."""
+
+
+def _check_pagespeed_audit_seen(tab_key: str, audit_id: str, payloads: int, seen: int) -> None:
+    if payloads > 0 and seen == 0:
+        raise PageSpeedAuditMissingError(
+            f"Lighthouse audit id '{audit_id}' (tab '{tab_key}') was not present in any "
+            f"of {payloads} PSI payload(s). The mapping is pinned to Spider "
+            f"{PAGESPEED_PINNED_SPIDER_VERSION}; a newer Spider/Lighthouse likely renamed or "
+            f"retired this audit (SF 23.0 / Lighthouse 13 did exactly that). "
+            f"Update PAGESPEED_AUDIT_IDS in derby_backend.py after verifying the new id."
+        )
+
+
 _PAGESPEED_TAB_KEYS = {
     "pagespeed_opportunities_summary.csv",
-    "css_coverage_summary.csv",
-    "js_coverage_summary.csv",
-    "avoid_excessive_dom_size_report.csv",
-    "avoid_large_layout_shifts_report.csv",
-    "avoid_serving_legacy_javascript_to_modern_browsers_report.csv",
-    "reduce_javascript_execution_time_report.csv",
-    "serve_static_assets_with_an_efficient_cache_policy_report.csv",
-    "illegible_font_size_report.csv",
-    "image_elements_do_not_have_explicit_width_and_height_report.csv",
-    "defer_offscreen_images_report.csv",
-    "use_video_formats_for_animated_content_report.csv",
+    *PAGESPEED_AUDIT_IDS,
 }
 _RICH_RESULTS_TAB_KEYS = {
     "google_rich_results_features_report.csv",
@@ -1906,24 +1944,14 @@ class DerbyBackend(CrawlBackend):
         columns = _tab_columns(self._mapping, tab_key)
         norm_filters = _normalize_filters(filters)
         post_filters = _without_filter_keys(norm_filters, "address", "url")
-        if tab_key in {
-            "avoid_excessive_dom_size_report.csv",
-            "avoid_large_layout_shifts_report.csv",
-            "avoid_serving_legacy_javascript_to_modern_browsers_report.csv",
-            "reduce_javascript_execution_time_report.csv",
-            "serve_static_assets_with_an_efficient_cache_policy_report.csv",
-            "illegible_font_size_report.csv",
-            "image_elements_do_not_have_explicit_width_and_height_report.csv",
-            "defer_offscreen_images_report.csv",
-            "use_video_formats_for_animated_content_report.csv",
-        }:
-            rows = self._iter_pagespeed_detail_rows(tab_key, norm_filters)
-        elif tab_key == "pagespeed_opportunities_summary.csv":
+        if tab_key == "pagespeed_opportunities_summary.csv":
             rows = self._iter_pagespeed_opportunity_rows(norm_filters)
-        elif tab_key == "css_coverage_summary.csv":
-            rows = self._iter_pagespeed_coverage_rows("unused-css-rules", norm_filters)
+        elif tab_key in ("css_coverage_summary.csv", "js_coverage_summary.csv"):
+            rows = self._iter_pagespeed_coverage_rows(
+                PAGESPEED_AUDIT_IDS[tab_key], norm_filters, tab_key=tab_key
+            )
         else:
-            rows = self._iter_pagespeed_coverage_rows("unused-javascript", norm_filters)
+            rows = self._iter_pagespeed_detail_rows(tab_key, norm_filters)
         for row in rows:
             if _row_matches_filters(row, post_filters):
                 yield {column: row.get(column) for column in columns}
@@ -1941,28 +1969,25 @@ class DerbyBackend(CrawlBackend):
             params.extend(address_values)
         cursor.execute(sql, params)
 
-        audit_key = {
-            "avoid_excessive_dom_size_report.csv": "dom-size",
-            "avoid_large_layout_shifts_report.csv": "layout-shifts",
-            "avoid_serving_legacy_javascript_to_modern_browsers_report.csv": "legacy-javascript",
-            "reduce_javascript_execution_time_report.csv": "bootup-time",
-            "serve_static_assets_with_an_efficient_cache_policy_report.csv": "uses-long-cache-ttl",
-            "illegible_font_size_report.csv": "font-size",
-            "image_elements_do_not_have_explicit_width_and_height_report.csv": "unsized-images",
-            "defer_offscreen_images_report.csv": "offscreen-images",
-            "use_video_formats_for_animated_content_report.csv": "efficient-animated-content",
-        }.get(tab_key)
+        audit_key = PAGESPEED_AUDIT_IDS.get(tab_key)
         if not audit_key:
             return
 
+        payloads = 0
+        seen = 0
         for encoded_url, json_blob in _iter_cursor_rows(cursor):
             payload = _decode_gzip_json_blob(json_blob)
             audits = payload.get("lighthouseResult", {}).get("audits", {})
+            if audits:
+                payloads += 1
+                if audit_key in audits:
+                    seen += 1
             details = (audits.get(audit_key) or {}).get("details") or {}
             yield from _iter_pagespeed_detail_rows_for_audit(tab_key, encoded_url, details)
+        _check_pagespeed_audit_seen(tab_key, audit_key, payloads, seen)
 
     def _iter_pagespeed_coverage_rows(
-        self, audit_key: str, norm_filters: dict[str, Any]
+        self, audit_key: str, norm_filters: dict[str, Any], *, tab_key: str = ""
     ) -> Iterator[dict[str, Any]]:
         address_values = _filter_values(norm_filters, "address", "url")
         cursor = self._conn.cursor()
@@ -1975,9 +2000,15 @@ class DerbyBackend(CrawlBackend):
         cursor.execute(sql, params)
 
         resource_map: dict[str, list[tuple[float, float]]] = defaultdict(list)
+        payloads = 0
+        seen = 0
         for encoded_url, json_blob in _iter_cursor_rows(cursor):
             payload = _decode_gzip_json_blob(json_blob)
             audits = payload.get("lighthouseResult", {}).get("audits", {})
+            if audits:
+                payloads += 1
+                if audit_key in audits:
+                    seen += 1
             details = (audits.get(audit_key) or {}).get("details") or {}
             if not _pagespeed_details_are_affected(details):
                 continue
@@ -1995,6 +2026,7 @@ class DerbyBackend(CrawlBackend):
                 if wasted_bytes > 0:
                     resource_map[resource].append((total_bytes, wasted_bytes))
 
+        _check_pagespeed_audit_seen(tab_key or audit_key, audit_key, payloads, seen)
         rows: list[dict[str, Any]] = []
         for resource, values in resource_map.items():
             total_bytes = int(sum(total for total, _ in values) / len(values))
