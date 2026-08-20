@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Fixed Derby select-list qualification when a GUI filter adds a join, so filters joining a table that also carries `ENCODED_URL` (`APP.DUPLICATES_TITLE`, `APP.DUPLICATES_META_DESCRIPTION`, `APP.HTML_VALIDATION_DATA`, `APP.URL_INSPECTION`) no longer raise `SQLSyntaxErrorException: Column name 'ENCODED_URL' is in more than one table in the FROM list`. Affects Page Titles / Meta Description `Duplicate` and `Outside <head>`, Canonicals `Outside <head>` / `Contains Fragment URL` / `Invalid Attribute In Annotation`, Hreflang `Outside <head>`, and the Structured Data Rich Result / Validation filters. `tab_count()` applies the same qualification to entry-derived `WHERE` columns, so `.count()` and `.collect()` agree for joined GUI filters.
+
 ## 0.2.6 (2026-05-22)
 - Added fast tab primitives: `crawl.tab_count(...)`, `crawl.tab_counts(...)`, `crawl.tab_rows(...)`, and backend-level count/sample/projection hooks.
 - Added `crawl.tab(...).select(...)` for generic tab projections, with backend pushdown where available.
