@@ -942,7 +942,6 @@ class DerbyBackend(CrawlBackend):
 
         if not select_items:
             select_items.append("1")
-        select_cols = ", ".join(select_items)
         join_sql = ""
         where_parts: list[str] = []
         params: list[Any] = []
@@ -950,9 +949,20 @@ class DerbyBackend(CrawlBackend):
         join_table, join_on, join_type = _resolve_join(gui_defs)
         if join_table and _table_references_absent(join_table, existing_tables):
             return
+        qualify_table: str | None = None
         if join_table and join_on:
             join_sql = f" {join_type} JOIN {join_table} j ON {join_on}"
+            # The join brings a second table into the FROM list, and several
+            # join targets (APP.DUPLICATES_*, APP.HTML_VALIDATION_DATA,
+            # APP.URL_INSPECTION) carry their own ENCODED_URL. Qualify the
+            # base-table columns so Derby does not reject the select list with
+            # "Column name 'ENCODED_URL' is in more than one table in the FROM
+            # list." Only bare identifiers are touched; expressions already
+            # carry their own qualification.
+            qualify_table = table
+            select_items = [_qualify_bare_column(item, table) for item in select_items]
 
+        select_cols = ", ".join(select_items)
         sql = f"SELECT {select_cols} FROM {table}{join_sql}"
         params: list[Any] = []
         post_filters: dict[str, Any] = {}
@@ -963,6 +973,7 @@ class DerbyBackend(CrawlBackend):
                 supplementary,
                 existing_tables,
                 known_columns,
+                qualify_table=qualify_table,
             )
             if where:
                 where_parts.append(where)
@@ -1206,25 +1217,33 @@ class DerbyBackend(CrawlBackend):
         known_columns = getattr(self, "_known_table_columns", {})
         where_parts: list[str] = []
         params: list[Any] = []
+
+        # Resolve the join first: when one is present the entry-derived WHERE
+        # columns need the same qualification the select list gets in get_tab,
+        # otherwise a caller filter combined with a joined GUI filter is
+        # ambiguous here too.
+        join_table, join_on, join_type = _resolve_join(gui_defs)
+        if join_table and _table_references_absent(join_table, existing_tables):
+            return 0
+        join_sql = ""
+        qualify_table: str | None = None
+        if join_table and join_on:
+            join_sql = f" {join_type} JOIN {join_table} j ON {join_on}"
+            qualify_table = table
+
         where, params, post_filters = _build_where_from_entries(
             active_filters,
             entries,
             supplementary,
             existing_tables,
             known_columns,
+            qualify_table=qualify_table,
         )
         if where:
             where_parts.append(where)
         for filt in gui_defs:
             if filt.sql_where:
                 where_parts.append(f"({_normalize_gui_where_sql(filt.sql_where)})")
-
-        join_table, join_on, join_type = _resolve_join(gui_defs)
-        if join_table and _table_references_absent(join_table, existing_tables):
-            return 0
-        join_sql = ""
-        if join_table and join_on:
-            join_sql = f" {join_type} JOIN {join_table} j ON {join_on}"
 
         blob_checks = _resolve_blob_checks(gui_defs)
         if post_filters or blob_checks or any(filt.row_predicate for filt in gui_defs):
@@ -3181,12 +3200,29 @@ def _compile_internal_filters(
     return " AND ".join(clauses), params, post_filters
 
 
+_BARE_COLUMN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _qualify_bare_column(item: str, table: str) -> str:
+    """Prefix a bare column name with its base table.
+
+    Only plain identifiers are rewritten. Expressions, function calls,
+    already-qualified names and literals are returned unchanged, so this is
+    safe to map over a whole select list.
+    """
+    text = str(item).strip()
+    if not _BARE_COLUMN_RE.fullmatch(text):
+        return item
+    return f"{table}.{text}"
+
+
 def _build_where_from_entries(
     filters: dict[str, Any],
     entries: list[dict[str, Any]],
     supplementary: Optional[list[dict[str, Any]]] = None,
     existing_tables: Optional[frozenset[str]] = None,
     known_columns: Optional[dict[str, frozenset[str]]] = None,
+    qualify_table: Optional[str] = None,
 ) -> tuple[str, list[Any], dict[str, Any]]:
     clauses: list[str] = []
     params: list[Any] = []
@@ -3224,7 +3260,10 @@ def _build_where_from_entries(
             if _column_references_absent(entry.get("db_table"), column, known_columns or {}):
                 field_map[csv_key] = ("post", None)
                 continue
-            field_map[csv_key] = ("column", str(column))
+            column_sql = str(column)
+            if qualify_table:
+                column_sql = _qualify_bare_column(column_sql, qualify_table)
+            field_map[csv_key] = ("column", column_sql)
 
     for entry in supplementary or []:
         csv_key = _normalize_key(entry.get("csv_column", ""))
