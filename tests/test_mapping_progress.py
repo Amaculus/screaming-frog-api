@@ -1409,6 +1409,19 @@ def test_redirect_type_rollout_uses_http_redirect_label_and_internal_carryover()
                 "META_FULL_URL_2",
                 "HTTP_RESPONSE_HEADER_COLLECTION",
             ],
+            # Response headers are persisted only when the crawl enabled
+            # "Store HTTP Headers" (off by default), so on a normal crawl the
+            # columns above yield nothing and the redirect edge in APP.LINKS is
+            # the only destination source.
+            "expressions": {
+                "LINK_REDIRECT_TARGET": (
+                    "(SELECT d.ENCODED_URL FROM APP.LINKS l "
+                    "JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID "
+                    "JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID "
+                    "WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL "
+                    "FETCH FIRST 1 ROWS ONLY)"
+                )
+            },
         },
         "db_table": "APP.URLS",
     }

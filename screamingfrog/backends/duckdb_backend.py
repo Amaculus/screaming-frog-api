@@ -1480,6 +1480,7 @@ def _create_empty_helper_relation(
 def _build_chain_helper_bundle_from_source(source_backend: Any) -> dict[str, list[dict[str, Any]]]:
     try:
         from screamingfrog.backends.derby_backend import (  # type: ignore
+            REDIRECT_LINK_TYPE,
             _extract_link_rel,
             _headers_from_blob,
             _parse_link_headers,
@@ -1498,6 +1499,20 @@ def _build_chain_helper_bundle_from_source(source_backend: Any) -> dict[str, lis
 
     url_rows = list(_iter_chain_source_url_rows(source_backend))
     link_rows = list(_iter_chain_source_link_rows(source_backend))
+
+    # SF persists response headers only when the crawl enabled "Store HTTP
+    # Headers" (off by default), so the Location-based lookup below finds
+    # nothing on a normal crawl and every redirect silently lost its
+    # destination. The edge itself is always recorded in APP.LINKS under
+    # REDIRECT_LINK_TYPE, and link_rows is already loaded, so this costs no I/O.
+    link_redirect_targets: dict[str, str] = {}
+    for row in link_rows:
+        if _to_int(row.get("link_type")) != REDIRECT_LINK_TYPE:
+            continue
+        source_url = str(row.get("source_url") or "").strip()
+        destination_url = str(row.get("destination_url") or "").strip()
+        if source_url and destination_url:
+            link_redirect_targets.setdefault(source_url, destination_url)
 
     chain_url_info: list[dict[str, Any]] = []
     redirect_edges: list[dict[str, Any]] = []
@@ -1524,6 +1539,9 @@ def _build_chain_helper_bundle_from_source(source_backend: Any) -> dict[str, lis
             locations = headers.get("location", [])
             if locations:
                 target_url = normalize_target(url, locations[0])
+            if not target_url:
+                target_url = normalize_target(url, link_redirect_targets.get(url))
+            if target_url:
                 redirect_type = "HTTP Redirect"
                 temp_redirect = code in {302, 303, 307}
         if not target_url and _to_int(row.get("num_metarefresh")):

@@ -44714,7 +44714,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -60051,7 +60054,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -62317,7 +62323,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -64603,7 +64612,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -79679,7 +79691,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -81945,7 +81960,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -84211,7 +84229,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -86708,7 +86729,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -89151,7 +89175,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -91417,7 +91444,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -94222,7 +94252,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -96488,7 +96521,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -99144,7 +99180,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -108918,7 +108957,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109008,7 +109050,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109071,7 +109116,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109134,7 +109182,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109224,7 +109275,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109287,7 +109341,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109350,7 +109407,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109413,7 +109473,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109476,7 +109539,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109539,7 +109605,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109602,7 +109671,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109665,7 +109737,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109728,7 +109803,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109818,7 +109896,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109881,7 +109962,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -109944,7 +110028,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110007,7 +110094,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110070,7 +110160,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110133,7 +110226,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110196,7 +110292,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110259,7 +110358,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110322,7 +110424,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110385,7 +110490,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110448,7 +110556,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110511,7 +110622,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110574,7 +110688,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110637,7 +110754,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110700,7 +110820,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
@@ -110763,7 +110886,10 @@
           "META_FULL_URL_1",
           "META_FULL_URL_2",
           "HTTP_RESPONSE_HEADER_COLLECTION"
-        ]
+        ],
+        "expressions": {
+          "LINK_REDIRECT_TARGET": "(SELECT d.ENCODED_URL FROM APP.LINKS l JOIN APP.UNIQUE_URLS s ON l.SRC_ID = s.ID JOIN APP.UNIQUE_URLS d ON l.DST_ID = d.ID WHERE l.LINK_TYPE = 15 AND s.ENCODED_URL = APP.URLS.ENCODED_URL FETCH FIRST 1 ROWS ONLY)"
+        }
       }
     },
     {
