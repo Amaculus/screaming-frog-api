@@ -514,3 +514,74 @@ def test_derby_tab_filters_support_expression_and_header_fields() -> None:
     assert [row["Address"] for row in expr_rows] == ["https://example.com/ok"]
     assert [row["Address"] for row in header_rows] == ["https://example.com/ok"]
     conn.close()
+
+
+def test_derby_gui_filter_join_qualifies_ambiguous_select_columns() -> None:
+    """A GUI filter joining a table that also has ENCODED_URL must not be ambiguous.
+
+    Regression: the SELECT list was built with bare column names before the
+    join was appended, so `SELECT ENCODED_URL ... FROM APP.URLS INNER JOIN
+    APP.DUPLICATES_TITLE j ON ...` made Derby raise
+    "Column name 'ENCODED_URL' is in more than one table in the FROM list."
+    sqlite raises the same class of error ("ambiguous column name").
+    """
+    conn = _derby_like_connection()
+    conn.execute("CREATE TABLE APP.URLS (ENCODED_URL TEXT PRIMARY KEY, TITLE_1 TEXT)")
+    conn.execute("CREATE TABLE APP.DUPLICATES_TITLE (ENCODED_URL TEXT, DUPLICATE_KEY TEXT)")
+    conn.execute(
+        "INSERT INTO APP.URLS VALUES ('https://example.com/a/', 'Same title'), "
+        "('https://example.com/b/', 'Same title'), ('https://example.com/c/', 'Unique')"
+    )
+    conn.execute(
+        "INSERT INTO APP.DUPLICATES_TITLE VALUES ('https://example.com/a/', 'k1'), "
+        "('https://example.com/b/', 'k1')"
+    )
+    mapping = {
+        "page_titles_all.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+            {"csv_column": "Title 1", "db_column": "TITLE_1", "db_table": "APP.URLS"},
+        ]
+    }
+    backend = _backend_for_mapping(conn, mapping)
+
+    rows = list(backend.get_tab("Page Titles", filters={"__gui__": "Duplicate"}))
+
+    assert [row["Address"] for row in rows] == [
+        "https://example.com/a/",
+        "https://example.com/b/",
+    ]
+    conn.close()
+
+
+def test_derby_gui_filter_join_count_matches_rows() -> None:
+    """tab_count() and get_tab() must agree for a joined GUI filter.
+
+    tab_count emits SELECT COUNT(*), which was never ambiguous, so .count()
+    succeeded while .collect() raised on the very same filter.
+    """
+    conn = _derby_like_connection()
+    conn.execute("CREATE TABLE APP.URLS (ENCODED_URL TEXT PRIMARY KEY, TITLE_1 TEXT)")
+    conn.execute(
+        "CREATE TABLE APP.HTML_VALIDATION_DATA (ENCODED_URL TEXT, TITLE_OUTSIDE_HEAD BOOLEAN)"
+    )
+    conn.execute(
+        "INSERT INTO APP.URLS VALUES ('https://example.com/a/', 'A'), "
+        "('https://example.com/b/', 'B')"
+    )
+    conn.execute(
+        "INSERT INTO APP.HTML_VALIDATION_DATA VALUES ('https://example.com/a/', 1), "
+        "('https://example.com/b/', 0)"
+    )
+    mapping = {
+        "page_titles_all.csv": [
+            {"csv_column": "Address", "db_column": "ENCODED_URL", "db_table": "APP.URLS"},
+        ]
+    }
+    backend = _backend_for_mapping(conn, mapping)
+
+    rows = list(backend.get_tab("Page Titles", filters={"__gui__": "Outside <head>"}))
+    count = backend.tab_count("Page Titles", filters={"__gui__": "Outside <head>"})
+
+    assert [row["Address"] for row in rows] == ["https://example.com/a/"]
+    assert count == len(rows)
+    conn.close()
