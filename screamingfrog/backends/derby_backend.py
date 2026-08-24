@@ -186,6 +186,12 @@ _JSON_BLOB_CACHE: ContextVar[dict[bytes, dict[str, Any]] | None] = ContextVar(
     "sf_json_blob_cache", default=None
 )
 _APP_URLS_ENCODED_URL_RE = re.compile(r"(?i)\bAPP\.URLS\.ENCODED_URL\b")
+# SF records the redirect edge in APP.LINKS under this link type. It is the only
+# reliable destination source: response headers are persisted only when the
+# crawl enabled "Store HTTP Headers", which is off by default.
+REDIRECT_LINK_TYPE = 15
+# Alias the mapping uses to expose that edge to the ``redirect_url`` extract.
+_REDIRECT_TARGET_ALIAS = "LINK_REDIRECT_TARGET"
 _DERBY_BOOLEAN_SQL_COLUMNS = {
     "BLOCKED_BY_ROBOTS_TXT",
     "CANONICAL_CONTAINS_FRAGMENT_URL",
@@ -239,6 +245,9 @@ class DerbyBackend(CrawlBackend):
                 self._mapping, self._table, self._internal_columns
             )
             self._internal_header_extract_map = _resolve_internal_header_extract_map(
+                self._mapping, self._table
+            )
+            self._internal_derived_map = _resolve_internal_derived_map(
                 self._mapping, self._table
             )
             all_internal_expr_selects = _resolve_internal_expression_selects(
@@ -482,11 +491,21 @@ class DerbyBackend(CrawlBackend):
             for csv_col, extract in dict(getattr(self, "_internal_header_extract_map", {}) or {}).items()
             if str(csv_col).strip()
         }
+        # Derived columns ("Redirect URL", "Folder Depth", the pixel widths, ...)
+        # are computed from their inputs. Without this the projection had no way
+        # to produce them at all.
+        derived_lookup = {
+            _normalize_key(str(csv_col)): entry
+            for csv_col, entry in dict(getattr(self, "_internal_derived_map", {}) or {}).items()
+            if str(csv_col).strip()
+        }
 
         table_alias = "sf_proj"
         select_parts: list[str] = []
         direct_aliases: dict[str, str] = {}
         output_specs: list[tuple[str, str, str | None, dict[str, Any] | None]] = []
+        # output_specs index -> {extract input name: SELECT alias}
+        derived_sources: dict[int, dict[str, str]] = {}
 
         def ensure_direct(column_name: str) -> str:
             actual = str(column_name)
@@ -521,6 +540,28 @@ class DerbyBackend(CrawlBackend):
                     selected_alias = ensure_direct(actual_blob_col)
                     selected_extract = header_lookup[norm_field]
                     selected_mode = "header"
+            elif norm_field in derived_lookup:
+                entry = derived_lookup[norm_field]
+                # Every input the extract reads is selected under its own name so
+                # _extract_derived_value sees the same ``values`` dict shape the
+                # tab path builds.
+                source_map: dict[str, str] = {}
+                for source_col in _derived_extract_columns(entry):
+                    actual = _resolve_column_name(self._internal_columns, source_col)
+                    if actual:
+                        source_map[str(source_col)] = ensure_direct(actual)
+                for expr_alias, expression in _derived_extract_expressions(entry).items():
+                    if _is_null_expression(expression):
+                        continue
+                    sql_alias = f"SF_DERIV_{len(output_specs)}_{len(source_map)}"
+                    select_parts.append(
+                        f"{self._rewrite_internal_expression(expression, table_alias)} AS {sql_alias}"
+                    )
+                    source_map[expr_alias] = sql_alias
+                if source_map:
+                    selected_extract = entry["derived_extract"]
+                    selected_mode = "derived"
+                    derived_sources[len(output_specs)] = source_map
 
             output_specs.append((field, selected_mode, selected_alias, selected_extract))
 
@@ -560,10 +601,20 @@ class DerbyBackend(CrawlBackend):
             parsed_headers: dict[str, dict[str, list[str]]] = {}
             parsed_links: dict[str, list[dict[str, Any]]] = {}
             projected: dict[str, Any] = {}
-            for field, mode, alias, extract in output_specs:
+            for spec_index, (field, mode, alias, extract) in enumerate(output_specs):
                 value: Any = None
                 if mode in {"direct", "expr"} and alias:
                     value = data.get(alias)
+                elif mode == "derived" and extract:
+                    value = _extract_derived_value(
+                        extract,
+                        {
+                            source_name: data.get(sql_alias)
+                            for source_name, sql_alias in derived_sources.get(
+                                spec_index, {}
+                            ).items()
+                        },
+                    )
                 elif mode == "header" and alias and extract:
                     if alias not in parsed_headers:
                         parsed_headers[alias] = _headers_from_blob(data.get(alias))
@@ -880,6 +931,21 @@ class DerbyBackend(CrawlBackend):
                         except ValueError:
                             select_items.append(source_col)
                             derived_extract_indexes[source_col] = len(select_items) - 1
+                for alias, expression in _derived_extract_expressions(entry).items():
+                    if alias in derived_extract_indexes:
+                        continue
+                    if (
+                        _is_null_expression(expression)
+                        or _expression_references_absent_table(expression, existing_tables)
+                        or _expression_references_absent_column(
+                            expression,
+                            known_columns,
+                            default_table=entry_table,
+                        )
+                    ):
+                        continue
+                    select_items.append(_normalize_select_expression(expression))
+                    derived_extract_indexes[alias] = len(select_items) - 1
                 entry_indexes.append(None)
                 csv_columns.append(entry["csv_column"])
                 continue
@@ -2890,6 +2956,19 @@ def _resolve_internal_mapping(mapping: dict[str, Any]) -> tuple[str, dict[str, s
     return table, column_map
 
 
+_EXTRACT_KEYS: tuple[str, ...] = (
+    "header_extract",
+    "derived_extract",
+    "blob_extract",
+    "multi_row_extract",
+)
+
+
+def _entry_has_extract(entry: dict[str, Any]) -> bool:
+    """True when the entry's value is computed, not read straight from a column."""
+    return any(entry.get(key) for key in _EXTRACT_KEYS)
+
+
 def _resolve_internal_alias_map(
     mapping: dict[str, Any], table: str, columns: Sequence[str]
 ) -> dict[str, str]:
@@ -2901,7 +2980,12 @@ def _resolve_internal_alias_map(
     for entry in entries:
         if entry.get("db_table") != table:
             continue
-        if entry.get("header_extract"):
+        # On an extract entry, ``db_column`` is an INPUT to the extract, not the
+        # value of the CSV column, so aliasing the two makes the column render
+        # its own raw input: "Redirect URL" became ENCODED_URL (a self-redirect
+        # on every 3xx row), "Title 1 Pixel Width" became the title text, and
+        # "Folder Depth" became the URL. 908 internal columns were affected.
+        if _entry_has_extract(entry):
             continue
         csv_col = str(entry.get("csv_column") or "").strip()
         db_col = str(entry.get("db_column") or "").strip()
@@ -2942,6 +3026,34 @@ def _resolve_internal_header_extract_map(
         seen_csv.add(csv_key)
 
     return extracts
+
+
+def _resolve_internal_derived_map(mapping: dict[str, Any], table: str) -> dict[str, dict[str, Any]]:
+    """CSV column -> the whole mapping entry, for internal derived-extract columns.
+
+    The entry (not just its ``derived_extract``) is kept because
+    ``_derived_extract_columns`` folds in the entry's ``db_column`` as the
+    extract's primary input.
+    """
+    entries = mapping.get(_INTERNAL_MAPPING_KEY) or []
+    derived: dict[str, dict[str, Any]] = {}
+    seen_csv: set[str] = set()
+
+    for entry in entries:
+        if entry.get("db_table") != table:
+            continue
+        if not entry.get("derived_extract"):
+            continue
+        csv_col = str(entry.get("csv_column") or "").strip()
+        if not csv_col:
+            continue
+        csv_key = csv_col.lower()
+        if csv_key in seen_csv:
+            continue
+        derived[csv_col] = entry
+        seen_csv.add(csv_key)
+
+    return derived
 
 
 def _resolve_internal_expression_selects(
@@ -4789,6 +4901,28 @@ def _derived_extract_columns(entry: dict[str, Any]) -> list[str]:
     return deduped
 
 
+def _derived_extract_expressions(entry: dict[str, Any]) -> dict[str, str]:
+    """Return ``{alias: sql}`` extra SELECT items a derived extract needs.
+
+    Unlike ``columns`` (plain column names on the entry's own table), these are
+    arbitrary SQL expressions, typically a correlated subquery against another
+    table. They are validated with the same guards as ``db_expression`` before
+    being added to the SELECT list, and land in the extract's ``values`` dict
+    under their alias.
+    """
+    extract = entry.get("derived_extract") or {}
+    raw = extract.get("expressions") or {}
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, str] = {}
+    for alias, expression in raw.items():
+        alias_text = str(alias or "").strip()
+        expr_text = str(expression or "").strip()
+        if alias_text and expr_text:
+            out[alias_text] = expr_text
+    return out
+
+
 def _multi_row_extract_columns(entry: dict[str, Any]) -> list[str]:
     extract = entry.get("multi_row_extract") or {}
     columns = list(extract.get("columns") or [])
@@ -4836,20 +4970,47 @@ def _extract_derived_value(extract: dict[str, Any], values: dict[str, Any]) -> A
         return path.count("/") if path else 0
     if kind == "redirect_url":
         address = _safe_text(values.get("ENCODED_URL"))
+
+        def _resolve(target: Any) -> Optional[str]:
+            """Absolutise a redirect target, treating blank as "no target".
+
+            The blank guard is load-bearing: ``urljoin(address, "")`` returns
+            ``address`` verbatim, so a missing Location silently rendered every
+            3xx row as a self-redirect (source == destination).
+            """
+            text = _safe_text(target)
+            if not text:
+                return None
+            resolved = urljoin(address or "", text)
+            return resolved or None
+
         num_meta = _safe_int(values.get("NUM_METAREFRESH"))
         meta_url = _safe_text(values.get("META_FULL_URL_1")) or _safe_text(
             values.get("META_FULL_URL_2")
         )
         if num_meta and meta_url:
-            return urljoin(address or "", meta_url)
+            resolved = _resolve(meta_url)
+            if resolved:
+                return resolved
 
         code = _safe_int(values.get("RESPONSE_CODE"))
+        is_redirect = code is not None and 300 <= code < 400
         headers_blob = values.get("HTTP_RESPONSE_HEADER_COLLECTION")
-        if code is not None and 300 <= code < 400 and headers_blob is not None:
+        if is_redirect and headers_blob is not None:
             headers = _headers_from_blob(headers_blob)
             locations = headers.get("location", [])
             if locations:
-                return urljoin(address or "", locations[0])
+                resolved = _resolve(locations[0])
+                if resolved:
+                    return resolved
+
+        # Response headers are only persisted when the crawl enabled SF's
+        # "Store HTTP Headers" (off by default), so on most crawls the block
+        # above finds nothing. The redirect edge itself is always recorded in
+        # APP.LINKS under LINK_TYPE 15; the mapping surfaces it through the
+        # derived extract's ``expressions`` so it can be used as the fallback.
+        if is_redirect:
+            return _resolve(values.get(_REDIRECT_TARGET_ALIAS))
         return None
     if kind == "ajax_url_variant":
         address = _safe_text(values.get("ENCODED_URL"))

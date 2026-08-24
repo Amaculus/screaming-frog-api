@@ -34,7 +34,12 @@ DEFAULT_DUCKDB_HELPERS: tuple[str, ...] = (
     "canonical_edges",
     "chain_inlinks",
 )
-DUCKDB_HELPER_SCHEMA_VERSION = 2
+# Bump when the SHAPE or the VALUES a helper produces change, so cached
+# sidecars rebuild instead of serving stale rows.
+#   3: redirect_edges now falls back to the APP.LINKS redirect edge when the
+#      crawl stored no response headers (previously every such crawl produced
+#      zero redirect edges).
+DUCKDB_HELPER_SCHEMA_VERSION = 3
 DUCKDB_HELPER_SCHEMA_VERSIONS: dict[str, int] = {
     "internal_basic": DUCKDB_HELPER_SCHEMA_VERSION,
     "internal_common": DUCKDB_HELPER_SCHEMA_VERSION,
@@ -44,6 +49,13 @@ DUCKDB_HELPER_SCHEMA_VERSIONS: dict[str, int] = {
     "canonical_edges": DUCKDB_HELPER_SCHEMA_VERSION,
     "chain_inlinks": DUCKDB_HELPER_SCHEMA_VERSION,
 }
+# Cached TAB relations (sf_tab_*) carry their own version. Helper versioning
+# alone is not enough: a mapping change alters the values extracted into a
+# cached tab, and without this a poisoned tab is served forever.
+#   1: baseline (tabs written before versioning existed report 0 and rebuild).
+#   2: "Redirect URL" now resolves via the APP.LINKS redirect edge, so every
+#      3xx row previously cached as a self-redirect is wrong.
+DUCKDB_EXPORT_SCHEMA_VERSION = 2
 _LINKS_CORE_TABS: frozenset[str] = frozenset({"all_inlinks.csv", "all_outlinks.csv"})
 _CHAIN_TABS: frozenset[str] = frozenset(
     {"redirect_chains.csv", "canonical_chains.csv", "redirect_and_canonical_chains.csv"}
@@ -431,6 +443,9 @@ def export_duckdb_from_backend(
         conn = _connection
     try:
         _ensure_metadata_tables(conn)
+        # Before reading what is cached, evict tab relations extracted by an
+        # older mapping so they are re-materialised rather than carried forward.
+        _drop_stale_tab_exports(conn, namespace=normalized_namespace)
         existing = _get_import_metadata(conn, namespace=normalized_namespace)
         existing_objects = _get_export_objects(conn, namespace=normalized_namespace)
         label = source_label or getattr(getattr(backend, "db_path", None), "name", None) or "crawl"
@@ -922,10 +937,12 @@ def resolve_relation_name(
 ) -> str | None:
     normalized_namespace = _normalize_namespace(namespace)
     normalized = export_name if kind == "raw" else _normalize_tab_name(export_name)
+    has_version = _table_has_column(conn, "main", "sf_alpha_exports", "schema_version")
+    version_select = ", schema_version" if has_version else ""
     if _table_has_column(conn, "main", "sf_alpha_exports", "namespace"):
         cursor = conn.execute(
-            """
-            SELECT relation_name
+            f"""
+            SELECT relation_name{version_select}
             FROM sf_alpha_exports
             WHERE kind = ? AND export_name = ? AND COALESCE(namespace, '') = ?
             LIMIT 1
@@ -936,10 +953,16 @@ def resolve_relation_name(
         if normalized_namespace:
             return None
         cursor = conn.execute(
-            "SELECT relation_name FROM sf_alpha_exports WHERE kind = ? AND export_name = ? LIMIT 1",
+            f"SELECT relation_name{version_select} FROM sf_alpha_exports "
+            "WHERE kind = ? AND export_name = ? LIMIT 1",
             [kind, normalized.upper() if kind == "raw" else normalized],
         )
     row = cursor.fetchone()
+    if row and not _export_version_current(kind, row[1] if has_version else None):
+        # Stale extraction: the mapping that produced this relation no longer
+        # yields the same values. Report it as absent so the caller re-derives
+        # from the source crawl instead of serving wrong rows forever.
+        return None
     if row:
         return str(row[0])
     if kind == "raw":
@@ -1515,7 +1538,8 @@ def _ensure_metadata_tables(conn: Any) -> None:
             namespace VARCHAR,
             export_name VARCHAR,
             kind VARCHAR,
-            relation_name VARCHAR
+            relation_name VARCHAR,
+            schema_version BIGINT
         )
         """
     )
@@ -1535,9 +1559,13 @@ def _ensure_metadata_tables(conn: Any) -> None:
         conn.execute("ALTER TABLE sf_alpha_imports ADD COLUMN namespace VARCHAR")
     if "source_fingerprint" not in {column.lower() for column in columns}:
         conn.execute("ALTER TABLE sf_alpha_imports ADD COLUMN source_fingerprint VARCHAR")
-    export_columns = _table_columns(conn, "main", "sf_alpha_exports")
-    if "namespace" not in {column.lower() for column in export_columns}:
+    export_columns = {column.lower() for column in _table_columns(conn, "main", "sf_alpha_exports")}
+    if "namespace" not in export_columns:
         conn.execute("ALTER TABLE sf_alpha_exports ADD COLUMN namespace VARCHAR")
+    if "schema_version" not in export_columns:
+        # Pre-existing rows stay NULL, which _export_version_current reads as
+        # stale, so every sidecar written before versioning rebuilds its tabs.
+        conn.execute("ALTER TABLE sf_alpha_exports ADD COLUMN schema_version BIGINT")
     helper_columns = _table_columns(conn, "main", "sf_alpha_helpers")
     helper_column_names = {column.lower() for column in helper_columns}
     if "namespace" not in helper_column_names:
@@ -1701,11 +1729,83 @@ def _store_export_metadata(
         return
     conn.executemany(
         """
-        INSERT INTO sf_alpha_exports (namespace, export_name, kind, relation_name)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO sf_alpha_exports (namespace, export_name, kind, relation_name, schema_version)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        [(normalized_namespace, export_name, kind, relation_name) for export_name, kind, relation_name in rows],
+        [
+            (
+                normalized_namespace,
+                export_name,
+                kind,
+                relation_name,
+                DUCKDB_EXPORT_SCHEMA_VERSION,
+            )
+            for export_name, kind, relation_name in rows
+        ],
     )
+
+
+def _export_version_current(kind: str, stored: Any) -> bool:
+    """Return True when a cached export is at the current extraction version.
+
+    ``raw`` relations are verbatim table copies, so a mapping change cannot
+    invalidate them; only derived ``tab`` relations carry a version. A row
+    written before versioning existed reports NULL and is treated as stale so
+    it rebuilds once.
+    """
+    if kind != "tab":
+        return True
+    try:
+        return int(stored) >= DUCKDB_EXPORT_SCHEMA_VERSION
+    except (TypeError, ValueError):
+        return False
+
+
+def _drop_stale_tab_exports(conn: Any, *, namespace: str | None = None) -> int:
+    """Drop cached tab relations extracted by an older mapping.
+
+    A tab relation is a materialised *extraction*, so a mapping change alters
+    the values inside it while its name and shape stay identical. Without this
+    the cache would serve those wrong values forever (the "Redirect URL"
+    self-redirect bug). Dropping the relation plus its metadata row makes the
+    next read fall through to the source crawl and re-materialise.
+
+    Rows are dropped rather than re-stamped because ``_store_export_metadata``
+    rewrites the whole namespace from a carried-forward list: stamping in place
+    would mark still-stale relations as current.
+    """
+    if not _relation_exists(conn, "main.sf_alpha_exports"):
+        return 0
+    if not _table_has_column(conn, "main", "sf_alpha_exports", "schema_version"):
+        return 0
+    normalized_namespace = _normalize_namespace(namespace)
+    has_namespace = _table_has_column(conn, "main", "sf_alpha_exports", "namespace")
+    where = "kind = 'tab' AND (schema_version IS NULL OR schema_version < ?)"
+    params: list[Any] = [DUCKDB_EXPORT_SCHEMA_VERSION]
+    if has_namespace:
+        where += " AND COALESCE(namespace, '') = ?"
+        params.append(normalized_namespace)
+    elif normalized_namespace:
+        return 0
+    stale = conn.execute(
+        f"SELECT export_name, relation_name FROM sf_alpha_exports WHERE {where}", params
+    ).fetchall()
+    if not stale:
+        return 0
+    for _export_name, relation_name in stale:
+        try:
+            _drop_relation(conn, str(relation_name))
+        except ValueError:
+            # Unsafe identifier: leave the relation, still drop the metadata so
+            # the reader stops trusting it.
+            continue
+    conn.execute(f"DELETE FROM sf_alpha_exports WHERE {where}", params)
+    logger.info(
+        "Dropped %d cached tab relation(s) from an older extraction version (now v%d)",
+        len(stale),
+        DUCKDB_EXPORT_SCHEMA_VERSION,
+    )
+    return len(stale)
 
 
 def _helper_schema_version(helper_name: str) -> int:
