@@ -1208,9 +1208,14 @@ def test_get_pagespeed_coverage_summary_parses_lighthouse_audits() -> None:
 
 
 def test_get_pagespeed_opportunity_summary_aggregates_by_audit_label() -> None:
+    passing_audits = {
+        audit_id: {"details": {}}
+        for audit_id in derby_backend.PAGESPEED_OPPORTUNITY_AUDIT_IDS.values()
+    }
     payload_one = {
         "lighthouseResult": {
             "audits": {
+                **passing_audits,
                 "unused-javascript": {
                     "details": {
                         "overallSavingsMs": 500,
@@ -1224,6 +1229,7 @@ def test_get_pagespeed_opportunity_summary_aggregates_by_audit_label() -> None:
     payload_two = {
         "lighthouseResult": {
             "audits": {
+                **passing_audits,
                 "unused-javascript": {
                     "details": {
                         "overallSavingsMs": 0,

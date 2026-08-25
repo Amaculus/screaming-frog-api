@@ -512,23 +512,29 @@ def test_pagespeed_opportunity_all_ids_missing_raises() -> None:
     assert "22.2" in message
 
 
-def test_pagespeed_opportunity_partial_miss_warns_rather_than_raising(caplog) -> None:
-    """Some present, some absent. Almost certainly a retired audit, but not
-    certainly: Screaming Frog lets the operator choose which PSI opportunities to
-    store, so a partial ``audits`` object cannot be ruled out from here. Warning
-    with the exact ids beats both a false alarm and silence."""
-    import logging
+def test_pagespeed_opportunity_partial_miss_raises() -> None:
+    """Some present, some absent is still stale mapping.
 
-    from screamingfrog.backends.derby_backend import _check_pagespeed_audits_seen
+    Lighthouse includes audits whether they pass or fail, so once PSI payloads
+    exist a missing pinned id means the mapping should be reverified rather than
+    producing a trustworthy-looking partial table.
+    """
+    import pytest
+    from screamingfrog.backends.derby_backend import (
+        PageSpeedAuditMissingError,
+        _check_pagespeed_audits_seen,
+    )
 
     ids = ["unused-javascript", "modern-image-formats", "uses-responsive-images"]
-    with caplog.at_level(logging.WARNING):
+    with pytest.raises(PageSpeedAuditMissingError) as exc:
         _check_pagespeed_audits_seen(
             "pagespeed_opportunities_summary.csv", ids, 12, {"unused-javascript": 12}
         )
-    assert "modern-image-formats" in caplog.text
-    assert "uses-responsive-images" in caplog.text
-    assert "unused-javascript" not in caplog.text.split("payload(s): ")[1]
+    message = str(exc.value)
+    assert "2 of 3" in message
+    assert "modern-image-formats" in message
+    assert "uses-responsive-images" in message
+    assert "unused-javascript" not in message.split("payload(s): ")[1]
 
 
 def test_pagespeed_opportunity_healthy_and_unconnected_are_both_silent(caplog) -> None:

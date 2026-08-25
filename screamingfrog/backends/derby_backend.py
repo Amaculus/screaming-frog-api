@@ -211,21 +211,12 @@ def _check_pagespeed_audits_seen(
 ) -> None:
     """Aggregate form of the check, for tabs resolving several audits at once.
 
-    Strictness is deliberately graded, because the two failure modes carry very
-    different confidence:
-
-    * **None of the pinned ids present, with payloads to look in.** The mapping
-      is wholly stale. Raises, exactly like the single-audit tabs.
-    * **Some present, some absent.** Almost certainly a retired or consolidated
-      audit (SF 23.0 merged the separate image audits into "Improve Image
-      Delivery"), but not certainly: Screaming Frog lets the operator choose
-      which PSI opportunities to store, so a legitimately partial ``audits``
-      object cannot be ruled out from here. Warns, naming every missing id, so
-      the cause is in the log rather than nowhere.
-
-    Reports EVERY missing id rather than the first: a consolidation retires a
-    whole family at once, and one-at-a-time reporting turns a single upgrade into
-    several round trips.
+    Any missing pinned id is treated as stale mapping once PSI payloads exist.
+    Lighthouse includes audits whether they pass or fail; the opportunities
+    summary would otherwise emit a complete-looking table of zeros for renamed
+    audits. Reports every missing id rather than the first: a consolidation
+    retires a whole family at once, and one-at-a-time reporting turns a single
+    upgrade into several round trips.
     """
     if payloads <= 0:
         return
@@ -242,9 +233,7 @@ def _check_pagespeed_audits_seen(
         f"Update PAGESPEED_OPPORTUNITY_AUDIT_IDS in derby_backend.py after "
         f"verifying the new ids."
     )
-    if len(missing) == len(set(audit_ids)):
-        raise PageSpeedAuditMissingError(detail)
-    logger.warning("%s", detail)
+    raise PageSpeedAuditMissingError(detail)
 
 
 _PAGESPEED_TAB_KEYS = {
