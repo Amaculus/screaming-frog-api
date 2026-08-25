@@ -162,6 +162,33 @@ PAGESPEED_AUDIT_IDS: dict[str, str] = {
     "js_coverage_summary.csv": "unused-javascript",
 }
 
+# The opportunities summary resolves FIFTEEN audits in one pass, keyed by the
+# label Screaming Frog prints rather than by a tab name, so it needs its own
+# pinned dict. Same contract as PAGESPEED_AUDIT_IDS above: re-verify every id
+# against a fresh crawl's payloads before moving the pin.
+#
+# This tab fails worse than the others when an id goes stale. The detail tabs go
+# empty, which at least looks like an absence; this one emits one zero-filled row
+# per label, so a renamed audit produces a COMPLETE-LOOKING table of zeros that a
+# consumer cannot tell apart from a fast site.
+PAGESPEED_OPPORTUNITY_AUDIT_IDS: dict[str, str] = {
+    "Reduce Unused JavaScript": "unused-javascript",
+    "Reduce Unused CSS": "unused-css-rules",
+    "Eliminate Render-Blocking Resources": "render-blocking-resources",
+    "Properly Size Images": "uses-responsive-images",
+    "Defer Offscreen Images": "offscreen-images",
+    "Minify CSS": "unminified-css",
+    "Minify JavaScript": "unminified-javascript",
+    "Efficiently Encode Images": "uses-optimized-images",
+    "Serve Images in Next-Gen Formats": "modern-image-formats",
+    "Enable Text Compression": "uses-text-compression",
+    "Preload Key Requests": "uses-rel-preload",
+    "Use Video Formats for Animated Content": "efficient-animated-content",
+    "Avoid Serving Legacy JavaScript to Modern Browsers": "legacy-javascript",
+    "Preconnect to Required Origins": "uses-rel-preconnect",
+    "Avoid Multiple Page Redirects": "redirects",
+}
+
 
 class PageSpeedAuditMissingError(RuntimeError):
     """An expected Lighthouse audit id was absent from every PSI payload —
@@ -177,6 +204,47 @@ def _check_pagespeed_audit_seen(tab_key: str, audit_id: str, payloads: int, seen
             f"retired this audit (SF 23.0 / Lighthouse 13 did exactly that). "
             f"Update PAGESPEED_AUDIT_IDS in derby_backend.py after verifying the new id."
         )
+
+
+def _check_pagespeed_audits_seen(
+    tab_key: str, audit_ids: Sequence[str], payloads: int, seen: dict[str, int]
+) -> None:
+    """Aggregate form of the check, for tabs resolving several audits at once.
+
+    Strictness is deliberately graded, because the two failure modes carry very
+    different confidence:
+
+    * **None of the pinned ids present, with payloads to look in.** The mapping
+      is wholly stale. Raises, exactly like the single-audit tabs.
+    * **Some present, some absent.** Almost certainly a retired or consolidated
+      audit (SF 23.0 merged the separate image audits into "Improve Image
+      Delivery"), but not certainly: Screaming Frog lets the operator choose
+      which PSI opportunities to store, so a legitimately partial ``audits``
+      object cannot be ruled out from here. Warns, naming every missing id, so
+      the cause is in the log rather than nowhere.
+
+    Reports EVERY missing id rather than the first: a consolidation retires a
+    whole family at once, and one-at-a-time reporting turns a single upgrade into
+    several round trips.
+    """
+    if payloads <= 0:
+        return
+    missing = sorted({aid for aid in audit_ids if not seen.get(aid)})
+    if not missing:
+        return
+
+    detail = (
+        f"{len(missing)} of {len(set(audit_ids))} Lighthouse audit id(s) (tab "
+        f"'{tab_key}') were not present in any of {payloads} PSI payload(s): "
+        f"{', '.join(missing)}. The mapping is pinned to Spider "
+        f"{PAGESPEED_PINNED_SPIDER_VERSION}; a newer Spider/Lighthouse likely "
+        f"renamed or retired them (SF 23.0 / Lighthouse 13 did exactly that). "
+        f"Update PAGESPEED_OPPORTUNITY_AUDIT_IDS in derby_backend.py after "
+        f"verifying the new ids."
+    )
+    if len(missing) == len(set(audit_ids)):
+        raise PageSpeedAuditMissingError(detail)
+    logger.warning("%s", detail)
 
 
 _PAGESPEED_TAB_KEYS = {
@@ -2063,6 +2131,7 @@ class DerbyBackend(CrawlBackend):
             params.extend(address_values)
         cursor.execute(sql, params)
 
+        specs = _pagespeed_opportunity_specs()
         totals: dict[str, dict[str, float]] = {
             label: {
                 "Number of URLs Affected": 0.0,
@@ -2070,13 +2139,25 @@ class DerbyBackend(CrawlBackend):
                 "Total Savings ms": 0.0,
                 "Total Savings Size Bytes": 0.0,
             }
-            for label in _pagespeed_opportunity_specs()
+            for label in specs
         }
+
+        # Presence, NOT affectedness. The loop below skips an audit that reports
+        # nothing to save, so counting there would read a fast site as a renamed
+        # audit. Lighthouse returns every audit whether it passes or not, so
+        # absence from the dict is the rename signal.
+        payloads = 0
+        seen: dict[str, int] = {}
 
         for _encoded_url, json_blob in _iter_cursor_rows(cursor):
             payload = _decode_gzip_json_blob(json_blob)
             audits = payload.get("lighthouseResult", {}).get("audits", {})
-            for label, audit_key in _pagespeed_opportunity_specs().items():
+            if audits:
+                payloads += 1
+                for audit_key in specs.values():
+                    if audit_key in audits:
+                        seen[audit_key] = seen.get(audit_key, 0) + 1
+            for label, audit_key in specs.items():
                 details = (audits.get(audit_key) or {}).get("details") or {}
                 savings_ms_value = _safe_float(details.get("overallSavingsMs"))
                 savings_bytes_value = _safe_float(details.get("overallSavingsBytes"))
@@ -2105,7 +2186,11 @@ class DerbyBackend(CrawlBackend):
                     detail_savings_bytes if detail_savings_bytes > 0 else savings_bytes
                 )
 
-        for label in _pagespeed_opportunity_specs():
+        _check_pagespeed_audits_seen(
+            "pagespeed_opportunities_summary.csv", list(specs.values()), payloads, seen
+        )
+
+        for label in specs:
             row = totals[label]
             affected = int(row["Number of URLs Affected"])
             total_size = int(round(row["Total Size Bytes"]))
@@ -4554,23 +4639,8 @@ def _sentence_text(value: Any) -> Optional[str]:
 
 
 def _pagespeed_opportunity_specs() -> dict[str, str]:
-    return {
-        "Reduce Unused JavaScript": "unused-javascript",
-        "Reduce Unused CSS": "unused-css-rules",
-        "Eliminate Render-Blocking Resources": "render-blocking-resources",
-        "Properly Size Images": "uses-responsive-images",
-        "Defer Offscreen Images": "offscreen-images",
-        "Minify CSS": "unminified-css",
-        "Minify JavaScript": "unminified-javascript",
-        "Efficiently Encode Images": "uses-optimized-images",
-        "Serve Images in Next-Gen Formats": "modern-image-formats",
-        "Enable Text Compression": "uses-text-compression",
-        "Preload Key Requests": "uses-rel-preload",
-        "Use Video Formats for Animated Content": "efficient-animated-content",
-        "Avoid Serving Legacy JavaScript to Modern Browsers": "legacy-javascript",
-        "Preconnect to Required Origins": "uses-rel-preconnect",
-        "Avoid Multiple Page Redirects": "redirects",
-    }
+    """Label -> Lighthouse audit id, from the pinned module-level mapping."""
+    return dict(PAGESPEED_OPPORTUNITY_AUDIT_IDS)
 
 
 def _pagespeed_details_are_affected(details: dict[str, Any]) -> bool:

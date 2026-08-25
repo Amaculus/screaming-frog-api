@@ -465,12 +465,86 @@ def test_pagespeed_audit_ids_cover_every_pagespeed_tab() -> None:
         PAGESPEED_PINNED_SPIDER_VERSION,
     )
 
-    # every tab except the opportunities summary maps to a pinned audit id
+    # every pagespeed tab resolves through a pinned mapping: the per-audit tabs
+    # via PAGESPEED_AUDIT_IDS, the opportunities summary via its own label dict
     unmapped = _PAGESPEED_TAB_KEYS - set(PAGESPEED_AUDIT_IDS) - {
         "pagespeed_opportunities_summary.csv"
     }
     assert unmapped == set()
     assert PAGESPEED_PINNED_SPIDER_VERSION  # the pin must stay declared
+
+
+def test_pagespeed_opportunity_specs_come_from_the_pinned_mapping() -> None:
+    """The opportunity tab used to carry its own unpinned dict, so ten of its
+    fifteen audit ids were outside the pin entirely (modern-image-formats,
+    uses-optimized-images, uses-responsive-images, render-blocking-resources,
+    unminified-css, unminified-javascript, uses-text-compression,
+    uses-rel-preload, uses-rel-preconnect, redirects)."""
+    from screamingfrog.backends.derby_backend import (
+        PAGESPEED_OPPORTUNITY_AUDIT_IDS,
+        _pagespeed_opportunity_specs,
+    )
+
+    assert _pagespeed_opportunity_specs() == PAGESPEED_OPPORTUNITY_AUDIT_IDS
+    # A copy, so a caller mutating the result cannot corrupt the pin.
+    _pagespeed_opportunity_specs()["Minify CSS"] = "bogus"
+    assert PAGESPEED_OPPORTUNITY_AUDIT_IDS["Minify CSS"] == "unminified-css"
+
+
+def test_pagespeed_opportunity_all_ids_missing_raises() -> None:
+    """No pinned id present at all, with payloads to look in: the mapping is
+    wholly stale, so this fails as loudly as the single-audit tabs do."""
+    import pytest
+    from screamingfrog.backends.derby_backend import (
+        PageSpeedAuditMissingError,
+        _check_pagespeed_audits_seen,
+    )
+
+    ids = ["unused-javascript", "modern-image-formats", "uses-responsive-images"]
+    with pytest.raises(PageSpeedAuditMissingError) as exc:
+        _check_pagespeed_audits_seen("pagespeed_opportunities_summary.csv", ids, 12, {})
+    message = str(exc.value)
+    # every missing id is named, not just the first: a Lighthouse consolidation
+    # retires a whole family at once
+    for audit_id in ids:
+        assert audit_id in message
+    assert "3 of 3" in message
+    assert "22.2" in message
+
+
+def test_pagespeed_opportunity_partial_miss_warns_rather_than_raising(caplog) -> None:
+    """Some present, some absent. Almost certainly a retired audit, but not
+    certainly: Screaming Frog lets the operator choose which PSI opportunities to
+    store, so a partial ``audits`` object cannot be ruled out from here. Warning
+    with the exact ids beats both a false alarm and silence."""
+    import logging
+
+    from screamingfrog.backends.derby_backend import _check_pagespeed_audits_seen
+
+    ids = ["unused-javascript", "modern-image-formats", "uses-responsive-images"]
+    with caplog.at_level(logging.WARNING):
+        _check_pagespeed_audits_seen(
+            "pagespeed_opportunities_summary.csv", ids, 12, {"unused-javascript": 12}
+        )
+    assert "modern-image-formats" in caplog.text
+    assert "uses-responsive-images" in caplog.text
+    assert "unused-javascript" not in caplog.text.split("payload(s): ")[1]
+
+
+def test_pagespeed_opportunity_healthy_and_unconnected_are_both_silent(caplog) -> None:
+    import logging
+
+    from screamingfrog.backends.derby_backend import _check_pagespeed_audits_seen
+
+    ids = ["unused-javascript", "modern-image-formats"]
+    with caplog.at_level(logging.WARNING):
+        # all ids seen -> healthy
+        _check_pagespeed_audits_seen(
+            "pagespeed_opportunities_summary.csv", ids, 12, dict.fromkeys(ids, 12)
+        )
+        # no payloads at all (PSI not connected) -> not a rename
+        _check_pagespeed_audits_seen("pagespeed_opportunities_summary.csv", ids, 0, {})
+    assert caplog.text == ""
 
 
 def test_pagespeed_missing_audit_id_fails_loudly() -> None:
@@ -490,3 +564,61 @@ def test_pagespeed_missing_audit_id_fails_loudly() -> None:
     _check_pagespeed_audit_seen("defer_offscreen_images_report.csv", "offscreen-images", 12, 12)
     # no payloads at all (PSI not connected / empty crawl) -> not a rename, no raise
     _check_pagespeed_audit_seen("defer_offscreen_images_report.csv", "offscreen-images", 0, 0)
+
+
+def _psi_blob(audits: dict[str, Any]) -> _FakeBlob:
+    payload = {"lighthouseResult": {"audits": audits}}
+    return _FakeBlob(gzip.compress(json.dumps(payload).encode("utf-8")))
+
+
+def test_opportunity_rows_raise_instead_of_emitting_a_table_of_zeros() -> None:
+    """The symptom this guard exists for.
+
+    The opportunities tab emits one row per label whatever happens, so a renamed
+    audit produced a complete-looking table of fifteen zeros. A consumer could
+    not tell that apart from a fast site, and would report the site as clean or
+    blame the operator for not connecting PSI.
+    """
+    import pytest
+    from screamingfrog.backends.derby_backend import PageSpeedAuditMissingError
+
+    # A payload carrying audits, but under Lighthouse-13 style renamed ids.
+    renamed = _psi_blob(
+        {
+            "improve-image-delivery": {"details": {"overallSavingsMs": 900}},
+            "some-other-audit": {"details": {}},
+        }
+    )
+    cursor = _FakeCursor(["ENCODED_URL", "JSON_RESPONSE"], [("https://x.test/", renamed)])
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _QueuedConnection([cursor])
+
+    with pytest.raises(PageSpeedAuditMissingError) as exc:
+        list(backend._iter_pagespeed_opportunity_rows({}))
+    # Every pinned id is missing from this payload, so all fifteen are named.
+    assert "15 of 15" in str(exc.value)
+    assert "unused-javascript" in str(exc.value)
+
+
+def test_opportunity_rows_still_emit_when_the_ids_are_present() -> None:
+    """A present-but-passing audit is a healthy site, not a rename: the ids are
+    in the payload, so nothing raises and the zero rows are real measurements."""
+    from screamingfrog.backends.derby_backend import PAGESPEED_OPPORTUNITY_AUDIT_IDS
+
+    passing = _psi_blob({aid: {"details": {}} for aid in PAGESPEED_OPPORTUNITY_AUDIT_IDS.values()})
+    cursor = _FakeCursor(["ENCODED_URL", "JSON_RESPONSE"], [("https://x.test/", passing)])
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _QueuedConnection([cursor])
+
+    rows = list(backend._iter_pagespeed_opportunity_rows({}))
+    assert len(rows) == len(PAGESPEED_OPPORTUNITY_AUDIT_IDS)
+    assert all(int(r["Number of URLs Affected"]) == 0 for r in rows)
+
+
+def test_opportunity_rows_are_a_no_op_without_any_payloads() -> None:
+    """PSI simply not connected: no payloads, no rename signal, no raise."""
+    cursor = _FakeCursor(["ENCODED_URL", "JSON_RESPONSE"], [])
+    backend = DerbyBackend.__new__(DerbyBackend)
+    backend._conn = _QueuedConnection([cursor])
+    rows = list(backend._iter_pagespeed_opportunity_rows({}))
+    assert all(int(r["Number of URLs Affected"]) == 0 for r in rows)
