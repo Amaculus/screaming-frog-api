@@ -628,3 +628,38 @@ def test_opportunity_rows_are_a_no_op_without_any_payloads() -> None:
     backend._conn = _QueuedConnection([cursor])
     rows = list(backend._iter_pagespeed_opportunity_rows({}))
     assert all(int(r["Number of URLs Affected"]) == 0 for r in rows)
+
+
+def test_pagespeed_audit_missing_error_is_importable_from_the_package_root() -> None:
+    """A consumer should be able to catch this without importing a backend.
+
+    It is raised from a Derby-specific module, so catching it used to mean either
+    importing that backend (pulling in the JPype/Derby stack) or matching on
+    `type(exc).__name__`, which is what at least one downstream ended up doing.
+    """
+    import screamingfrog
+    from screamingfrog import PageSpeedAuditMissingError
+    from screamingfrog.backends.derby_backend import (
+        PageSpeedAuditMissingError as FromBackend,
+    )
+    from screamingfrog.exceptions import PageSpeedAuditMissingError as FromExceptions
+
+    # One class, three import paths: the old one keeps working.
+    assert PageSpeedAuditMissingError is FromBackend is FromExceptions
+    assert issubclass(PageSpeedAuditMissingError, RuntimeError)
+    assert "PageSpeedAuditMissingError" in screamingfrog.__all__
+
+
+def test_the_public_exceptions_module_needs_no_backend() -> None:
+    """Importing it must not drag in Derby/JPype: the point is that a consumer on
+    a machine without a JVM can still catch the error."""
+    import subprocess
+    import sys
+
+    code = (
+        "import sys; from screamingfrog.exceptions import PageSpeedAuditMissingError; "
+        "assert 'jpype' not in sys.modules; print('clean')"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr
+    assert "clean" in out.stdout

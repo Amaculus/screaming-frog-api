@@ -20,6 +20,7 @@ from typing import Any, Iterator, Optional, Sequence
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from screamingfrog.backends.base import CrawlBackend
+from screamingfrog.exceptions import PageSpeedAuditMissingError
 from screamingfrog.backends.matching import filter_value_matches
 from screamingfrog.db.derby import (
     ensure_java_home,
@@ -190,9 +191,10 @@ PAGESPEED_OPPORTUNITY_AUDIT_IDS: dict[str, str] = {
 }
 
 
-class PageSpeedAuditMissingError(RuntimeError):
-    """An expected Lighthouse audit id was absent from every PSI payload —
-    almost certainly renamed/retired by a Spider/Lighthouse upgrade."""
+# PageSpeedAuditMissingError is imported at the top from screamingfrog.exceptions
+# so consumers can catch it without importing a backend. Importing it here keeps
+# `from ...derby_backend import PageSpeedAuditMissingError` working for anyone
+# already doing that.
 
 
 def _check_pagespeed_audit_seen(tab_key: str, audit_id: str, payloads: int, seen: int) -> None:
