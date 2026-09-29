@@ -39,7 +39,10 @@ DEFAULT_DUCKDB_HELPERS: tuple[str, ...] = (
 #   3: redirect_edges now falls back to the APP.LINKS redirect edge when the
 #      crawl stored no response headers (previously every such crawl produced
 #      zero redirect edges).
-DUCKDB_HELPER_SCHEMA_VERSION = 3
+#   4: "Indexability" is Non-Indexable for every non-2xx response, with the
+#      status "Redirected", "Client Error", "Server Error" or "No Response".
+#      Before this, a 301 or a 404 read as Indexable.
+DUCKDB_HELPER_SCHEMA_VERSION = 4
 DUCKDB_HELPER_SCHEMA_VERSIONS: dict[str, int] = {
     "internal_basic": DUCKDB_HELPER_SCHEMA_VERSION,
     "internal_common": DUCKDB_HELPER_SCHEMA_VERSION,
@@ -58,6 +61,8 @@ DUCKDB_HELPER_SCHEMA_VERSIONS: dict[str, int] = {
 #   3: structured-data tabs decode JSON-LD whose gzip stream crosses a Java
 #      block-data record, and carry a "Decode Errors" column. Before this, most
 #      JSON-LD read as absent, so a cached "Total Types" of 0 is wrong.
+#      The same version covers "Indexability" now reading Non-Indexable for
+#      every non-2xx response (see DUCKDB_HELPER_SCHEMA_VERSION 4).
 DUCKDB_EXPORT_SCHEMA_VERSION = 3
 _LINKS_CORE_TABS: frozenset[str] = frozenset({"all_inlinks.csv", "all_outlinks.csv"})
 _CHAIN_TABS: frozenset[str] = frozenset(
