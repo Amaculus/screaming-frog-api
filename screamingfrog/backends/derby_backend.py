@@ -2449,6 +2449,7 @@ class DerbyBackend(CrawlBackend):
             sql += f" WHERE {' AND '.join(where_parts)}"
         cursor.execute(sql, params)
 
+        undecoded_urls = 0
         for values in _iter_cursor_rows(cursor):
             (
                 encoded_url,
@@ -2462,7 +2463,9 @@ class DerbyBackend(CrawlBackend):
                 indexability, indexability_status = values[6:8]
             else:
                 indexability, indexability_status = self._fetch_indexability_values(encoded_url)
-            blocks = _parse_structured_data_blocks(data_blob)
+            blocks, decode_errors = _decode_structured_data_blob(data_blob)
+            if decode_errors:
+                undecoded_urls += 1
             formats = [block["format"] for block in blocks if block.get("format")]
             format_set = set(formats)
             type_occurrences: list[str] = []
@@ -2487,6 +2490,10 @@ class DerbyBackend(CrawlBackend):
                 "Indexability": indexability,
                 "Indexability Status": indexability_status,
                 "Parse Error": parse_error_text,
+                # Stored structured data this library could not decode. A
+                # non-zero value means "Total Types" is a lower bound, not a
+                # finding: the page may carry types that were not read.
+                "Decode Errors": decode_errors,
             }
             for index in range(6):
                 row[f"Feature-{index + 1}"] = features[index] if index < len(features) else None
@@ -2508,7 +2515,10 @@ class DerbyBackend(CrawlBackend):
             elif tab_key == "structured_data_rdfa_urls.csv":
                 include = "RDFA" in format_set
             elif tab_key == "structured_data_missing.csv":
-                include = not has_data
+                # Stored data that could not be decoded is not "missing":
+                # listing it would report a page as having no structured data
+                # when the page does and this library could not read it.
+                include = not has_data and not decode_errors
             elif tab_key == "structured_data_parse_errors.csv":
                 include = bool(parse_error_text)
             elif tab_key == "structured_data_rich_result_feature_detected.csv":
@@ -2535,6 +2545,13 @@ class DerbyBackend(CrawlBackend):
                 continue
 
             yield row
+
+        if undecoded_urls:
+            logger.warning(
+                "Structured data on %d URL(s) could not be decoded; their "
+                "type counts are incomplete (see the 'Decode Errors' column).",
+                undecoded_urls,
+            )
 
     def _iter_structured_data_detailed_rows(
         self, tab_key: str, norm_filters: dict[str, Any]
@@ -2563,8 +2580,11 @@ class DerbyBackend(CrawlBackend):
         require_errors = tab_key == "validation_errors_detailed_report.csv"
         require_warnings = tab_key == "validation_warnings_detailed_report.csv"
 
+        undecoded_urls = 0
         for encoded_url, data_blob, rich_errors, rich_warnings, inspection_json in _iter_cursor_rows(cursor):
-            blocks = _parse_structured_data_blocks(data_blob)
+            blocks, decode_errors = _decode_structured_data_blob(data_blob)
+            if decode_errors:
+                undecoded_urls += 1
             if not blocks:
                 continue
             issue_entries = _rich_results_issue_entries(inspection_json)
@@ -2646,6 +2666,12 @@ class DerbyBackend(CrawlBackend):
                         )
                     yield row
 
+        if undecoded_urls:
+            logger.warning(
+                "Structured data on %d URL(s) could not be decoded; the "
+                "detailed report omits what could not be read.",
+                undecoded_urls,
+            )
 
     def _fetch_indexability_values(self, encoded_url: str) -> tuple[Any, Any]:
         idx_expr, idx_status_expr = self._indexability_expressions()
@@ -3865,6 +3891,13 @@ _TABLE_ALIAS_RE = re.compile(
 _DOTTED_COLUMN_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.(\w+)\b")
 _IDENTIFIER_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\b")
 _STRING_LITERAL_RE = re.compile(r"'(?:''|[^'])*'")
+# SQL words the absent-column guard must not read as column names. A word
+# missing here makes `_expression_references_absent_column` report a column
+# the table lacks, and the whole expression is silently replaced by NULL:
+# LONG (CAST ... AS LONG VARCHAR) emptied every custom extraction column,
+# BOTH (TRIM(BOTH ...)) emptied the inlink/outlink "Rel", and OFFSET / ROW /
+# NEXT / BY emptied the second hreflang slot. tests/test_expression_guard.py
+# runs every mapped expression against a real SF schema.
 _SQL_IDENTIFIERS_TO_IGNORE = {
     "ABS",
     "ALL",
@@ -3936,6 +3969,22 @@ _SQL_IDENTIFIERS_TO_IGNORE = {
     "WHEN",
     "WHERE",
     "WITH",
+    # Paging, ordering, literals and type words that appear in mapped expressions.
+    "BOTH",
+    "BY",
+    "CHARACTER",
+    "ESCAPE",
+    "FALSE",
+    "LEADING",
+    "LIMIT",
+    "LONG",
+    "NEXT",
+    "NULLIF",
+    "OFFSET",
+    "ROW",
+    "TRAILING",
+    "TRUE",
+    "VALUES",
 }
 
 
@@ -5523,29 +5572,245 @@ def _build_language_error_summary_rows(
 
 
 def _parse_structured_data_blocks(blob: Any) -> list[dict[str, Any]]:
+    blocks, _failures = _decode_structured_data_blob(blob)
+    return blocks
+
+
+_JAVA_STREAM_MAGIC = b"\xac\xed\x00\x05"
+_JAVA_BASE_HANDLE = 0x7E0000
+_GZIP_MAGIC = b"\x1f\x8b\x08"
+
+
+class _JavaStreamError(ValueError):
+    """The blob is not a Java serialisation stream this reader understands."""
+
+
+def _java_block_segments(raw: bytes) -> list[tuple[Optional[str], bytes]]:
+    """Split SF's serialised structured data into (format, payload) segments.
+
+    Screaming Frog stores ``SERIALISED_STRUCTURED_DATA`` as a Java
+    ``ObjectOutputStream``: one ``NTriplesDocumentFormat`` enum per document
+    (JSONLD, MICRODATA, RDFA), each followed by block-data records that carry a
+    length and the gzipped N-Triples. Java cuts block data into records of at
+    most 1024 bytes and writes a record header (``0x77`` + 1-byte length or
+    ``0x7A`` + 4-byte length) between them, INSIDE the gzip bytes. The payload
+    returned here is the block data with those headers removed, so a gzip
+    stream that crosses a record boundary decodes whole.
+
+    Only the grammar SF writes is supported: block data, enums, class
+    descriptors, strings, references and null. Anything else raises
+    ``_JavaStreamError`` so the caller can report the blob as undecoded.
+    """
+    if not raw.startswith(_JAVA_STREAM_MAGIC):
+        raise _JavaStreamError("no Java stream header")
+    handles: list[Any] = []
+    pos = 4
+    size = len(raw)
+
+    def need(count: int) -> None:
+        if pos + count > size:
+            raise _JavaStreamError("truncated stream")
+
+    def read_u8() -> int:
+        nonlocal pos
+        need(1)
+        value = raw[pos]
+        pos += 1
+        return value
+
+    def read_u16() -> int:
+        nonlocal pos
+        need(2)
+        value = int.from_bytes(raw[pos : pos + 2], "big")
+        pos += 2
+        return value
+
+    def read_u32() -> int:
+        nonlocal pos
+        need(4)
+        value = int.from_bytes(raw[pos : pos + 4], "big")
+        pos += 4
+        return value
+
+    def read_utf() -> str:
+        nonlocal pos
+        length = read_u16()
+        need(length)
+        value = raw[pos : pos + length].decode("utf-8", errors="replace")
+        pos += length
+        return value
+
+    def read_reference() -> Any:
+        handle = read_u32() - _JAVA_BASE_HANDLE
+        if handle < 0 or handle >= len(handles):
+            raise _JavaStreamError("dangling reference")
+        return handles[handle]
+
+    def read_string_like() -> str:
+        tag = read_u8()
+        if tag == 0x74:  # TC_STRING
+            value = read_utf()
+            handles.append(value)
+            return value
+        if tag == 0x71:  # TC_REFERENCE
+            value = read_reference()
+            if not isinstance(value, str):
+                raise _JavaStreamError("reference is not a string")
+            return value
+        raise _JavaStreamError(f"expected a string, found 0x{tag:02x}")
+
+    def skip_annotation() -> None:
+        nonlocal pos
+        while True:
+            tag = read_u8()
+            if tag == 0x78:  # TC_ENDBLOCKDATA
+                return
+            if tag == 0x77:
+                length = read_u8()
+                need(length)
+                pos += length
+            elif tag == 0x7A:
+                length = read_u32()
+                need(length)
+                pos += length
+            else:
+                raise _JavaStreamError("object inside a class annotation")
+
+    def read_class_desc() -> Any:
+        nonlocal pos
+        tag = read_u8()
+        if tag == 0x70:  # TC_NULL
+            return None
+        if tag == 0x71:
+            return read_reference()
+        if tag != 0x72:  # TC_CLASSDESC
+            raise _JavaStreamError(f"expected a class descriptor, found 0x{tag:02x}")
+        name = read_utf()
+        need(8)
+        pos += 8  # serialVersionUID
+        descriptor = {"class": name}
+        handles.append(descriptor)
+        read_u8()  # flags
+        for _ in range(read_u16()):
+            type_code = chr(read_u8())
+            read_utf()
+            if type_code in "L[":
+                read_string_like()
+        skip_annotation()
+        read_class_desc()  # superclass
+        return descriptor
+
+    segments: list[tuple[Optional[str], bytes]] = []
+    current_format: Optional[str] = None
+    payload = bytearray()
+    while pos < size:
+        tag = read_u8()
+        if tag == 0x77:  # TC_BLOCKDATA
+            length = read_u8()
+            need(length)
+            payload += raw[pos : pos + length]
+            pos += length
+        elif tag == 0x7A:  # TC_BLOCKDATALONG
+            length = read_u32()
+            need(length)
+            payload += raw[pos : pos + length]
+            pos += length
+        elif tag == 0x7E:  # TC_ENUM
+            if payload:
+                segments.append((current_format, bytes(payload)))
+                payload = bytearray()
+            read_class_desc()
+            handles.append(None)  # the enum constant itself
+            enum_handle = len(handles) - 1
+            current_format = read_string_like().upper()
+            handles[enum_handle] = current_format
+        elif tag == 0x71:  # a repeated enum constant, written as a reference
+            if payload:
+                segments.append((current_format, bytes(payload)))
+                payload = bytearray()
+            value = read_reference()
+            if not isinstance(value, str):
+                raise _JavaStreamError("reference is not an enum constant")
+            current_format = value
+        elif tag == 0x70:  # TC_NULL
+            continue
+        else:
+            raise _JavaStreamError(f"unsupported stream token 0x{tag:02x}")
+    if payload:
+        segments.append((current_format, bytes(payload)))
+    return segments
+
+
+def _gunzip_streams(data: bytes) -> tuple[list[tuple[int, str]], int]:
+    """Decode every complete gzip stream in ``data``.
+
+    Returns ``(streams, failures)``: each stream as ``(offset, text)``, and the
+    count of gzip headers whose stream did not decode to its end. A stream only
+    counts when zlib reports end-of-stream, so a cut-off stream is a failure
+    rather than a silently truncated document.
+    """
+    streams: list[tuple[int, str]] = []
+    failures = 0
+    index = data.find(_GZIP_MAGIC)
+    while index >= 0:
+        inflater = zlib.decompressobj(16 + zlib.MAX_WBITS)
+        try:
+            text_bytes = inflater.decompress(data[index:])
+        except zlib.error:
+            failures += 1
+            index = data.find(_GZIP_MAGIC, index + 1)
+            continue
+        if not inflater.eof:
+            failures += 1
+            index = data.find(_GZIP_MAGIC, index + 1)
+            continue
+        if text_bytes:
+            streams.append((index, text_bytes.decode("utf-8", errors="replace")))
+        consumed = len(data) - index - len(inflater.unused_data)
+        index = data.find(_GZIP_MAGIC, index + max(consumed, 1))
+    return streams, failures
+
+
+def _decode_structured_data_blob(blob: Any) -> tuple[list[dict[str, Any]], int]:
+    """Decode SF's structured-data blob into blocks, and count what failed.
+
+    Returns ``(blocks, failures)``. ``failures`` counts gzip streams that did
+    not decode, plus one when the blob is a Java stream this reader cannot
+    walk. A caller must surface a non-zero count: a blob that decodes to
+    nothing is NOT a page without structured data.
+    """
     raw = _blob_bytes(blob)
     if not raw:
-        return []
+        return [], 0
     blocks: list[dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
-    for index in range(len(raw) - 1):
-        if raw[index : index + 2] != b"\x1f\x8b":
-            continue
-        try:
-            inflater = zlib.decompressobj(16 + zlib.MAX_WBITS)
-            text_bytes = inflater.decompress(raw[index:])
-        except Exception:
-            continue
-        if not text_bytes:
-            continue
-        text = text_bytes.decode("utf-8", errors="replace")
-        format_key = _structured_data_format_from_context(raw, index)
+    failures = 0
+
+    def add(format_key: Optional[str], text: str) -> None:
         signature = (format_key, text[:256])
         if signature in seen:
-            continue
+            return
         seen.add(signature)
         blocks.append({"format": format_key, "text": text})
-    return blocks
+
+    if raw.startswith(_JAVA_STREAM_MAGIC):
+        try:
+            segments = _java_block_segments(raw)
+        except _JavaStreamError as exc:
+            logger.debug("Unreadable structured-data stream: %s", exc)
+            return [], 1
+        for format_key, payload in segments:
+            streams, segment_failures = _gunzip_streams(payload)
+            failures += segment_failures
+            for _offset, text in streams:
+                add(format_key, text)
+        return blocks, failures
+
+    # Not a Java stream: gzip data with the format token written before it.
+    streams, failures = _gunzip_streams(raw)
+    for offset, text in streams:
+        add(_structured_data_format_from_context(raw, offset), text)
+    return blocks, failures
 
 
 def _structured_data_format_from_context(raw: bytes, index: int) -> Optional[str]:

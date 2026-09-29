@@ -637,12 +637,12 @@ def test_get_structured_data_detail_tabs_filter_formats_and_validation_counts(
         ],
     }
 
-    def fake_blocks(blob: bytes) -> list[dict[str, Any]]:
+    def fake_blocks(blob: bytes) -> tuple[list[dict[str, Any]], int]:
         if blob == b"blob-a":
-            return [{"format": "JSONLD", "text": "jsonld"}]
-        return [{"format": "RDFA", "text": "rdfa"}]
+            return [{"format": "JSONLD", "text": "jsonld"}], 0
+        return [{"format": "RDFA", "text": "rdfa"}], 0
 
-    monkeypatch.setattr(derby_backend, "_parse_structured_data_blocks", fake_blocks)
+    monkeypatch.setattr(derby_backend, "_decode_structured_data_blob", fake_blocks)
     monkeypatch.setattr(
         derby_backend,
         "_iter_structured_data_triples",
