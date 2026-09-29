@@ -62,7 +62,9 @@ DUCKDB_HELPER_SCHEMA_VERSIONS: dict[str, int] = {
 #      block-data record, and carry a "Decode Errors" column. Before this, most
 #      JSON-LD read as absent, so a cached "Total Types" of 0 is wrong.
 #      The same version covers "Indexability" now reading Non-Indexable for
-#      every non-2xx response (see DUCKDB_HELPER_SCHEMA_VERSION 4).
+#      every non-2xx response (see DUCKDB_HELPER_SCHEMA_VERSION 4), and the
+#      columns the absent-column guard used to drop (custom extractions, link
+#      "Rel", hreflang slot 2), which were cached as NULL.
 DUCKDB_EXPORT_SCHEMA_VERSION = 3
 _LINKS_CORE_TABS: frozenset[str] = frozenset({"all_inlinks.csv", "all_outlinks.csv"})
 _CHAIN_TABS: frozenset[str] = frozenset(

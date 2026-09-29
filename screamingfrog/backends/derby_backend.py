@@ -3891,6 +3891,13 @@ _TABLE_ALIAS_RE = re.compile(
 _DOTTED_COLUMN_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.(\w+)\b")
 _IDENTIFIER_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\b")
 _STRING_LITERAL_RE = re.compile(r"'(?:''|[^'])*'")
+# SQL words the absent-column guard must not read as column names. A word
+# missing here makes `_expression_references_absent_column` report a column
+# the table lacks, and the whole expression is silently replaced by NULL:
+# LONG (CAST ... AS LONG VARCHAR) emptied every custom extraction column,
+# BOTH (TRIM(BOTH ...)) emptied the inlink/outlink "Rel", and OFFSET / ROW /
+# NEXT / BY emptied the second hreflang slot. tests/test_expression_guard.py
+# runs every mapped expression against a real SF schema.
 _SQL_IDENTIFIERS_TO_IGNORE = {
     "ABS",
     "ALL",
@@ -3962,6 +3969,22 @@ _SQL_IDENTIFIERS_TO_IGNORE = {
     "WHEN",
     "WHERE",
     "WITH",
+    # Paging, ordering, literals and type words that appear in mapped expressions.
+    "BOTH",
+    "BY",
+    "CHARACTER",
+    "ESCAPE",
+    "FALSE",
+    "LEADING",
+    "LIMIT",
+    "LONG",
+    "NEXT",
+    "NULLIF",
+    "OFFSET",
+    "ROW",
+    "TRAILING",
+    "TRUE",
+    "VALUES",
 }
 
 
